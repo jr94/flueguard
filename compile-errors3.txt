@@ -1,0 +1,9 @@
+src/auth/auth.module.ts(18,7): error TS2322: Type '(configService: ConfigService) => Promise<{ secret: string | undefined; signOptions: { expiresIn: string; }; }>' is not assignable to type '(...args: any[]) => JwtModuleOptions | Promise<JwtModuleOptions>'.
+  Type 'Promise<{ secret: string | undefined; signOptions: { expiresIn: string; }; }>' is not assignable to type 'JwtModuleOptions | Promise<JwtModuleOptions>'.
+    Type 'Promise<{ secret: string | undefined; signOptions: { expiresIn: string; }; }>' is not assignable to type 'Promise<JwtModuleOptions>'.
+      Type '{ secret: string | undefined; signOptions: { expiresIn: string; }; }' is not assignable to type 'JwtModuleOptions'.
+        The types of 'signOptions.expiresIn' are incompatible between these types.
+          Type 'string' is not assignable to type 'number | StringValue | undefined'.
+src/telemetry/telemetry.service.ts(49,11): error TS2322: Type '"critical"' is not assignable to type 'null'.
+src/telemetry/telemetry.service.ts(52,11): error TS2322: Type '"warning"' is not assignable to type 'null'.
+src/telemetry/telemetry.service.ts(55,11): error TS2322: Type '"info"' is not assignable to type 'null'.
