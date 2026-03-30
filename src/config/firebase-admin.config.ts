@@ -1,21 +1,24 @@
 import * as admin from 'firebase-admin';
-import * as path from 'path';
 
 export const initializeFirebaseAdmin = () => {
-  if (admin.apps.length === 0) {
-    // Si usas un path distinto, modifícalo abajo
-    const serviceAccountPath = path.resolve(__dirname, '../../credentials/firebase-service-account.json');
+  if (admin.apps.length > 0) return;
 
-    try {
-      const serviceAccount = require(serviceAccountPath);
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      console.log('Firebase Admin initialized successfully.');
-    } catch (error) {
-      console.warn('Failed to initialize Firebase Admin. Please place the service account JSON in credentials/firebase-service-account.json');
-      // No re-lanzamos un error fatal para no romper la app en desarrollo/testing sin firebase
-    }
+  if (!projectId || !clientEmail || !privateKey) {
+    console.warn('Firebase Admin no está inicializado. Faltan variables de entorno.');
+    return;
   }
+
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
+  });
+
+  console.log('Firebase Admin initialized correctamente');
 };
