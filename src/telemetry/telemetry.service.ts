@@ -17,7 +17,7 @@ export class TelemetryService {
     private readonly deviceSettingsService: DeviceSettingsService,
     private readonly alertsService: AlertsService,
     private readonly pushNotificationsService: PushNotificationsService,
-  ) {}
+  ) { }
 
   async processTelemetry(createTelemetryDto: CreateTelemetryDto) {
     const { serial_number, temperature } = createTelemetryDto;
@@ -54,15 +54,15 @@ export class TelemetryService {
         // Comprobamos en orden de mayor a menor gravedad
         if (t3 !== null && logTemp >= t3) {
           finalLevel = '3';
-          message = `Temperature ${temperature}° exceeded critical threshold (${settings.threshold_3}°)`;
-        } 
+          message = `Riesgo de incendio: la temperatura alcanzó ${temperature}°C. Revisa la estufa de inmediato. (valor critico ${settings.threshold_3}°)`;
+        }
         else if (t2 !== null && logTemp >= t2) {
           finalLevel = '2';
-          message = `Temperature ${temperature}° exceeded warning threshold (${settings.threshold_2}°)`;
-        } 
-        else if (t1 !== null && logTemp >= t1) {
+          message = `Temperatura alta ${temperature}°C. Reduce la combustión o revisa la estufa. (valor máximo ${settings.threshold_2}°)`;
+        }
+        else if (t1 !== null && logTemp < t1) {
           finalLevel = '1';
-          message = `Temperature ${temperature}° exceeded info threshold (${settings.threshold_1}°)`;
+          message = `Temperatura baja ${temperature}°C. Es momento de agregar leña. (valor mínimo ${settings.threshold_1}°)`;
         }
 
         // 5. Si de la comparación sacamos un nivel, generamos la alerta
