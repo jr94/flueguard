@@ -60,7 +60,7 @@ export class TelemetryService {
           finalLevel = '2';
           message = `Temperatura alta ${temperature}°C. Reduce la combustión o revisa la estufa. (valor máximo ${settings.threshold_2}°)`;
         }
-        else if (t1 !== null && logTemp < t1) {
+        else if (t1 !== null && logTemp < t1 && settings.sound_alarm_temp_low) {
           finalLevel = '1';
           message = `Temperatura baja ${temperature}°C. Es momento de agregar leña. (valor mínimo ${settings.threshold_1}°)`;
         }
