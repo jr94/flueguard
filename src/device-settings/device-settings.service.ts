@@ -21,20 +21,14 @@ export class DeviceSettingsService {
     return setting;
   }
 
-  async findBySerialAndUserId(serialNumber: string, userId: number): Promise<DeviceSetting> {
+  async findBySerialNumber(serialNumber: string): Promise<DeviceSetting> {
     // 1. Find device by serial number
     const device = await this.devicesService.findBySerialNumber(serialNumber);
     if (!device) {
       throw new NotFoundException(`Device with serial number ${serialNumber} not found`);
     }
 
-    // 2. Check if the device belongs to the given user
-    if (device.user_id !== userId) {
-      // You could also use ForbiddenException, but NotFound masks the existence
-      throw new NotFoundException(`Device does not belong to user ID ${userId}`);
-    }
-
-    // 3. Find and return the settings
+    // 2. Find and return the settings
     const setting = await this.deviceSettingRepository.findOne({ where: { device_id: device.id } });
     if (!setting) {
       throw new NotFoundException(`Settings for device with serial number ${serialNumber} not found`);

@@ -15,12 +15,11 @@ export class DeviceSettingsController {
   }
 
   @UseGuards(DeviceStaticTokenGuard)
-  @Get('serial/:serialNumber/user/:userId')
-  findBySerialAndUserId(
+  @Get('serial/:serialNumber')
+  findBySerialNumber(
     @Param('serialNumber') serialNumber: string,
-    @Param('userId', ParseIntPipe) userId: number,
   ) {
-    return this.deviceSettingsService.findBySerialAndUserId(serialNumber, userId);
+    return this.deviceSettingsService.findBySerialNumber(serialNumber);
   }
 
   @UseGuards(JwtAuthGuard)
