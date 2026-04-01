@@ -12,11 +12,13 @@ export class DevicesService {
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
-    const { serial_number } = createDeviceDto;
+    const { serial_number, user_id, device_name } = createDeviceDto;
     
     const existingDevice = await this.deviceRepository.findOne({ where: { serial_number } });
     if (existingDevice) {
-      throw new ConflictException(`Device with serial number ${serial_number} already exists`);
+      existingDevice.user_id = user_id;
+      existingDevice.device_name = device_name;
+      return this.deviceRepository.save(existingDevice);
     }
 
     const device = this.deviceRepository.create({
