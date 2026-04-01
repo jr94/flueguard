@@ -21,6 +21,9 @@ export class DeviceSetting {
   @JoinColumn({ name: 'device_id' })
   device: Device;
 
+  @Column({ name: 'type_device', type: 'int', default: 0 })
+  type_device: number;
+
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   threshold_1: number;
 

@@ -3,6 +3,10 @@ import { IsBoolean, IsNumber, IsOptional } from 'class-validator';
 export class UpdateDeviceSettingDto {
   @IsOptional()
   @IsNumber()
+  type_device?: number;
+
+  @IsOptional()
+  @IsNumber()
   threshold_1?: number;
 
   @IsOptional()
