@@ -20,4 +20,8 @@ export class UpdateDeviceSettingDto {
   @IsOptional()
   @IsBoolean()
   sound_alarm_enabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  sound_alarm_temp_low?: boolean;
 }

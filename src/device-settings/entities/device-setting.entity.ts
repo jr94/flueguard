@@ -36,6 +36,9 @@ export class DeviceSetting {
   @Column({ name: 'sound_alarm_enabled', default: true })
   sound_alarm_enabled: boolean;
 
+  @Column({ name: 'alarm_low_temp', default: true })
+  sound_alarm_temp_low: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 
