@@ -120,8 +120,19 @@ export class TelemetryService {
         order: { created_at: 'DESC' },
       });
 
+      let alarmLowTemp = true; // Default from DB is 1 (true)
+      try {
+        const settings = await this.deviceSettingsService.findByDeviceId(device.id);
+        alarmLowTemp = settings.sound_alarm_temp_low;
+      } catch (e) {
+        // If settings not found, it keeps the default value
+      }
+
       results.push({
-        device: device,
+        device: {
+          ...device,
+          alarm_low_temp: alarmLowTemp,
+        },
         last_temperature: lastLog ? lastLog.temperature : null,
         last_log_time: lastLog ? lastLog.created_at : null,
       });
