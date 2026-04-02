@@ -127,6 +127,12 @@ export class TelemetryService {
       });
     }
 
+    results.sort((a, b) => {
+      const tempA = a.last_temperature !== null ? Number(a.last_temperature) : -Infinity;
+      const tempB = b.last_temperature !== null ? Number(b.last_temperature) : -Infinity;
+      return tempB - tempA;
+    });
+
     return results;
   }
 }
