@@ -120,13 +120,11 @@ export class TelemetryService {
         order: { created_at: 'DESC' },
       });
 
-      if (lastLog) {
-        results.push({
-          device: device,
-          last_temperature: lastLog.temperature,
-          last_log_time: lastLog.created_at,
-        });
-      }
+      results.push({
+        device: device,
+        last_temperature: lastLog ? lastLog.temperature : null,
+        last_log_time: lastLog ? lastLog.created_at : null,
+      });
     }
 
     return results;
