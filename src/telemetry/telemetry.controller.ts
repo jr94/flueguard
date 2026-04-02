@@ -22,4 +22,10 @@ export class TelemetryController {
     const hours = query.hours ?? 2;
     return this.telemetryService.getDeviceTelemetry(deviceId, hours);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('lastTemp/user/:userId')
+  getLastTempForUserDevices(@Param('userId', ParseIntPipe) userId: number) {
+    return this.telemetryService.getLastTempForUserDevices(userId);
+  }
 }

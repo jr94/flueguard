@@ -109,4 +109,26 @@ export class TelemetryService {
       },
     });
   }
+
+  async getLastTempForUserDevices(userId: number) {
+    const devices = await this.devicesService.findByUserId(userId);
+    const results: any[] = [];
+
+    for (const device of devices) {
+      const lastLog = await this.temperatureLogRepository.findOne({
+        where: { device_id: device.id },
+        order: { created_at: 'DESC' },
+      });
+
+      if (lastLog) {
+        results.push({
+          device: device,
+          last_temperature: lastLog.temperature,
+          last_log_time: lastLog.created_at,
+        });
+      }
+    }
+
+    return results;
+  }
 }
