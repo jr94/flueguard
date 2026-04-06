@@ -11,7 +11,7 @@ export class PushNotificationsService {
     private readonly pushTokenRepository: Repository<DevicePushToken>,
   ) {}
 
-  async sendAlertNotification(deviceId: number, alert: any): Promise<void> {
+  async sendAlertNotification(deviceId: number, alert: any, serialNumber: string = ''): Promise<void> {
     try {
       // 1. Fetch active tokens for the device
       const activeTokens = await this.pushTokenRepository.find({
@@ -22,16 +22,28 @@ export class PushNotificationsService {
         return; // Si no hay tokens para el dispositivo evitamos mandar nada
       }
 
+      const title = 'FlueGuard: Alerta de temperatura';
+      const body = `Nivel ${alert.alert_level}: ${alert.message || 'Se detectó sobretemperatura'}`;
+      
+      const level = String(alert.alert_level || '1');
+      const channelKey = `flueguard_alert_l${level}`;
+      const soundKey = `alert_sound_l${level}`;
+
       const messagePayload = {
-        notification: {
-          title: 'FlueGuard: Alerta de temperatura',
-          body: `Nivel ${alert.alert_level}: ${alert.message || 'Se detectó sobretemperatura'}`,
+        android: {
+          priority: 'high' as const,
         },
         data: {
-          alert_id: String(alert.id),
+          title: String(title),
+          body: String(body),
+          alert_id: String(alert.id || ''),
           device_id: String(deviceId),
-          alert_level: String(alert.alert_level),
+          serial_number: String(serialNumber),
+          alert_level: level,
           temperature: String(alert.temperature ?? ''),
+          channel_key: channelKey,
+          sound_key: soundKey,
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
         },
       };
 
@@ -42,7 +54,7 @@ export class PushNotificationsService {
           if (admin.apps.length > 0) {
             await admin.messaging().send({
               token: record.fcm_token,
-              notification: messagePayload.notification,
+              android: messagePayload.android,
               data: messagePayload.data,
             });
             console.log(`FCM enviado correctamente a device ID ${deviceId} (Token: ...${record.fcm_token.slice(-5)})`);

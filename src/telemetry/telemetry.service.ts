@@ -75,7 +75,7 @@ export class TelemetryService {
           });
 
           // 6. Enviar notificación push de forma independiente
-          this.pushNotificationsService.sendAlertNotification(device.id, newAlert)
+          this.pushNotificationsService.sendAlertNotification(device.id, newAlert, serial_number)
             .catch((e) => console.error('Error en ejecución background de push notification:', e));
         }
       }
