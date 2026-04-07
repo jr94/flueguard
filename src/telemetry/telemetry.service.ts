@@ -148,10 +148,10 @@ export class TelemetryService {
         device: {
           ...device,
           alarm_low_temp: alarmLowTemp,
+          diffTemp: diffTemp,
         },
         last_temperature: lastLog ? lastLog.temperature : null,
         last_log_time: lastLog ? lastLog.created_at : null,
-        diffTemp: diffTemp,
       });
     }
 
