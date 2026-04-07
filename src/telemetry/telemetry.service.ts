@@ -115,10 +115,26 @@ export class TelemetryService {
     const results: any[] = [];
 
     for (const device of devices) {
-      const lastLog = await this.temperatureLogRepository.findOne({
+      const lastLogs = await this.temperatureLogRepository.find({
         where: { device_id: device.id },
         order: { created_at: 'DESC' },
+        take: 2,
       });
+
+      const lastLog = lastLogs.length > 0 ? lastLogs[0] : null;
+
+      let diffTemp = 1; // 1 = se mantiene
+      if (lastLogs.length >= 2) {
+        const latestTemp = Number(lastLogs[0].temperature);
+        const previousTemp = Number(lastLogs[1].temperature);
+        const diff = latestTemp - previousTemp;
+
+        if (diff >= 3) {
+          diffTemp = 2; // Sube la temperatura
+        } else if (diff <= -3) {
+          diffTemp = 0; // Baja la temperatura
+        }
+      }
 
       let alarmLowTemp = true; // Default from DB is 1 (true)
       try {
@@ -135,6 +151,7 @@ export class TelemetryService {
         },
         last_temperature: lastLog ? lastLog.temperature : null,
         last_log_time: lastLog ? lastLog.created_at : null,
+        diffTemp: diffTemp,
       });
     }
 
