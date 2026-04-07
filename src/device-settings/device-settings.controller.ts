@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { DeviceSettingsService } from './device-settings.service';
 import { UpdateDeviceSettingDto } from './dto/update-device-setting.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -10,8 +10,8 @@ export class DeviceSettingsController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':deviceId')
-  findByDeviceId(@Param('deviceId', ParseIntPipe) deviceId: number) {
-    return this.deviceSettingsService.findByDeviceId(deviceId);
+  findByDeviceId(@Param('deviceId', ParseIntPipe) deviceId: number, @Req() req: any) {
+    return this.deviceSettingsService.findByDeviceId(deviceId, req.user.id);
   }
 
   @UseGuards(DeviceStaticTokenGuard)
@@ -27,7 +27,8 @@ export class DeviceSettingsController {
   update(
     @Param('deviceId', ParseIntPipe) deviceId: number,
     @Body() updateDeviceSettingDto: UpdateDeviceSettingDto,
+    @Req() req: any,
   ) {
-    return this.deviceSettingsService.update(deviceId, updateDeviceSettingDto);
+    return this.deviceSettingsService.update(deviceId, req.user.id, updateDeviceSettingDto);
   }
 }
