@@ -139,7 +139,7 @@ export class DevicesService {
   // Sharing endpoints logic
   async shareDevice(deviceId: number, ownerId: number, dto: ShareDeviceDto) {
     const device = await this.findOne(deviceId);
-    if (device.user_id !== ownerId) {
+    if (Number(device.user_id) !== Number(ownerId)) {
       throw new BadRequestException('Solo el owner puede compartir el dispositivo');
     }
 
@@ -214,7 +214,7 @@ export class DevicesService {
 
   async removeSharedUser(deviceId: number, ownerId: number, userIdToRemove: number) {
     const device = await this.findOne(deviceId);
-    if (device.user_id !== ownerId) {
+    if (Number(device.user_id) !== Number(ownerId)) {
       throw new BadRequestException('Solo el owner puede quitar acceso');
     }
 
@@ -230,7 +230,7 @@ export class DevicesService {
 
   async updateSharedUserPermissions(deviceId: number, ownerId: number, userIdToUpdate: number, dto: UpdateDeviceShareDto) {
     const device = await this.findOne(deviceId);
-    if (device.user_id !== ownerId) {
+    if (Number(device.user_id) !== Number(ownerId)) {
       throw new BadRequestException('Solo el owner puede modificar permisos');
     }
 
