@@ -133,10 +133,16 @@ export class TelemetryService {
         const olderAvg = olderLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
         const diff = recentAvg - olderAvg;
 
-        if (diff > 1) {
-          diffTemp = 2; // Sube la temperatura
-        } else if (diff < -1) {
-          diffTemp = 0; // Baja la temperatura
+        if (diff < -1) {
+          diffTemp = 0; // bajando
+        } else if (diff <= 1) {
+          diffTemp = 1; // estable
+        } else if (diff <= 3) {
+          diffTemp = 2; // subiendo normal
+        } else if (diff <= 6) {
+          diffTemp = 3; // subiendo acelerada
+        } else {
+          diffTemp = 4; // subiendo peligrosa
         }
       }
 
