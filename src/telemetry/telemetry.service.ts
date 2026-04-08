@@ -118,16 +118,20 @@ export class TelemetryService {
       const lastLogs = await this.temperatureLogRepository.find({
         where: { device_id: device.id },
         order: { created_at: 'DESC' },
-        take: 2,
+        take: 6,
       });
 
       const lastLog = lastLogs.length > 0 ? lastLogs[0] : null;
 
       let diffTemp = 1; // 1 = se mantiene
       if (lastLogs.length >= 2) {
-        const latestTemp = Number(lastLogs[0].temperature);
-        const previousTemp = Number(lastLogs[1].temperature);
-        const diff = latestTemp - previousTemp;
+        const count = Math.min(3, Math.floor(lastLogs.length / 2));
+        const recentLogs = lastLogs.slice(0, count);
+        const olderLogs = lastLogs.slice(count, count * 2);
+
+        const recentAvg = recentLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
+        const olderAvg = olderLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
+        const diff = recentAvg - olderAvg;
 
         if (diff > 1) {
           diffTemp = 2; // Sube la temperatura
