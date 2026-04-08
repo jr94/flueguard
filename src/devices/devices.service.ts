@@ -149,7 +149,9 @@ export class DevicesService {
       id: ud.user.id,
       first_name: ud.user.first_name,
       last_name: ud.user.last_name,
-      email: ud.user.email
+      email: ud.user.email,
+      owner: ud.owner ? 1 : 0,
+      edit: ud.edit ? 1 : 0
     }));
   }
 
