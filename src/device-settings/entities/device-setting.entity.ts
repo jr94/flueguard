@@ -7,6 +7,13 @@ export class DeviceSetting {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ name: 'user_id' })
+  user_id: number;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
   @Column({ name: 'device_id' })
   device_id: number;
 
@@ -25,6 +32,9 @@ export class DeviceSetting {
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   threshold_3: number;
+
+  @Column({ name: 'notifications_enabled', default: true })
+  notifications_enabled: boolean;
 
   @Column({ name: 'sound_alarm_enabled', default: true })
   sound_alarm_enabled: boolean;

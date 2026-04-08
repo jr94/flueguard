@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as admin from 'firebase-admin';
 import { DevicePushToken } from '../push-tokens/entities/device-push-token.entity';
-import { UserDeviceNotification } from '../devices/entities/user-device-notification.entity';
 
 @Injectable()
 export class PushNotificationsService {
@@ -14,13 +13,10 @@ export class PushNotificationsService {
 
   async sendAlertNotification(deviceId: number, alert: any, serialNumber: string = ''): Promise<void> {
     try {
-      // 1. Fetch active tokens for users that have notifications_enabled = 1
-      const activeTokens = await this.pushTokenRepository.createQueryBuilder('dpt')
-        .innerJoin(UserDeviceNotification, 'udn', 'udn.device_id = dpt.device_id AND udn.user_id = dpt.user_id')
-        .where('dpt.device_id = :deviceId', { deviceId })
-        .andWhere('dpt.is_active = 1')
-        .andWhere('udn.notifications_enabled = 1')
-        .getMany();
+      // 1. Fetch active tokens for the device
+      const activeTokens = await this.pushTokenRepository.find({
+        where: { device_id: deviceId, is_active: 1 },
+      });
 
       if (!activeTokens || activeTokens.length === 0) {
         return; // Si no hay tokens para el dispositivo evitamos mandar nada

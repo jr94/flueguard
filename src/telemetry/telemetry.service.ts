@@ -42,7 +42,7 @@ export class TelemetryService {
     try {
       const settings = await this.deviceSettingsService.findByDeviceId(device.id);
 
-      if (settings) {
+      if (settings && settings.notifications_enabled) {
         let finalLevel: string | null = null;
         let message = '';
         const logTemp = Number(temperature);
