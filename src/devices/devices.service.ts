@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Device } from './entities/device.entity';
 import { UserDevice } from './entities/user-device.entity';
 import { CreateDeviceDto } from './dto/create-device.dto';
+import { ShareDeviceDto } from './dto/share-device.dto';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class DevicesService {
@@ -12,6 +14,7 @@ export class DevicesService {
     private readonly deviceRepository: Repository<Device>,
     @InjectRepository(UserDevice)
     private readonly userDeviceRepository: Repository<UserDevice>,
+    private readonly usersService: UsersService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
@@ -70,5 +73,54 @@ export class DevicesService {
       status: 'online',
       last_connection: new Date(),
     });
+  }
+
+  async shareDevice(shareDeviceDto: ShareDeviceDto): Promise<{ success: boolean; message: string }> {
+    const { device_id, email } = shareDeviceDto;
+
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException(`Usuario con email ${email} no encontrado`);
+    }
+
+    // Verify the device exists too
+    await this.findOne(device_id);
+
+    const existingLink = await this.userDeviceRepository.findOne({
+      where: { user_id: user.id, device_id },
+    });
+
+    if (existingLink) {
+      throw new ConflictException('El usuario ya tiene acceso a este dispositivo');
+    }
+
+    const newLink = this.userDeviceRepository.create({
+      user_id: user.id,
+      device_id,
+    });
+    await this.userDeviceRepository.save(newLink);
+
+    return { success: true, message: 'Dispositivo compartido exitosamente' };
+  }
+
+  async unshareDevice(shareDeviceDto: ShareDeviceDto): Promise<{ success: boolean; message: string }> {
+    const { device_id, email } = shareDeviceDto;
+
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException(`Usuario con email ${email} no encontrado`);
+    }
+
+    const existingLink = await this.userDeviceRepository.findOne({
+      where: { user_id: user.id, device_id },
+    });
+
+    if (!existingLink) {
+      throw new NotFoundException('El usuario no tiene acceso a este dispositivo');
+    }
+
+    await this.userDeviceRepository.delete(existingLink.id);
+
+    return { success: true, message: 'Acceso removido exitosamente' };
   }
 }
