@@ -5,6 +5,7 @@ import { Device } from './entities/device.entity';
 import { UserDevice } from './entities/user-device.entity';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ShareDeviceDto } from './dto/share-device.dto';
+import { UpdateShareDeviceDto } from './dto/update-share-device.dto';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -150,6 +151,27 @@ export class DevicesService {
       last_name: ud.user.last_name,
       email: ud.user.email
     }));
+  }
+
+  async updateSharePermission(dto: UpdateShareDeviceDto): Promise<{ success: boolean; message: string }> {
+    const { device_id, user_id, edit } = dto;
+
+    const existingLink = await this.userDeviceRepository.findOne({
+      where: { user_id, device_id },
+    });
+
+    if (!existingLink) {
+      throw new NotFoundException('El usuario no se encuentra asociado a este dispositivo');
+    }
+
+    if (existingLink.owner) {
+      throw new ConflictException('No se pueden remover los permisos de edición al administrador (owner)');
+    }
+
+    existingLink.edit = edit;
+    await this.userDeviceRepository.save(existingLink);
+
+    return { success: true, message: 'Permisos de edición asignados correctamente' };
   }
 
   async getUserDeviceLink(deviceId: number, userId: number): Promise<UserDevice | null> {

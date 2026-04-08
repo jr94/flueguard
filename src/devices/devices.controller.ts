@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Delete, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ShareDeviceDto } from './dto/share-device.dto';
+import { UpdateShareDeviceDto } from './dto/update-share-device.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
@@ -32,6 +33,11 @@ export class DevicesController {
   @Delete('shared/delete')
   unshareDevice(@Body() shareDeviceDto: ShareDeviceDto) {
     return this.devicesService.unshareDevice(shareDeviceDto);
+  }
+
+  @Put('shared/edit')
+  updateSharePermission(@Body() updateShareDeviceDto: UpdateShareDeviceDto) {
+    return this.devicesService.updateSharePermission(updateShareDeviceDto);
   }
 
   @Get(':deviceId/shared')
