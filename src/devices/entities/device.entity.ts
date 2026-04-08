@@ -1,17 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 @Entity('devices')
 export class Device {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'user_id' })
-  user_id: number;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'user_id' })
-  user: User;
 
   @Column({ name: 'serial_number', length: 100, unique: true })
   serial_number: string;
