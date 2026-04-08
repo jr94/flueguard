@@ -51,7 +51,6 @@ export class DeviceSettingsService {
 
       setting = this.deviceSettingRepository.create({
         device_id: deviceId,
-        user_id: device.user_id,
         ...updateDto,
       });
 
