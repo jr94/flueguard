@@ -138,9 +138,9 @@ export class DevicesService {
       throw new UnauthorizedException('No tienes permisos temporales o dueñez para ver la configuración de este equipo.');
     }
 
-    // Retrieve users linked to this device
+    // Retrieve users linked to this device (excluding the original owner)
     const userDevices = await this.userDeviceRepository.find({
-      where: { device_id: deviceId },
+      where: { device_id: deviceId, owner: false },
       relations: ['user']
     });
 
