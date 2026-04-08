@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from './entities/device.entity';
@@ -122,5 +122,29 @@ export class DevicesService {
     await this.userDeviceRepository.delete(existingLink.id);
 
     return { success: true, message: 'Acceso removido exitosamente' };
+  }
+
+  async getSharedUsers(deviceId: number, requestUserId: number): Promise<any[]> {
+    // Check if the requesting user has access to this device
+    const hasAccess = await this.userDeviceRepository.findOne({
+      where: { user_id: requestUserId, device_id: deviceId }
+    });
+
+    if (!hasAccess) {
+      throw new UnauthorizedException('No tienes permisos temporales o dueñez para ver la configuración de este equipo.');
+    }
+
+    // Retrieve users linked to this device
+    const userDevices = await this.userDeviceRepository.find({
+      where: { device_id: deviceId },
+      relations: ['user']
+    });
+
+    return userDevices.map(ud => ({
+      id: ud.user.id,
+      first_name: ud.user.first_name,
+      last_name: ud.user.last_name,
+      email: ud.user.email
+    }));
   }
 }

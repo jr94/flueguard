@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ShareDeviceDto } from './dto/share-device.dto';
@@ -32,5 +32,14 @@ export class DevicesController {
   @Delete('shared/delete')
   unshareDevice(@Body() shareDeviceDto: ShareDeviceDto) {
     return this.devicesService.unshareDevice(shareDeviceDto);
+  }
+
+  @Get(':deviceId/shared')
+  getSharedUsers(
+    @Param('deviceId', ParseIntPipe) deviceId: number,
+    @Req() req: any
+  ) {
+    const userId = req.user.id;
+    return this.devicesService.getSharedUsers(deviceId, userId);
   }
 }
