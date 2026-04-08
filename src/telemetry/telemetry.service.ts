@@ -129,9 +129,9 @@ export class TelemetryService {
         const previousTemp = Number(lastLogs[1].temperature);
         const diff = latestTemp - previousTemp;
 
-        if (diff >= 3) {
+        if (diff > 1) {
           diffTemp = 2; // Sube la temperatura
-        } else if (diff <= -3) {
+        } else if (diff < -1) {
           diffTemp = 0; // Baja la temperatura
         }
       }
