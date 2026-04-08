@@ -23,6 +23,15 @@ export class DeviceSettingsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('serial/:serialNumber/user/:userId')
+  findBySerialNumberWithUserPermissions(
+    @Param('serialNumber') serialNumber: string,
+    @Param('userId', ParseIntPipe) userId: number,
+  ) {
+    return this.deviceSettingsService.findBySerialNumberWithUserPermissions(serialNumber, userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Put(':deviceId')
   update(
     @Param('deviceId', ParseIntPipe) deviceId: number,

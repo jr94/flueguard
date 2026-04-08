@@ -41,6 +41,8 @@ export class DevicesService {
       const link = this.userDeviceRepository.create({
         user_id,
         device_id: device.id,
+        owner: true,
+        edit: true,
       });
       await this.userDeviceRepository.save(link);
     }
@@ -97,6 +99,8 @@ export class DevicesService {
     const newLink = this.userDeviceRepository.create({
       user_id: user.id,
       device_id,
+      owner: false,
+      edit: false,
     });
     await this.userDeviceRepository.save(newLink);
 
@@ -146,5 +150,11 @@ export class DevicesService {
       last_name: ud.user.last_name,
       email: ud.user.email
     }));
+  }
+
+  async getUserDeviceLink(deviceId: number, userId: number): Promise<UserDevice | null> {
+    return this.userDeviceRepository.findOne({
+      where: { device_id: deviceId, user_id: userId }
+    });
   }
 }

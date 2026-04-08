@@ -23,4 +23,10 @@ export class UserDevice {
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
+
+  @Column({ type: 'tinyint', width: 1, default: 1 })
+  owner: boolean;
+
+  @Column({ type: 'tinyint', width: 1, default: 1 })
+  edit: boolean;
 }

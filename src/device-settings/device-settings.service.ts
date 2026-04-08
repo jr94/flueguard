@@ -37,6 +37,21 @@ export class DeviceSettingsService {
     return setting;
   }
 
+  async findBySerialNumberWithUserPermissions(serialNumber: string, userId: number): Promise<any> {
+    const setting = await this.findBySerialNumber(serialNumber);
+    const link = await this.devicesService.getUserDeviceLink(setting.device_id, userId);
+
+    if (!link) {
+      throw new NotFoundException(`User has no access to device with serial number ${serialNumber}`);
+    }
+
+    return {
+      ...setting,
+      owner: link.owner ? 1 : 0,
+      edit: link.edit ? 1 : 0,
+    };
+  }
+
   async update(deviceId: number, updateDto: UpdateDeviceSettingDto): Promise<DeviceSetting> {
     let setting = await this.deviceSettingRepository.findOne({ where: { device_id: deviceId } });
 
