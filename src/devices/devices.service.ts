@@ -41,7 +41,6 @@ export class DevicesService {
 
   async findByUserId(userId: number): Promise<any[]> {
     const query = this.deviceRepository.createQueryBuilder('d')
-      .distinct(true)
       .leftJoin(DeviceShareUser, 'dsu', 'dsu.device_id = d.id')
       .where('d.user_id = :userId', { userId })
       .orWhere('dsu.user_id = :userId', { userId })
@@ -51,7 +50,7 @@ export class DevicesService {
     
     // Add access_type
     return Promise.all(devices.map(async (device) => {
-      const isOwner = Number(device.user_id) === Number(userId);
+      const isOwner = device.user_id === userId;
       return {
         ...device,
         access_type: isOwner ? 'owner' : 'shared',
