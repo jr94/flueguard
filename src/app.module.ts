@@ -12,6 +12,8 @@ import { DeviceSettingsModule } from './device-settings/device-settings.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { PushTokensModule } from './push-tokens/push-tokens.module';
 import { PushNotificationsModule } from './push-notifications/push-notifications.module';
+import { ForgotPasswordModule } from './auth/forgot-password/forgot-password.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { PushNotificationsModule } from './push-notifications/push-notifications
     MaintenanceModule,
     PushTokensModule,
     PushNotificationsModule,
+    ForgotPasswordModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
