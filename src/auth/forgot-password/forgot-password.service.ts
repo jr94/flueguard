@@ -20,7 +20,7 @@ export class ForgotPasswordService {
     private readonly userRepository: Repository<User>,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async requestPasswordReset(dto: ForgotPasswordRequestDto): Promise<{ success: boolean; message: string }> {
     const user = await this.userRepository.findOne({ where: { email: dto.email } });
@@ -35,7 +35,7 @@ export class ForgotPasswordService {
 
     // Generate 6 digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     const minutes = Number(this.configService.get<number>('FORGOT_PASSWORD_CODE_EXP_MINUTES') || 10);
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + minutes);
@@ -68,12 +68,12 @@ export class ForgotPasswordService {
 
     const tokenLength = Number(this.configService.get<number>('FRONTEND_RESET_TOKEN_LENGTH') || 64);
     const reset_token = crypto.randomBytes(tokenLength / 2).toString('hex');
-    
+
     const minutes = Number(this.configService.get<number>('FORGOT_PASSWORD_TOKEN_EXP_MINUTES') || 15);
     const tokenExpiresAt = new Date();
     tokenExpiresAt.setMinutes(tokenExpiresAt.getMinutes() + minutes);
 
-    resetRecord.verified = true;
+    resetRecord.verified = 1;
     resetRecord.reset_token = reset_token;
     resetRecord.token_expires_at = tokenExpiresAt;
 
@@ -108,7 +108,7 @@ export class ForgotPasswordService {
 
     const saltRounds = 10;
     user.password_hash = await bcrypt.hash(password, saltRounds);
-    
+
     await this.userRepository.save(user);
 
     await this.passwordResetRepository.delete({ id: resetRecord.id });
