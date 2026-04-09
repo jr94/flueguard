@@ -5,20 +5,20 @@ export class PasswordReset {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'user_id' })
+  @Column({ type: 'int' })
   user_id: number;
 
-  @Column({ length: 150 })
+  @Column({ type: 'varchar', length: 150 })
   email: string;
 
-  @Column({ length: 6 })
+  @Column({ type: 'varchar', length: 6 })
   code: string;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   reset_token: string | null;
 
   @Column({ type: 'tinyint', width: 1, default: 0 })
-  verified: boolean;
+  verified: number;
 
   @Column({ type: 'datetime' })
   code_expires_at: Date;
@@ -26,6 +26,6 @@ export class PasswordReset {
   @Column({ type: 'datetime', nullable: true })
   token_expires_at: Date | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ type: 'datetime' })
   created_at: Date;
 }
