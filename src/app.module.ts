@@ -14,6 +14,7 @@ import { PushTokensModule } from './push-tokens/push-tokens.module';
 import { PushNotificationsModule } from './push-notifications/push-notifications.module';
 import { ForgotPasswordModule } from './auth/forgot-password/forgot-password.module';
 import { MailModule } from './mail/mail.module';
+import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { MailModule } from './mail/mail.module';
     PushNotificationsModule,
     ForgotPasswordModule,
     MailModule,
+    LocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -20,4 +20,13 @@ export class UsersController {
     const { password_hash, ...result } = user;
     return result;
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('get/:id')
+  async getUserProfile(@Param('id', ParseIntPipe) id: number) {
+    const user = await this.usersService.findOne(id);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password_hash, ...result } = user;
+    return result;
+  }
 }

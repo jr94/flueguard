@@ -11,6 +11,12 @@ export class User {
   @Column({ name: 'last_name', length: 100 })
   last_name: string;
 
+  @Column({ name: 'region_id', type: 'int', nullable: true })
+  region_id: number;
+
+  @Column({ name: 'comuna_id', type: 'int', nullable: true })
+  comuna_id: number;
+
   @Column({ unique: true, length: 150 })
   email: string;
 
