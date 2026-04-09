@@ -13,22 +13,27 @@ export class LocationsService {
     private readonly comunaRepository: Repository<Comuna>,
   ) {}
 
-  async findAllRegiones(): Promise<Region[]> {
-    return this.regionRepository.find({
-      select: ['id', 'nombre'],
+  async findAllRegiones(): Promise<any[]> {
+    const regiones = await this.regionRepository.find({
+      select: ['id', 'region'],
     });
+    return regiones.map(r => ({ id: r.id, nombre: r.region }));
   }
 
-  async findComunasByRegion(regionId: number): Promise<Comuna[]> {
+  async findComunasByRegion(regionId: number): Promise<any[]> {
     const comunas = await this.comunaRepository.find({
-      where: { region_id: regionId },
-      select: ['id', 'nombre', 'region_id'],
+      relations: ['provincia'],
+      where: { provincia: { region_id: regionId } }
     });
 
     if (!comunas || comunas.length === 0) {
       throw new NotFoundException(`No comunas found for region ${regionId}`);
     }
 
-    return comunas;
+    return comunas.map(c => ({
+      id: c.id,
+      nombre: c.comuna,
+      region_id: c.provincia.region_id
+    }));
   }
 }
