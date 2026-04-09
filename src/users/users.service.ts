@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -50,5 +51,21 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
+  }
+
+  async updateProfile(id: number, updateUserDto: UpdateUserDto): Promise<Partial<User>> {
+    const user = await this.findOne(id);
+    
+    if (updateUserDto.nombre !== undefined) user.first_name = updateUserDto.nombre;
+    if (updateUserDto.apellido !== undefined) user.last_name = updateUserDto.apellido;
+    if (updateUserDto.region !== undefined) user.region_id = updateUserDto.region;
+    if (updateUserDto.comuna !== undefined) user.comuna_id = updateUserDto.comuna;
+
+    const updatedUser = await this.userRepository.save(user);
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password_hash, ...result } = updatedUser;
+    
+    return result;
   }
 }

@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('users')
@@ -28,5 +29,14 @@ export class UsersController {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password_hash, ...result } = user;
     return result;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('update/:id')
+  async updateUserProfile(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.usersService.updateProfile(id, updateUserDto);
   }
 }
