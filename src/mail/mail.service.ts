@@ -1,28 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 
 @Injectable()
 export class MailService {
-  private transporter: nodemailer.Transporter;
+  constructor(private readonly configService: ConfigService) {}
 
-  constructor(private configService: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('BREVO_SMTP_HOST'),
-      port: this.configService.get<number>('BREVO_SMTP_PORT'),
-      auth: {
-        user: this.configService.get<string>('BREVO_SMTP_USER'),
-        pass: this.configService.get<string>('BREVO_SMTP_PASS'),
-      },
-    });
-  }
+  async sendForgotPasswordCode(email: string, code: string): Promise<void> {
+    const apiKey = this.configService.get<string>('BREVO_API_KEY');
 
-  async sendForgotPasswordCode(to: string, code: string): Promise<void> {
-    const mailOptions = {
-      from: this.configService.get<string>('MAIL_FROM', '"FlueGuard" <no-reply@flueguard.cl>'),
-      to,
-      subject: 'Código de recuperación - FlueGuard',
-      html: `
+    await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: {
+          name: 'FlueGuard',
+          email: 'no-reply@flueguard.cl',
+        },
+        to: [
+          {
+            email: email,
+          },
+        ],
+        subject: 'Código de recuperación - FlueGuard',
+        htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Recuperación de contraseña</h2>
           <p>Hemos recibido una solicitud para cambiar tu contraseña.</p>
@@ -33,9 +33,14 @@ export class MailService {
           <p style="color: #666; font-size: 14px;">Este código expirará en 10 minutos.</p>
           <p style="color: #999; font-size: 12px; margin-top: 40px;">Si no solicitaste este código, puedes ignorar este correo de forma segura.</p>
         </div>
-      `,
-    };
-
-    await this.transporter.sendMail(mailOptions);
+        `,
+      },
+      {
+        headers: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
   }
 }
