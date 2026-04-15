@@ -168,9 +168,9 @@ export class TelemetryService {
         const generalVelocity = (t0 - oldestTemp) / (lastLogs.length - 1);
 
         // Predicción del cambio futuro:
-        // Mezclamos un 90% de la tendencia reciente y 10% de la histórica,
-        // con una incidencia menor de la aceleración para no sobreestimar la predicción.
-        const predictedChange = (currentVelocity * 0.9) + (generalVelocity * 0.1) + (acceleration * 0.2);
+        // Mezclamos un 70% de la tendencia reciente y 30% de la histórica,
+        // y sumamos la aceleración para crear una proyección curva.
+        const predictedChange = (currentVelocity * 0.7) + (generalVelocity * 0.3) + (acceleration * 0.5);
 
         if (predictedChange < -1) {
           diffTemp = 0; // bajando
