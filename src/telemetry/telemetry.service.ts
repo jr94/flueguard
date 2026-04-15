@@ -144,53 +144,32 @@ export class TelemetryService {
       const lastLogs = await this.temperatureLogRepository.find({
         where: { device_id: device.id },
         order: { created_at: 'DESC' },
-        take: 20, // Extraemos hasta 20 registros
+        take: 10,
       });
 
       const lastLog = lastLogs.length > 0 ? lastLogs[0] : null;
 
       let diffTemp = 1; // 1 = se mantiene
-      if (lastLogs.length >= 3) {
-        // Curva de predicción basada en los últimos registros
-        const t0 = Number(lastLogs[0].temperature); // Actual
-        const t1 = Number(lastLogs[1].temperature); // Anterior
-        const t2 = Number(lastLogs[2].temperature); // Tras-anterior
+      if (lastLogs.length >= 2) {
+        const count = Math.min(5, Math.floor(lastLogs.length / 2));
+        const recentLogs = lastLogs.slice(0, count);
+        const olderLogs = lastLogs.slice(count, count * 2);
 
-        // Velocidad de cambio inmediato
-        const currentVelocity = t0 - t1;
-        const previousVelocity = t1 - t2;
+        const recentAvg = recentLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
+        const olderAvg = olderLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
+        const diff = recentAvg - olderAvg;
 
-        // Aceleración (variación de la velocidad)
-        const acceleration = currentVelocity - previousVelocity;
-
-        // Tendencia general suavizada con hasta 20 registros históricos
-        const oldestTemp = Number(lastLogs[lastLogs.length - 1].temperature);
-        const generalVelocity = (t0 - oldestTemp) / (lastLogs.length - 1);
-
-        // Predicción del cambio futuro:
-        // Mezclamos un 70% de la tendencia reciente y 30% de la histórica,
-        // y sumamos la aceleración para crear una proyección curva.
-        const predictedChange = (currentVelocity * 0.7) + (generalVelocity * 0.3) + (acceleration * 0.5);
-
-        if (predictedChange < -1) {
+        if (diff < -1) {
           diffTemp = 0; // bajando
-        } else if (predictedChange <= 1) {
+        } else if (diff <= 1) {
           diffTemp = 1; // estable
-        } else if (predictedChange <= 3) {
+        } else if (diff <= 3) {
           diffTemp = 2; // subiendo normal
-        } else if (predictedChange <= 6) {
+        } else if (diff <= 6) {
           diffTemp = 3; // subiendo acelerada
         } else {
           diffTemp = 4; // subiendo peligrosa
         }
-      } else if (lastLogs.length === 2) {
-        // Fallback si apenas hay 2 registros
-        const diff = Number(lastLogs[0].temperature) - Number(lastLogs[1].temperature);
-        if (diff < -1) diffTemp = 0;
-        else if (diff <= 1) diffTemp = 1;
-        else if (diff <= 3) diffTemp = 2;
-        else if (diff <= 6) diffTemp = 3;
-        else diffTemp = 4;
       }
 
       let alarmLowTemp = true; // Default from DB is 1 (true)
