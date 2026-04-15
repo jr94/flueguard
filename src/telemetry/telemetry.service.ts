@@ -144,7 +144,7 @@ export class TelemetryService {
       const lastLogs = await this.temperatureLogRepository.find({
         where: { device_id: device.id },
         order: { created_at: 'DESC' },
-        take: 20, // Extraemos hasta 20 registros
+        take: 8, // Extraemos hasta 8 registros
       });
 
       const lastLog = lastLogs.length > 0 ? lastLogs[0] : null;
@@ -163,7 +163,7 @@ export class TelemetryService {
         // Aceleración (variación de la velocidad)
         const acceleration = currentVelocity - previousVelocity;
 
-        // Tendencia general suavizada con hasta 20 registros históricos
+        // Tendencia general suavizada con hasta 8 registros históricos
         const oldestTemp = Number(lastLogs[lastLogs.length - 1].temperature);
         const generalVelocity = (t0 - oldestTemp) / (lastLogs.length - 1);
 
