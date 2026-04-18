@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { DevicesModule } from './devices/devices.module';
@@ -15,11 +17,16 @@ import { PushNotificationsModule } from './push-notifications/push-notifications
 import { ForgotPasswordModule } from './auth/forgot-password/forgot-password.module';
 import { MailModule } from './mail/mail.module';
 import { LocationsModule } from './locations/locations.module';
+import { FirmwareModule } from './firmware/firmware.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'public'),
+      exclude: ['/api/(.*)', '/firmware/check', '/firmware/latest.json', '/firmware/versions.json'],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -47,6 +54,7 @@ import { LocationsModule } from './locations/locations.module';
     ForgotPasswordModule,
     MailModule,
     LocationsModule,
+    FirmwareModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, RequestMethod } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { initializeFirebaseAdmin } from './config/firebase-admin.config';
 
@@ -19,7 +19,12 @@ async function bootstrap() {
   );
 
   // Global prefix
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: [
+      { path: 'firmware', method: RequestMethod.ALL },
+      { path: 'firmware/(.*)', method: RequestMethod.ALL },
+    ],
+  });
   
   // Enable CORS for mobile app
   app.enableCors();
