@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { DeviceSetting } from './entities/device-setting.entity';
 import { UpdateDeviceSettingDto } from './dto/update-device-setting.dto';
 import { DevicesService } from '../devices/devices.service';
+import { DeviceFirmwareUpdatesService } from '../device-firmware-updates/device-firmware-updates.service';
 
 @Injectable()
 export class DeviceSettingsService {
@@ -11,6 +12,7 @@ export class DeviceSettingsService {
     @InjectRepository(DeviceSetting)
     private readonly deviceSettingRepository: Repository<DeviceSetting>,
     private readonly devicesService: DevicesService,
+    private readonly deviceFirmwareUpdatesService: DeviceFirmwareUpdatesService,
   ) {}
 
   async findByDeviceId(deviceId: number): Promise<DeviceSetting> {
@@ -21,7 +23,7 @@ export class DeviceSettingsService {
     return setting;
   }
 
-  async findBySerialNumber(serialNumber: string): Promise<DeviceSetting> {
+  async findBySerialNumber(serialNumber: string): Promise<any> {
     // 1. Find device by serial number
     const device = await this.devicesService.findBySerialNumber(serialNumber);
     if (!device) {
@@ -34,7 +36,24 @@ export class DeviceSettingsService {
       throw new NotFoundException(`Settings for device with serial number ${serialNumber} not found`);
     }
 
-    return setting;
+    // 3. Find pending OTA request if any
+    const otaRequest = await this.deviceFirmwareUpdatesService.getPendingOtaForDevice(device.id);
+
+    return {
+      ...setting,
+      firmware_update: otaRequest ? {
+        requested: true,
+        request_id: otaRequest.request_id,
+        version: otaRequest.target_version,
+        file: otaRequest.file_url,
+        sha256: otaRequest.sha256,
+        size_bytes: otaRequest.size_bytes,
+        mandatory: otaRequest.mandatory,
+        notes: otaRequest.notes || ''
+      } : {
+        requested: false
+      }
+    } as any;
   }
 
   async findBySerialNumberWithUserPermissions(serialNumber: string, userId: number): Promise<any> {

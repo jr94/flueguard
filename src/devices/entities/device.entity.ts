@@ -21,6 +21,9 @@ export class Device {
   @Column({ type: 'varchar', length: 50, nullable: true })
   ip_address: string | null;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  firmware_version: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

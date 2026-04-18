@@ -78,6 +78,12 @@ export class DevicesService {
     });
   }
 
+  async updateFirmwareVersion(id: number, version: string): Promise<void> {
+    await this.deviceRepository.update(id, {
+      firmware_version: version,
+    });
+  }
+
   async shareDevice(shareDeviceDto: ShareDeviceDto): Promise<{ success: boolean; message: string }> {
     const { device_id, email } = shareDeviceDto;
 

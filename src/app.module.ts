@@ -18,6 +18,7 @@ import { ForgotPasswordModule } from './auth/forgot-password/forgot-password.mod
 import { MailModule } from './mail/mail.module';
 import { LocationsModule } from './locations/locations.module';
 import { FirmwareModule } from './firmware/firmware.module';
+import { DeviceFirmwareUpdatesModule } from './device-firmware-updates/device-firmware-updates.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { FirmwareModule } from './firmware/firmware.module';
     MailModule,
     LocationsModule,
     FirmwareModule,
+    DeviceFirmwareUpdatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
