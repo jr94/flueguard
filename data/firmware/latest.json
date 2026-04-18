@@ -1,7 +1,7 @@
 {
   "latest": {
-    "version": "1.0.5",
-    "file": "https://flueguard.cl/firmware/flueguard-v1.0.5.bin",
+    "version": "1.0.2",
+    "file": "https://flueguard.cl/firmware/flueguard-v1.0.2.bin",
     "notes": "Nuevo patrón de alerta 2, mejoras OTA y estabilidad WiFi.",
     "date": "2026-04-19",
     "mandatory": false,
@@ -9,24 +9,16 @@
   },
   "versions": [
     {
-      "version": "1.0.5",
-      "file": "https://flueguard.cl/firmware/flueguard-v1.0.5.bin",
-      "notes": "Nuevo patrón de alerta 2, mejoras OTA y estabilidad WiFi.",
-      "date": "2026-04-19",
-      "mandatory": false,
-      "sha256": "OPCIONAL_HASH"
-    },
-    {
-      "version": "1.0.4",
-      "file": "https://flueguard.cl/firmware/flueguard-v1.0.4.bin",
+      "version": "1.0.2",
+      "file": "https://flueguard.cl/firmware/flueguard-v1.0.2.bin",
       "notes": "Optimización de reconexión WiFi y corrección de buzzer.",
       "date": "2026-04-12",
       "mandatory": false,
       "sha256": "OPCIONAL_HASH"
     },
     {
-      "version": "1.0.3",
-      "file": "https://flueguard.cl/firmware/flueguard-v1.0.3.bin",
+      "version": "1.0.1",
+      "file": "https://flueguard.cl/firmware/flueguard-v1.0.1.bin",
       "notes": "Primera versión estable con telemetría y alertas.",
       "date": "2026-04-01",
       "mandatory": false,
