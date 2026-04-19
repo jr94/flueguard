@@ -43,6 +43,7 @@ export class DeviceSettingsService {
       ...setting,
       firmware_update: otaRequest ? {
         requested: true,
+        status: otaRequest.status,
         request_id: otaRequest.request_id,
         version: otaRequest.target_version,
         file: otaRequest.file_url,
