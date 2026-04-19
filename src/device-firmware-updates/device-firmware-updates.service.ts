@@ -98,6 +98,10 @@ export class DeviceFirmwareUpdatesService {
       throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
     }
 
+    if (update.status === 'completed') {
+      return { success: true, message: 'OTA ya estaba completada' };
+    }
+
     if (update.status !== 'pending') {
       throw new BadRequestException(`No se puede completar la OTA porque su estado actual es '${update.status}'.`);
     }
@@ -126,6 +130,10 @@ export class DeviceFirmwareUpdatesService {
 
     if (!update) {
       throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
+    }
+
+    if (update.status === 'failed' || update.status === 'canceled') {
+      return { success: true, message: 'OTA ya estaba fallida o cancelada' };
     }
 
     if (update.status !== 'pending') {
@@ -163,8 +171,51 @@ export class DeviceFirmwareUpdatesService {
   }
 
   async getPendingOtaForDevice(deviceId: number): Promise<DeviceFirmwareUpdate | null> {
-    return this.updatesRepository.findOne({
+    const update = await this.updatesRepository.findOne({
       where: { device_id: deviceId, status: 'pending' }
     });
+
+    if (!update) return null;
+
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // If it's older than 24h, expire it automatically
+    if (update.created_at < oneDayAgo) {
+      update.status = 'failed';
+      update.reason = 'timeout_no_complete';
+      await this.updatesRepository.save(update);
+      return null;
+    }
+
+    // Update last_seen_at
+    update.last_seen_at = new Date();
+    await this.updatesRepository.save(update);
+
+    return update;
+  }
+
+  async getAllPendingOtas(): Promise<any[]> {
+    const pendingUpdates = await this.updatesRepository.find({
+      where: { status: 'pending' },
+      order: { created_at: 'DESC' }
+    });
+
+    // We need to fetch serial numbers from device IDs
+    const result: any[] = [];
+    for (const update of pendingUpdates) {
+      const device = await this.devicesService.findOne(update.device_id);
+      if (device) {
+        const minutes_pending = Math.floor((Date.now() - update.created_at.getTime()) / 60000);
+        result.push({
+          request_id: update.request_id,
+          serial_number: device.serial_number,
+          target_version: update.target_version,
+          created_at: update.created_at,
+          minutes_pending,
+          last_seen_at: update.last_seen_at
+        });
+      }
+    }
+    return result;
   }
 }

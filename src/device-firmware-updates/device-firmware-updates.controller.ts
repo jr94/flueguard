@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
 import { DeviceFirmwareUpdatesService } from './device-firmware-updates.service';
 import { RequestOtaDto } from './dto/request-ota.dto';
 import { CompleteOtaDto } from './dto/complete-ota.dto';
@@ -34,5 +34,11 @@ export class DeviceFirmwareUpdatesController {
   @Post('cancel')
   cancelOta(@Body() dto: CancelOtaDto, @Req() req: any) {
     return this.deviceFirmwareUpdatesService.cancelOta(dto, req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('pending')
+  getAllPendingOtas() {
+    return this.deviceFirmwareUpdatesService.getAllPendingOtas();
   }
 }

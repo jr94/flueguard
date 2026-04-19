@@ -35,6 +35,9 @@ export class DeviceFirmwareUpdate {
   @Column({ type: 'varchar', length: 255, nullable: true })
   reason: string;
 
+  @Column({ type: 'datetime', nullable: true })
+  last_seen_at: Date | null;
+
   @CreateDateColumn()
   created_at: Date;
 
