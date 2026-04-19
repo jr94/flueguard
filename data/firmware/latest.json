@@ -17,14 +17,6 @@
       "sha256": "FlueGuardUpdate2026V1"
     },
     {
-      "version": "1.0.2",
-      "file": "https://flueguard.cl/firmware/flueguard-v1.0.2.bin",
-      "notes": "Optimización de reconexión WiFi y corrección de buzzer.",
-      "date": "2026-04-12",
-      "mandatory": false,
-      "sha256": "OPCIONAL_HASH"
-    },
-    {
       "version": "1.0.1",
       "file": "https://flueguard.cl/firmware/flueguard-v1.0.1.bin",
       "notes": "Primera versión estable con telemetría y alertas.",
