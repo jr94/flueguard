@@ -27,7 +27,7 @@ import { DeviceFirmwareUpdatesModule } from './device-firmware-updates/device-fi
     }),
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'public'),
-      exclude: ['/api/(.*)', '/firmware/check', '/firmware/latest.json', '/firmware/versions.json'],
+      exclude: ['/api/*', '/firmware/check', '/firmware/latest.json', '/firmware/versions.json'],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

@@ -106,14 +106,22 @@ export class DeviceFirmwareUpdatesService {
       throw new BadRequestException(`No se puede completar la OTA porque su estado actual es '${update.status}'.`);
     }
 
-    // Update status and installed version in a transaction
-    await this.updatesRepository.manager.transaction(async transactionalEntityManager => {
-      update.status = 'completed';
-      await transactionalEntityManager.save(update);
-
-      // Update the device with the newly installed firmware version
-      await this.devicesService.updateFirmwareVersion(device.id, update.target_version);
-    });
+    try {
+      // Update status and installed version in a short, clean transaction
+      await this.updatesRepository.manager.transaction(async em => {
+        await em.update(DeviceFirmwareUpdate, update.id, { status: 'completed' });
+        // Use raw query to ensure we use the same transaction connection
+        await em.query('UPDATE devices SET firmware_version = ? WHERE id = ?', [update.target_version, device.id]);
+      });
+    } catch (error: any) {
+      if (error.code === 'ER_LOCK_WAIT_TIMEOUT') {
+        // Fallback: Retry once without transaction if locks are exhausted
+        await this.updatesRepository.update(update.id, { status: 'completed' });
+        await this.devicesService.updateFirmwareVersion(device.id, update.target_version);
+      } else {
+        throw error;
+      }
+    }
 
     return { success: true, message: 'OTA marcada como completada' };
   }
