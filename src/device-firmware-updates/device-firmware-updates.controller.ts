@@ -6,7 +6,6 @@ import { FailOtaDto } from './dto/fail-ota.dto';
 import { CancelOtaDto } from './dto/cancel-ota.dto';
 // Using JwtAuthGuard since app manages OTA requests
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Esp32AuthGuard } from '../auth/guards/esp32-auth.guard';
 
 @Controller('device-firmware-updates')
 export class DeviceFirmwareUpdatesController {
@@ -18,13 +17,11 @@ export class DeviceFirmwareUpdatesController {
     return this.deviceFirmwareUpdatesService.requestOta(dto, req.user.id);
   }
 
-  @UseGuards(Esp32AuthGuard)
   @Post('complete')
   completeOta(@Body() dto: CompleteOtaDto) {
     return this.deviceFirmwareUpdatesService.completeOta(dto);
   }
 
-  @UseGuards(Esp32AuthGuard)
   @Post('fail')
   failOta(@Body() dto: FailOtaDto) {
     return this.deviceFirmwareUpdatesService.failOta(dto);
