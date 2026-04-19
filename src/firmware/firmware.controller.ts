@@ -1,4 +1,4 @@
-import { Controller, Get, Query, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Query, Param, HttpException, HttpStatus } from '@nestjs/common';
 import { FirmwareService } from './firmware.service';
 import { CheckFirmwareDto } from './dto/check-firmware.dto';
 
@@ -23,5 +23,10 @@ export class FirmwareController {
       throw new HttpException('El parámetro "version" es obligatorio.', HttpStatus.BAD_REQUEST);
     }
     return await this.firmwareService.checkUpdate(query);
+  }
+
+  @Get('check/serial_number/:serialNumber')
+  async checkUpdateBySerialNumber(@Param('serialNumber') serialNumber: string) {
+    return await this.firmwareService.checkUpdateBySerialNumber(serialNumber);
   }
 }

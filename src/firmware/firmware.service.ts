@@ -1,10 +1,11 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import { constants, createReadStream } from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { CheckFirmwareDto } from './dto/check-firmware.dto';
 import { compareVersion } from './utils/compare-version.util';
+import { DevicesService } from '../devices/devices.service';
 
 export interface FirmwareVersion {
   version: string;
@@ -29,6 +30,10 @@ interface FirmwareCacheItem {
 
 @Injectable()
 export class FirmwareService {
+  constructor(
+    private readonly devicesService: DevicesService,
+  ) {}
+
   private metadataCache = new Map<string, FirmwareCacheItem>();
 
   private getLatestJsonPath(): string {
@@ -195,5 +200,15 @@ export class FirmwareService {
         mandatory: latest.mandatory || false
       };
     }
+  }
+
+  async checkUpdateBySerialNumber(serialNumber: string): Promise<any> {
+    const device = await this.devicesService.findBySerialNumber(serialNumber);
+    if (!device) {
+      throw new NotFoundException(`Device with serial number ${serialNumber} not found`);
+    }
+
+    const currentVersion = device.firmware_version || '0.0.0';
+    return this.checkUpdate({ version: currentVersion });
   }
 }
