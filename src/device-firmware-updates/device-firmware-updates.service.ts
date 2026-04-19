@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { DeviceFirmwareUpdate } from './entities/device-firmware-update.entity';
 import { RequestOtaDto } from './dto/request-ota.dto';
+import { StartOtaDto } from './dto/start-ota.dto';
 import { CompleteOtaDto } from './dto/complete-ota.dto';
 import { FailOtaDto } from './dto/fail-ota.dto';
 import { CancelOtaDto } from './dto/cancel-ota.dto';
@@ -19,6 +20,17 @@ export class DeviceFirmwareUpdatesService {
     private readonly devicesService: DevicesService,
     private readonly firmwareService: FirmwareService,
   ) {}
+
+  private canTransition(fromStatus: string, toStatus: string): boolean {
+    const validTransitions: Record<string, string[]> = {
+      'pending': ['in_progress', 'canceled'],
+      'in_progress': ['completed', 'failed'],
+      'completed': [],
+      'failed': [],
+      'canceled': []
+    };
+    return validTransitions[fromStatus]?.includes(toStatus) ?? false;
+  }
 
   async requestOta(dto: RequestOtaDto, userId: number) {
     const device = await this.devicesService.findBySerialNumber(dto.serial_number);
@@ -37,6 +49,13 @@ export class DeviceFirmwareUpdatesService {
 
     if (device.firmware_version && compareVersion(device.firmware_version, dto.version) > 0) {
       throw new BadRequestException('La versión solicitada es menor que la versión actualmente instalada.');
+    }
+
+    const inProgressOta = await this.updatesRepository.findOne({
+      where: { device_id: device.id, status: 'in_progress' }
+    });
+    if (inProgressOta) {
+      throw new ConflictException('Ya existe una actualización en curso para este dispositivo');
     }
 
     // Verify version exists and get metadata
@@ -84,6 +103,40 @@ export class DeviceFirmwareUpdatesService {
     };
   }
 
+  async startOta(dto: StartOtaDto) {
+    const device = await this.devicesService.findBySerialNumber(dto.serial_number);
+    if (!device) {
+      throw new NotFoundException(`Device with serial number ${dto.serial_number} not found`);
+    }
+
+    const update = await this.updatesRepository.findOne({
+      where: { device_id: device.id, request_id: dto.request_id }
+    });
+
+    if (!update) {
+      throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
+    }
+
+    if (update.status === 'in_progress') {
+      return { success: true, message: 'OTA ya estaba en curso' };
+    }
+
+    if (!this.canTransition(update.status, 'in_progress')) {
+      throw new ConflictException(`No se puede iniciar la OTA porque su estado actual es '${update.status}'.`);
+    }
+
+    const result = await this.updatesRepository.update(
+      { id: update.id, status: 'pending' },
+      { status: 'in_progress' }
+    );
+
+    if (result.affected === 0) {
+      throw new ConflictException(`Conflicto de concurrencia: la OTA ya no está en estado pending.`);
+    }
+
+    return { success: true, message: 'OTA iniciada correctamente' };
+  }
+
   async completeOta(dto: CompleteOtaDto) {
     const device = await this.devicesService.findBySerialNumber(dto.serial_number);
     if (!device) {
@@ -102,22 +155,33 @@ export class DeviceFirmwareUpdatesService {
       return { success: true, message: 'OTA ya estaba completada' };
     }
 
-    if (update.status !== 'pending') {
-      throw new BadRequestException(`No se puede completar la OTA porque su estado actual es '${update.status}'.`);
+    if (!this.canTransition(update.status, 'completed')) {
+      throw new ConflictException(`No se puede completar la OTA porque su estado actual es '${update.status}'.`);
     }
 
     try {
       // Update status and installed version in a short, clean transaction
       await this.updatesRepository.manager.transaction(async em => {
-        await em.update(DeviceFirmwareUpdate, update.id, { status: 'completed' });
+        const result = await em.update(DeviceFirmwareUpdate, 
+          { id: update.id, status: 'in_progress' }, 
+          { status: 'completed' }
+        );
+        if (result.affected === 0) {
+          throw new ConflictException(`Conflicto de concurrencia: la OTA ya no está en estado in_progress.`);
+        }
         // Use raw query to ensure we use the same transaction connection
         await em.query('UPDATE devices SET firmware_version = ? WHERE id = ?', [update.target_version, device.id]);
       });
     } catch (error: any) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
       if (error.code === 'ER_LOCK_WAIT_TIMEOUT') {
         // Fallback: Retry once without transaction if locks are exhausted
-        await this.updatesRepository.update(update.id, { status: 'completed' });
-        await this.devicesService.updateFirmwareVersion(device.id, update.target_version);
+        const result = await this.updatesRepository.update({ id: update.id, status: 'in_progress' }, { status: 'completed' });
+        if (result.affected && result.affected > 0) {
+          await this.devicesService.updateFirmwareVersion(device.id, update.target_version);
+        }
       } else {
         throw error;
       }
@@ -144,13 +208,18 @@ export class DeviceFirmwareUpdatesService {
       return { success: true, message: 'OTA ya estaba fallida o cancelada' };
     }
 
-    if (update.status !== 'pending') {
-      throw new BadRequestException(`No se puede marcar como fallida porque su estado actual es '${update.status}'.`);
+    if (!this.canTransition(update.status, 'failed')) {
+      throw new ConflictException(`No se puede marcar como fallida porque su estado actual es '${update.status}'.`);
     }
 
-    update.status = 'failed';
-    update.reason = dto.reason || 'Unknown error';
-    await this.updatesRepository.save(update);
+    const result = await this.updatesRepository.update(
+      { id: update.id, status: 'in_progress' },
+      { status: 'failed', reason: dto.reason || 'Unknown error' }
+    );
+
+    if (result.affected === 0) {
+      throw new ConflictException(`Conflicto de concurrencia: la OTA ya no está en estado in_progress.`);
+    }
 
     return { success: true, message: 'OTA marcada como fallida' };
   }
@@ -166,13 +235,30 @@ export class DeviceFirmwareUpdatesService {
       throw new UnauthorizedException('No tienes permisos (debes ser el dueño) para cancelar actualizaciones para este dispositivo.');
     }
 
+    const update = await this.updatesRepository.findOne({
+      where: { device_id: device.id, status: In(['pending', 'in_progress']) },
+      order: { created_at: 'DESC' }
+    });
+
+    if (!update) {
+      return { success: true, message: 'No hay solicitudes OTA pendientes para cancelar' };
+    }
+
+    if (update.status === 'in_progress') {
+      throw new ConflictException('No se puede cancelar una actualización que ya está en curso');
+    }
+
+    if (!this.canTransition(update.status, 'canceled')) {
+      throw new ConflictException(`No se puede cancelar una actualización en estado '${update.status}'`);
+    }
+
     const result = await this.updatesRepository.update(
-      { device_id: device.id, status: 'pending' },
+      { id: update.id, status: 'pending' },
       { status: 'canceled' }
     );
 
     if (result.affected === 0) {
-      return { success: true, message: 'No hay solicitudes OTA pendientes para cancelar' };
+      throw new ConflictException(`Conflicto de concurrencia: la OTA ya no está en estado pending.`);
     }
 
     return { success: true, message: 'Solicitud OTA cancelada correctamente' };
@@ -180,7 +266,8 @@ export class DeviceFirmwareUpdatesService {
 
   async getPendingOtaForDevice(deviceId: number): Promise<DeviceFirmwareUpdate | null> {
     const update = await this.updatesRepository.findOne({
-      where: { device_id: deviceId, status: 'pending' }
+      where: { device_id: deviceId, status: In(['pending', 'in_progress']) },
+      order: { created_at: 'DESC' }
     });
 
     if (!update) return null;
@@ -189,22 +276,22 @@ export class DeviceFirmwareUpdatesService {
 
     // If it's older than 24h, expire it automatically
     if (update.created_at < oneDayAgo) {
-      update.status = 'failed';
-      update.reason = 'timeout_no_complete';
-      await this.updatesRepository.save(update);
+      await this.updatesRepository.update(
+        { id: update.id, status: update.status },
+        { status: 'failed', reason: 'timeout_no_complete' }
+      );
       return null;
     }
 
     // Update last_seen_at
-    update.last_seen_at = new Date();
-    await this.updatesRepository.save(update);
+    await this.updatesRepository.update(update.id, { last_seen_at: new Date() });
 
     return update;
   }
 
   async getAllPendingOtas(): Promise<any[]> {
     const pendingUpdates = await this.updatesRepository.find({
-      where: { status: 'pending' },
+      where: { status: In(['pending', 'in_progress']) },
       order: { created_at: 'DESC' }
     });
 
@@ -218,6 +305,7 @@ export class DeviceFirmwareUpdatesService {
           request_id: update.request_id,
           serial_number: device.serial_number,
           target_version: update.target_version,
+          status: update.status,
           created_at: update.created_at,
           minutes_pending,
           last_seen_at: update.last_seen_at

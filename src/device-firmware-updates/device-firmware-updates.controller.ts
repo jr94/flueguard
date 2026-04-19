@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
 import { DeviceFirmwareUpdatesService } from './device-firmware-updates.service';
 import { RequestOtaDto } from './dto/request-ota.dto';
+import { StartOtaDto } from './dto/start-ota.dto';
 import { CompleteOtaDto } from './dto/complete-ota.dto';
 import { FailOtaDto } from './dto/fail-ota.dto';
 import { CancelOtaDto } from './dto/cancel-ota.dto';
@@ -15,6 +16,11 @@ export class DeviceFirmwareUpdatesController {
   @Post('request')
   requestOta(@Body() dto: RequestOtaDto, @Req() req: any) {
     return this.deviceFirmwareUpdatesService.requestOta(dto, req.user.id);
+  }
+
+  @Post('start')
+  startOta(@Body() dto: StartOtaDto) {
+    return this.deviceFirmwareUpdatesService.startOta(dto);
   }
 
   @Post('complete')

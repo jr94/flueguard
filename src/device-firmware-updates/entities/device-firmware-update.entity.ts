@@ -29,8 +29,8 @@ export class DeviceFirmwareUpdate {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @Column({ type: 'enum', enum: ['pending', 'completed', 'failed', 'canceled'], default: 'pending' })
-  status: 'pending' | 'completed' | 'failed' | 'canceled';
+  @Column({ type: 'enum', enum: ['pending', 'in_progress', 'completed', 'failed', 'canceled'], default: 'pending' })
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'canceled';
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   reason: string;
