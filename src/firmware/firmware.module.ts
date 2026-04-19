@@ -5,5 +5,6 @@ import { FirmwareService } from './firmware.service';
 @Module({
   controllers: [FirmwareController],
   providers: [FirmwareService],
+  exports: [FirmwareService],
 })
-export class FirmwareModule {}
+export class FirmwareModule { }
