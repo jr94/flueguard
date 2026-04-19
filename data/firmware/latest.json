@@ -1,13 +1,21 @@
 {
   "latest": {
-    "version": "1.0.2",
-    "file": "https://flueguard.cl/firmware/flueguard-v1.0.2.bin",
-    "notes": "Nuevo patrón de alerta 2, mejoras OTA y estabilidad WiFi.",
-    "date": "2026-04-19",
+    "version": "1.0.3",
+    "file": "https://flueguard.cl/firmware/flueguard-v1.0.3.bin",
+    "notes": "VERSION DE PRUEBA",
+    "date": "2026-04-18",
     "mandatory": false,
-    "sha256": "OPCIONAL_HASH"
+    "sha256": "FlueGuardUpdate2026V1"
   },
   "versions": [
+    {
+      "version": "1.0.3",
+      "file": "https://flueguard.cl/firmware/flueguard-v1.0.3.bin",
+      "notes": "VERSION DE PRUEBA",
+      "date": "2026-04-18",
+      "mandatory": false,
+      "sha256": "OPCIONAL_HASH"
+    },
     {
       "version": "1.0.2",
       "file": "https://flueguard.cl/firmware/flueguard-v1.0.2.bin",
