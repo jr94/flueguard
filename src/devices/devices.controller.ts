@@ -3,6 +3,7 @@ import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ShareDeviceDto } from './dto/share-device.dto';
 import { UpdateShareDeviceDto } from './dto/update-share-device.dto';
+import { RemoveDeviceDto } from './dto/remove-device.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
@@ -47,5 +48,11 @@ export class DevicesController {
   ) {
     const userId = req.user.id;
     return this.devicesService.getSharedUsers(deviceId, userId);
+  }
+
+  @Delete('remove-by-serial')
+  removeBySerial(@Body() removeDeviceDto: RemoveDeviceDto, @Req() req: any) {
+    const userId = req.user.id;
+    return this.devicesService.removeBySerial(removeDeviceDto.serial_number, userId);
   }
 }
