@@ -75,16 +75,16 @@ export class TelemetryService {
           }
         }
         else if (t2 !== null && logTemp >= t2) {
-          if (diff < -1) {
-            // Se desactiva la alerta si comienza a bajar con diferencia <-1
+          if (diff <= 0) {
+            // Se desactiva la alerta si comienza a bajar con diferencia <=0
           } else {
             finalLevel = '2';
             message = `Temperatura alta ${temperature}°C. Reduce la combustión o revisa la estufa. (valor máximo ${settings.threshold_2}°)`;
           }
         }
         else if (t1 !== null && logTemp < t1 && settings.sound_alarm_temp_low) {
-          if (diff > 1) {
-            // Se desactiva la alerta si vuelve a subir con diferencia >1
+          if (diff >= 0) {
+            // Se desactiva la alerta si vuelve a subir con diferencia >=0
           } else {
             finalLevel = '1';
             message = `Temperatura baja ${temperature}°C. Es momento de agregar leña. (valor mínimo ${settings.threshold_1}°)`;
