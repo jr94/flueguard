@@ -1,6 +1,10 @@
-import { IsBoolean, IsNumber, IsOptional } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateDeviceSettingDto {
+  @IsOptional()
+  @IsString()
+  device_name?: string;
+
   @IsOptional()
   @IsNumber()
   type_device?: number;

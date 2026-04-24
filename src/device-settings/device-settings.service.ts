@@ -73,11 +73,18 @@ export class DeviceSettingsService {
   }
 
   async update(deviceId: number, updateDto: UpdateDeviceSettingDto): Promise<DeviceSetting> {
+    const { device_name, ...settingsDto } = updateDto;
+
+    // Si viene el nombre del dispositivo, lo actualizamos a través del DevicesService
+    if (device_name) {
+      await this.devicesService.updateDeviceName(deviceId, device_name);
+    }
+
     let setting = await this.deviceSettingRepository.findOne({ where: { device_id: deviceId } });
 
     if (setting) {
       // 2. Si existe: actualizar los campos
-      Object.assign(setting, updateDto);
+      Object.assign(setting, settingsDto);
       return this.deviceSettingRepository.save(setting);
     } else {
       // 3. Si NO existe: crear un nuevo registro
@@ -86,7 +93,7 @@ export class DeviceSettingsService {
 
       setting = this.deviceSettingRepository.create({
         device_id: deviceId,
-        ...updateDto,
+        ...settingsDto,
       });
 
       // 4. Guardar usando TypeORM repository.save()

@@ -86,6 +86,12 @@ export class DevicesService {
     });
   }
 
+  async updateDeviceName(id: number, device_name: string): Promise<void> {
+    await this.deviceRepository.update(id, {
+      device_name,
+    });
+  }
+
   async shareDevice(shareDeviceDto: ShareDeviceDto): Promise<{ success: boolean; message: string }> {
     const { device_id, email } = shareDeviceDto;
 
