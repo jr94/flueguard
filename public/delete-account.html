@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eliminar cuenta de FlueGuard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 40px;
+      max-width: 400px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    h1 {
+      color: #d9534f;
+      margin-top: 0;
+      font-size: 24px;
+      text-align: center;
+    }
+    p {
+      line-height: 1.5;
+      color: #555;
+    }
+    .warning {
+      background-color: #fcf8e3;
+      border-left: 4px solid #f0ad4e;
+      padding: 10px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    input[type="email"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .checkbox-container {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .checkbox-container input {
+      margin-top: 3px;
+      margin-right: 10px;
+    }
+    .checkbox-container label {
+      font-weight: normal;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      background-color: #d9534f;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #c9302c;
+    }
+    button:disabled {
+      background-color: #e0a8a6;
+      cursor: not-allowed;
+    }
+    .message {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+      text-align: center;
+    }
+    .message.success {
+      background-color: #dff0d8;
+      color: #3c763d;
+      border: 1px solid #d6e9c6;
+      display: block;
+    }
+    .message.error {
+      background-color: #f2dede;
+      color: #a94442;
+      border: 1px solid #ebccd1;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Eliminar cuenta de FlueGuard</h1>
+    
+    <div id="form-container">
+      <div class="warning">
+        <strong>Atención:</strong> Esta acción eliminará permanentemente tu cuenta y tu asociación con los dispositivos. Se enviará un correo con un enlace de confirmación.
+      </div>
+      
+      <form id="deleteForm">
+        <div class="form-group">
+          <label for="email">Correo electrónico</label>
+          <input type="email" id="email" required placeholder="tu@correo.com">
+        </div>
+        
+        <div class="checkbox-container">
+          <input type="checkbox" id="confirmCheckbox" required>
+          <label for="confirmCheckbox">Entiendo que esta acción eliminará mi cuenta y no se puede deshacer.</label>
+        </div>
+        
+        <button type="submit" id="submitBtn">Solicitar eliminación de cuenta</button>
+      </form>
+    </div>
+    
+    <div id="messageBox" class="message"></div>
+  </div>
+
+  <script>
+    document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const confirmCheckbox = document.getElementById('confirmCheckbox').checked;
+      const submitBtn = document.getElementById('submitBtn');
+      const messageBox = document.getElementById('messageBox');
+      
+      if (!confirmCheckbox) return;
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Procesando...';
+      messageBox.className = 'message';
+      
+      try {
+        const response = await fetch('/api/account-deletion/request', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok || data.success) {
+          messageBox.className = 'message success';
+          messageBox.textContent = data.message || 'Si el correo existe, recibirás un enlace para confirmar la eliminación.';
+          document.getElementById('form-container').style.display = 'none';
+        } else {
+          messageBox.className = 'message error';
+          messageBox.textContent = data.message || 'Ocurrió un error al procesar la solicitud.';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Solicitar eliminación de cuenta';
+        }
+      } catch (error) {
+        messageBox.className = 'message error';
+        messageBox.textContent = 'Error de conexión. Inténtalo más tarde.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Solicitar eliminación de cuenta';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmar Eliminación - FlueGuard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 40px;
+      max-width: 400px;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    h1 {
+      color: #d9534f;
+      margin-top: 0;
+      font-size: 24px;
+    }
+    p {
+      line-height: 1.5;
+      color: #555;
+      margin-bottom: 25px;
+    }
+    button {
+      width: 100%;
+      background-color: #d9534f;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #c9302c;
+    }
+    button:disabled {
+      background-color: #e0a8a6;
+      cursor: not-allowed;
+    }
+    .message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+    .message.success {
+      background-color: #dff0d8;
+      color: #3c763d;
+      border: 1px solid #d6e9c6;
+      display: block;
+    }
+    .message.error {
+      background-color: #f2dede;
+      color: #a94442;
+      border: 1px solid #ebccd1;
+      display: block;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Confirmación Final</h1>
+    
+    <div id="action-container">
+      <p>Estás a punto de eliminar definitivamente tu cuenta de FlueGuard y todos los datos asociados. Esta acción <strong>no se puede deshacer</strong>.</p>
+      
+      <button id="confirmBtn">Eliminar definitivamente mi cuenta</button>
+    </div>
+    
+    <div id="messageBox" class="message"></div>
+  </div>
+
+  <script>
+    // Obtener el token de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    const confirmBtn = document.getElementById('confirmBtn');
+    const messageBox = document.getElementById('messageBox');
+    const actionContainer = document.getElementById('action-container');
+    
+    if (!token) {
+      actionContainer.style.display = 'none';
+      messageBox.className = 'message error';
+      messageBox.textContent = 'Enlace inválido: no se encontró el token de confirmación.';
+    }
+    
+    confirmBtn.addEventListener('click', async () => {
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<span class="loading"></span> Procesando...';
+      
+      try {
+        const response = await fetch('/api/account-deletion/confirm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok || data.success) {
+          actionContainer.style.display = 'none';
+          messageBox.className = 'message success';
+          messageBox.textContent = data.message || 'Tu cuenta ha sido eliminada correctamente.';
+        } else {
+          messageBox.className = 'message error';
+          messageBox.textContent = data.message || 'El enlace es inválido o ha expirado.';
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Reintentar eliminación';
+        }
+      } catch (error) {
+        messageBox.className = 'message error';
+        messageBox.textContent = 'Error de conexión. Inténtalo más tarde.';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Reintentar eliminación';
+      }
+    });
+  </script>
+</body>
+</html>

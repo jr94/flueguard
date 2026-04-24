@@ -43,4 +43,42 @@ export class MailService {
       },
     );
   }
+
+  async sendAccountDeletionEmail(email: string, link: string): Promise<void> {
+    const apiKey = this.configService.get<string>('BREVO_API_KEY');
+
+    await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: {
+          name: 'FlueGuard',
+          email: 'no-reply@flueguard.cl',
+        },
+        to: [
+          {
+            email: email,
+          },
+        ],
+        subject: 'Eliminación de cuenta - FlueGuard',
+        htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #d9534f;">Solicitud de Eliminación de Cuenta</h2>
+          <p>Hemos recibido una solicitud para eliminar tu cuenta en FlueGuard.</p>
+          <p>Para confirmar y proceder con la eliminación de tu cuenta y todos tus datos asociados, por favor haz clic en el siguiente enlace:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${link}" style="background-color: #d9534f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Confirmar Eliminación de Cuenta</a>
+          </div>
+          <p style="color: #666; font-size: 14px;">Este enlace expirará en 30 minutos.</p>
+          <p style="color: #999; font-size: 12px; margin-top: 40px;">Si no fuiste tú quien solicitó esto, puedes ignorar este correo y tu cuenta seguirá intacta.</p>
+        </div>
+        `,
+      },
+      {
+        headers: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  }
 }

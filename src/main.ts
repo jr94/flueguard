@@ -23,6 +23,8 @@ async function bootstrap() {
     exclude: [
       { path: 'firmware', method: RequestMethod.ALL },
       { path: 'firmware/(.*)', method: RequestMethod.ALL },
+      { path: 'delete-account', method: RequestMethod.GET },
+      { path: 'delete-account/confirm', method: RequestMethod.GET },
     ],
   });
   

@@ -19,6 +19,7 @@ import { MailModule } from './mail/mail.module';
 import { LocationsModule } from './locations/locations.module';
 import { FirmwareModule } from './firmware/firmware.module';
 import { DeviceFirmwareUpdatesModule } from './device-firmware-updates/device-firmware-updates.module';
+import { AccountDeletionModule } from './account-deletion/account-deletion.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { DeviceFirmwareUpdatesModule } from './device-firmware-updates/device-fi
     LocationsModule,
     FirmwareModule,
     DeviceFirmwareUpdatesModule,
+    AccountDeletionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
