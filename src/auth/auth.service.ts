@@ -48,8 +48,10 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    // Find if a token already exists for the user
-    let tokenRecord = await this.tokenRepository.findOne({ where: { user_id: user.id } });
+    const deviceType = loginDto.device_type || 'android';
+
+    // Find if a token already exists for the user AND device_type
+    let tokenRecord = await this.tokenRepository.findOne({ where: { user_id: user.id, device_type: deviceType } });
     
     if (tokenRecord) {
       // Update existing token
@@ -59,6 +61,7 @@ export class AuthService {
       // Save new token
       tokenRecord = this.tokenRepository.create({
         user_id: user.id,
+        device_type: deviceType,
         token: accessToken,
         expires_at: expiresAt,
       });

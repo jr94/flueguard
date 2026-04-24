@@ -39,10 +39,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Verify token exists in database for this user 
     const dbToken = await this.tokenRepository.findOne({
-      where: { user_id: payload.sub }
+      where: { user_id: payload.sub, token: rawToken }
     });
 
-    if (!dbToken || dbToken.token !== rawToken) {
+    if (!dbToken) {
       throw new UnauthorizedException('Token is no longer valid. Another session is active.');
     }
 

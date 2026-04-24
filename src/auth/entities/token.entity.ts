@@ -16,6 +16,9 @@ export class Token {
   @Column({ type: 'text' })
   token: string;
 
+  @Column({ type: 'varchar', length: 20, default: 'android' })
+  device_type: string;
+
   @Column({ type: 'datetime', nullable: true })
   expires_at: Date;
 
