@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidad - FlueGuard</title>
+  <style>
+    :root {
+      --primary-color: #d9534f;
+      --primary-dark: #c9302c;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #334155;
+      --text-muted: #64748b;
+      --heading-color: #0f172a;
+      --border-color: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 0;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .header h1 {
+      color: var(--primary-color);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .policy-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      padding: 40px;
+      border: 1px solid var(--border-color);
+    }
+
+    .last-updated {
+      display: inline-block;
+      background-color: #f1f5f9;
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      color: var(--heading-color);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 32px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    h2:first-of-type {
+      margin-top: 0;
+    }
+
+    p {
+      margin-bottom: 16px;
+    }
+
+    ul {
+      margin-bottom: 20px;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      position: relative;
+      list-style-type: none;
+    }
+
+    li::before {
+      content: "•";
+      color: var(--primary-color);
+      font-weight: bold;
+      display: inline-block;
+      width: 1em;
+      margin-left: -1em;
+    }
+
+    .contact-block {
+      background-color: #fef2f2;
+      border-left: 4px solid var(--primary-color);
+      padding: 20px;
+      margin-top: 30px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .contact-block h2 {
+      margin-top: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+      color: var(--primary-dark);
+    }
+
+    .contact-block p {
+      margin-bottom: 0;
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-bottom: 40px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 20px auto;
+      }
+
+      .policy-card {
+        padding: 24px;
+      }
+
+      .header h1 {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
+  <!-- Google Fonts for better typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+  <header class="header">
+    <h1>FlueGuard</h1>
+  </header>
+
+  <main class="container">
+    <div class="policy-card">
+      <div class="last-updated">Última actualización: Abril 2026</div>
+
+      <p><strong>FlueGuard</strong> es una aplicación diseñada para monitorear la temperatura de dispositivos mediante
+        sensores conectados, con el objetivo de mejorar la seguridad y la tranquilidad del usuario.</p>
+
+      <h2>Información que recopilamos</h2>
+      <p>Para brindar un servicio de calidad y asegurar el correcto funcionamiento del sistema, recopilamos los
+        siguientes datos:</p>
+      <ul>
+        <li><strong>Datos de registro:</strong> Nombre y dirección de correo electrónico.</li>
+        <li><strong>Datos del dispositivo:</strong> Identificador único y nombre asignado a sus dispositivos de
+          monitoreo.</li>
+        <li><strong>Datos de uso:</strong> Historial y registros de temperatura capturados por los sensores.</li>
+        <li><strong>Datos de sistema:</strong> Tokens de notificación (necesarios para Firebase Cloud Messaging).</li>
+      </ul>
+
+      <h2>Uso de la información</h2>
+      <p>La información que nos confía se utiliza exclusivamente para:</p>
+      <ul>
+        <li>Mostrar datos de temperatura en tiempo real en la aplicación.</li>
+        <li>Enviar alertas y notificaciones de seguridad cuando existan anomalías térmicas.</li>
+        <li>Gestionar de forma eficiente los dispositivos asociados a su cuenta.</li>
+      </ul>
+
+      <h2>Compartición de datos</h2>
+      <p>Valoramos profundamente su privacidad. <strong>No vendemos ni compartimos sus datos personales con terceros con
+          fines comerciales.</strong> Únicamente compartimos la información estrictamente necesaria con proveedores de
+        infraestructura tecnológica para mantener el servicio activo (por ejemplo, servicios de mensajería y
+        notificaciones push).</p>
+
+      <h2>Seguridad</h2>
+      <p>La protección de su información es nuestra prioridad. Toda la transmisión de datos entre la aplicación, sus
+        dispositivos y nuestros servidores se realiza mediante conexiones seguras y encriptadas (HTTPS). Implementamos
+        controles de acceso y medidas de seguridad técnicas para evitar accesos no autorizados.</p>
+
+      <h2>Servicios de terceros</h2>
+      <p>Nuestra aplicación se apoya en servicios tecnológicos de prestigio, como Firebase (proveído por Google), para
+        asegurar la entrega inmediata y confiable de notificaciones y alertas en su dispositivo móvil.</p>
+
+      <h2>Derechos del usuario</h2>
+      <p>Usted tiene control total sobre su información. En cualquier momento, el usuario puede solicitar la revisión,
+        modificación o eliminación definitiva de sus datos personales y cuenta de nuestros registros.</p>
+
+      <div class="contact-block">
+        <h2>Contacto</h2>
+        <p>Si tiene alguna duda sobre nuestra Política de Privacidad o el manejo de sus datos, no dude en
+          contactarnos:<br>
+          <strong>Email:</strong> <a href="mailto:jose.riquelme94@gmail.com">jose.riquelme94@gmail.com</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2026 FlueGuard. Todos los derechos reservados.</p>
+  </footer>
+
+</body>
+
+</html>
