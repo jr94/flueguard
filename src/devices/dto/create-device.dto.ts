@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
 
 export class CreateDeviceDto {
   @IsNumber()
@@ -12,4 +12,8 @@ export class CreateDeviceDto {
   @IsString()
   @IsNotEmpty()
   device_name: string;
+
+  @IsString()
+  @IsOptional()
+  FW_VERSION?: string;
 }

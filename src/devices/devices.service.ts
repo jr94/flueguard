@@ -21,17 +21,21 @@ export class DevicesService {
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
-    const { serial_number, user_id, device_name } = createDeviceDto;
+    const { serial_number, user_id, device_name, FW_VERSION } = createDeviceDto;
     
     let device = await this.deviceRepository.findOne({ where: { serial_number } });
     if (device) {
       device.device_name = device_name;
+      if (FW_VERSION) {
+        device.firmware_version = FW_VERSION;
+      }
       device = await this.deviceRepository.save(device);
     } else {
       device = this.deviceRepository.create({
         serial_number,
         device_name,
         status: 'offline',
+        firmware_version: FW_VERSION,
       });
       device = await this.deviceRepository.save(device);
     }
