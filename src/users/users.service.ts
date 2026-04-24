@@ -61,6 +61,11 @@ export class UsersService {
     if (updateUserDto.region !== undefined) user.region_id = updateUserDto.region;
     if (updateUserDto.comuna !== undefined) user.comuna_id = updateUserDto.comuna;
 
+    if (updateUserDto.password) {
+      const saltRounds = 10;
+      user.password_hash = await bcrypt.hash(updateUserDto.password, saltRounds);
+    }
+
     const updatedUser = await this.userRepository.save(user);
     
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsInt, MinLength } from 'class-validator';
 
 export class UpdateUserDto {
   @IsString()
@@ -16,4 +16,9 @@ export class UpdateUserDto {
   @IsInt()
   @IsOptional()
   comuna?: number;
+
+  @IsString()
+  @IsOptional()
+  @MinLength(6)
+  password?: string;
 }
