@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let tempChart;
     let currentDevices = [];
     let unreadAlerts = [];
+    let pollingInterval = null;
+    let currentOpenDeviceId = null;
+    let currentDeviceSettings = null;
 
     // Profile Form Elements
     const profileForm = document.getElementById('profile-form');
@@ -72,8 +75,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function startPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(() => {
+            if (accessToken && (dashboardView.classList.contains('active') || deviceDetailView.classList.contains('active'))) {
+                fetchDevices(true);
+            }
+        }, 20000);
+    }
+
+    function stopPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+
     // View Routing
     function showLogin() {
+        stopPolling();
         mainNav.style.display = 'none';
         loginView.classList.add('active');
         dashboardView.classList.remove('active');
@@ -89,7 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
         deviceDetailView.classList.remove('active');
         dashboardView.classList.add('active');
         userGreeting.textContent = `Hola, ${currentUser.first_name || currentUser.email}`;
+        currentOpenDeviceId = null;
         fetchDevices();
+        startPolling();
     }
 
     function showProfile() {
@@ -110,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardView.classList.remove('active');
         profileView.classList.remove('active');
         deviceDetailView.classList.add('active');
+        startPolling();
     }
 
     // Toast Notification
@@ -223,12 +244,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Fetch Devices
-    async function fetchDevices() {
+    async function fetchDevices(silent = false) {
         if (!currentUser || !currentUser.id) return;
 
-        devicesLoader.style.display = 'flex';
-        devicesGrid.style.display = 'none';
-        noDevices.style.display = 'none';
+        if (!silent) {
+            devicesLoader.style.display = 'flex';
+            devicesGrid.style.display = 'none';
+            noDevices.style.display = 'none';
+        }
 
         try {
             const response = await fetch(`${API_BASE_URL}/telemetry/lastTemp/user/${currentUser.id}`, {
@@ -252,12 +275,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             currentDevices = data;
-            renderDevices(data);
+            
+            if (dashboardView.classList.contains('active')) {
+                renderDevices(data);
+            } else if (deviceDetailView.classList.contains('active') && currentOpenDeviceId) {
+                const updatedDevice = data.find(item => item.device.id === currentOpenDeviceId);
+                if (updatedDevice) {
+                    refreshDeviceDetail(updatedDevice);
+                }
+            }
+            
             fetchNotifications();
 
         } catch (error) {
             console.error('Fetch devices error:', error);
-            showToast(error.message, 'error');
+            if (!silent) showToast(error.message, 'error');
             devicesLoader.style.display = 'none';
         }
     }
@@ -343,23 +375,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Device Details Logic ---
     async function openDeviceDetail(deviceData, trendIcon, trendColor) {
+        currentOpenDeviceId = deviceData.device.id;
         showDeviceDetail();
         const device = deviceData.device;
         
         detailDeviceName.textContent = device.device_name;
         detailSerial.textContent = `SN: ${device.serial_number}`;
         
+        currentDeviceSettings = null;
+        detailT1.textContent = '--';
+        detailT2.textContent = '--';
+        detailT3.textContent = '--';
+
+        refreshDeviceDetail(deviceData);
+
+        // Fetch thresholds
+        try {
+            const response = await fetch(`${API_BASE_URL}/device-settings/${device.id}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (response.ok) {
+                currentDeviceSettings = await response.json();
+                if (currentDeviceSettings.threshold_1) detailT1.textContent = parseFloat(currentDeviceSettings.threshold_1).toFixed(0);
+                if (currentDeviceSettings.threshold_2) detailT2.textContent = parseFloat(currentDeviceSettings.threshold_2).toFixed(0);
+                if (currentDeviceSettings.threshold_3) detailT3.textContent = parseFloat(currentDeviceSettings.threshold_3).toFixed(0);
+                
+                // re-render chart with settings if logs already fetched
+                refreshDeviceChart(device.id);
+            }
+        } catch (e) {
+            console.error('Settings fetch error:', e);
+        }
+    }
+
+    async function refreshDeviceDetail(deviceData) {
+        const device = deviceData.device;
+        
         detailDeviceStatus.textContent = device.status === 'online' ? 'Conectado' : 'Desconectado';
         detailDeviceStatus.className = 'device-status ' + (device.status === 'online' ? 'status-online' : 'status-offline');
         
+        let trendColor = '';
+        if (device.diffTemp === 0) trendColor = 'var(--text-secondary)';
+        else if (device.diffTemp === 1) trendColor = 'var(--text-secondary)';
+        else if (device.diffTemp === 2) trendColor = 'var(--warning)';
+        else if (device.diffTemp === 3) trendColor = 'var(--danger)';
+        else if (device.diffTemp >= 4) trendColor = 'var(--danger)';
+
         detailTemp.textContent = deviceData.last_temperature ? parseFloat(deviceData.last_temperature).toFixed(1) : '--';
         detailTemp.style.color = trendColor;
 
         if (device.diffTemp === 0) detailTrend.textContent = '↘ Temperatura bajando';
         else if (device.diffTemp === 1) detailTrend.textContent = '→ Temperatura estable';
         else if (device.diffTemp === 2) detailTrend.textContent = '↗ Temperatura subiendo';
-        else if (device.diffTemp === 3) detailTrend.textContent = '↑ Temperatura subiendo (acelerada)';
-        else if (device.diffTemp >= 4) detailTrend.textContent = '↑ Temperatura subiendo (peligrosa)';
+        else if (device.diffTemp === 3) detailTrend.textContent = '↑ Subiendo (acelerada)';
+        else if (device.diffTemp >= 4) detailTrend.textContent = '↑ Subiendo (peligrosa)';
         else detailTrend.textContent = 'Tendencia desconocida';
 
         if (deviceData.last_log_time) {
@@ -369,36 +438,17 @@ document.addEventListener('DOMContentLoaded', () => {
             detailLastUpdate.textContent = 'Sin registros';
         }
 
-        let deviceSettings = null;
+        refreshDeviceChart(device.id);
+    }
 
-        // Reset thresholds
-        detailT1.textContent = '--';
-        detailT2.textContent = '--';
-        detailT3.textContent = '--';
-
-        // Fetch thresholds
+    async function refreshDeviceChart(deviceId) {
         try {
-            const response = await fetch(`${API_BASE_URL}/device-settings/${device.id}`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            if (response.ok) {
-                deviceSettings = await response.json();
-                if (deviceSettings.threshold_1) detailT1.textContent = parseFloat(deviceSettings.threshold_1).toFixed(0);
-                if (deviceSettings.threshold_2) detailT2.textContent = parseFloat(deviceSettings.threshold_2).toFixed(0);
-                if (deviceSettings.threshold_3) detailT3.textContent = parseFloat(deviceSettings.threshold_3).toFixed(0);
-            }
-        } catch (e) {
-            console.error('Settings fetch error:', e);
-        }
-
-        // Fetch telemetry for chart
-        try {
-            const response = await fetch(`${API_BASE_URL}/telemetry/device/${device.id}?hours=2`, {
+            const response = await fetch(`${API_BASE_URL}/telemetry/device/${deviceId}?hours=2`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             if (response.ok) {
                 const logs = await response.json();
-                renderChart(logs, deviceSettings);
+                renderChart(logs, currentDeviceSettings);
             }
         } catch (e) {
             console.error('Chart fetch error:', e);
