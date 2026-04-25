@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (accessToken && (dashboardView.classList.contains('active') || deviceDetailView.classList.contains('active'))) {
                 fetchDevices(true);
             }
-        }, 20000);
+        }, 30000);
     }
 
     function stopPolling() {
