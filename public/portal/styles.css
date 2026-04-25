@@ -409,6 +409,9 @@ body {
     align-items: center;
     gap: 0.5rem;
     transition: all 0.2s;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.95rem;
 }
 
 .user-menu-btn:hover {
