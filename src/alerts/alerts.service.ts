@@ -16,10 +16,19 @@ export class AlertsService {
     return this.alertRepository.save(alert);
   }
 
-  async findByDeviceId(deviceId: number): Promise<Alert[]> {
-    return this.alertRepository.find({
+  async findByDeviceId(deviceId: number): Promise<any[]> {
+    const alerts = await this.alertRepository.find({
       where: { device_id: deviceId },
+      relations: ['device'],
       order: { created_at: 'DESC' },
+    });
+
+    return alerts.map(alert => {
+      const { device, ...alertData } = alert;
+      return {
+        ...alertData,
+        device_name: device?.device_name || 'Desconocido'
+      };
     });
   }
 
