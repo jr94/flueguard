@@ -773,33 +773,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Audio Alert
     let audioCtx = null;
-    function playAlertSound() {
+
+    function initAudio() {
         try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioCtx = new AudioContext();
             }
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
+        } catch (e) {
+            console.error('Audio init error:', e);
+        }
+    }
 
-            // Create a double-beep sound
-            for (let i = 0; i < 2; i++) {
+    // Unlock audio on first user interaction
+    document.addEventListener('click', () => {
+        initAudio();
+    }, { once: true });
+
+    function playAlertSound() {
+        try {
+            if (!audioCtx) initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            // Create a loud alarm sound (3 fast harsh beeps)
+            for (let i = 0; i < 3; i++) {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime + i * 0.2); // A5 note
+                osc.type = 'square'; // Harsh, loud sound
+                osc.frequency.setValueAtTime(1000, audioCtx.currentTime + i * 0.3);
+                osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + i * 0.3 + 0.1);
                 
-                gain.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.2);
-                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + i * 0.2 + 0.05);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.2 + 0.15);
+                gain.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.3);
+                gain.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + i * 0.3 + 0.05); // Max volume
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + i * 0.3 + 0.2);
                 
-                osc.start(audioCtx.currentTime + i * 0.2);
-                osc.stop(audioCtx.currentTime + i * 0.2 + 0.15);
+                osc.start(audioCtx.currentTime + i * 0.3);
+                osc.stop(audioCtx.currentTime + i * 0.3 + 0.2);
             }
         } catch (e) {
             console.error('No se pudo reproducir el sonido de alerta', e);
