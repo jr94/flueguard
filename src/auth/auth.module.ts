@@ -10,10 +10,11 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Token } from './entities/token.entity';
+import { PortalUser } from '../portal/entities/portal-user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Token]),
+    TypeOrmModule.forFeature([Token, PortalUser]),
     UsersModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
