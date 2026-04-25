@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -85,7 +85,7 @@ export class PortalAuthService {
     } catch (err) {
       console.error('Login error detailed:', err);
       if (err instanceof UnauthorizedException) throw err;
-      throw new Error(`Login crash: ${err.message}`);
+      throw new InternalServerErrorException(`Login crash: ${err.message}`);
     }
   }
 
