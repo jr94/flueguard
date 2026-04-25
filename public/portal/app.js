@@ -412,21 +412,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const d = new Date(log.created_at);
             return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         });
-        
         const data = logs.map(log => parseFloat(log.temperature));
-
-        let allValues = [...data];
-        if (settings) {
-            if (settings.threshold_1) allValues.push(parseFloat(settings.threshold_1));
-            if (settings.threshold_2) allValues.push(parseFloat(settings.threshold_2));
-            if (settings.threshold_3) allValues.push(parseFloat(settings.threshold_3));
-        }
 
         let minVal = 0;
         let maxVal = 100;
-        if (allValues.length > 0) {
-            minVal = Math.floor(Math.min(...allValues)) - 20;
-            maxVal = Math.ceil(Math.max(...allValues)) + 20;
+        if (data.length > 0) {
+            minVal = Math.floor(Math.min(...data)) - 20;
+            maxVal = Math.ceil(Math.max(...data)) + 20;
         }
 
         const datasets = [{
