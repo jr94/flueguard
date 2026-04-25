@@ -6,6 +6,7 @@ import { UsersService } from '../../users/users.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Token } from '../entities/token.entity';
+import { PortalUser } from '../../portal/entities/portal-user.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -14,6 +15,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly usersService: UsersService,
     @InjectRepository(Token)
     private readonly tokenRepository: Repository<Token>,
+    @InjectRepository(PortalUser)
+    private readonly portalUserRepository: Repository<PortalUser>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -24,29 +27,37 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: any, payload: any) {
-    // Check if the user exists and is active
+    // ── Portal token ──────────────────────────────────────────────────────────
+    if (payload.scope === 'portal') {
+      const portalUser = await this.portalUserRepository.findOne({
+        where: { id: payload.sub },
+      });
+      if (!portalUser || !portalUser.is_active) {
+        throw new UnauthorizedException('Portal user not found or inactive');
+      }
+      return { id: payload.sub, email: payload.email, scope: 'portal', role: payload.role };
+    }
+
+    // ── Mobile / app token ────────────────────────────────────────────────────
     const user = await this.usersService.findOne(payload.sub);
     if (!user || !user.is_active) {
       throw new UnauthorizedException('User not found or inactive');
     }
 
-    // Extract raw token
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       throw new UnauthorizedException('Missing authorization header');
     }
     const rawToken = authHeader.replace('Bearer ', '').trim();
 
-    // Verify token exists in database for this user 
     const dbToken = await this.tokenRepository.findOne({
-      where: { user_id: payload.sub, token: rawToken }
+      where: { user_id: payload.sub, token: rawToken },
     });
 
     if (!dbToken) {
       throw new UnauthorizedException('Token is no longer valid. Another session is active.');
     }
 
-    // Check custom expiration from DB, though JWT library usually catches expiration first
     if (dbToken.expires_at && new Date() > new Date(dbToken.expires_at)) {
       throw new UnauthorizedException('Token has expired in database');
     }
