@@ -548,4 +548,208 @@ select:disabled {
         width: 100%;
         justify-content: space-between;
     }
+
+    .form-row, .detail-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Notifications */
+.notifications-container {
+    position: relative;
+}
+
+.notifications-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    position: relative;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.notifications-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.notifications-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--danger);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 0.1rem 0.3rem;
+    border-radius: 999px;
+    border: 2px solid var(--surface-color);
+}
+
+.notifications-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+    width: 300px;
+    z-index: 100;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.notifications-header {
+    padding: 1rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.notifications-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item.empty {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem 1rem;
+}
+
+.notification-item.level-3 {
+    border-left: 3px solid var(--danger);
+}
+
+.notification-item.level-2 {
+    border-left: 3px solid var(--warning);
+}
+
+.notification-item.level-1 {
+    border-left: 3px solid var(--primary);
+}
+
+.notification-date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.3rem;
+}
+
+.clear-notifications-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.clear-notifications-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.clear-notifications-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Device Detail */
+.device-detail-container {
+    background: transparent;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.device-header-large {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    background: var(--surface-color);
+    padding: 1.5rem 2rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+}
+
+.device-header-large h2 {
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.detail-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-card h3 {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.stat-unit {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    font-weight: normal;
+}
+
+.stat-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.chart-container {
+    background: var(--surface-color);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+}
+
+.chart-container h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.canvas-wrapper {
+    position: relative;
+    height: 300px;
+    width: 100%;
 }

@@ -8,6 +8,7 @@
     <script>
         document.write('<link rel="stylesheet" href="styles.css?v=' + Date.now() + '">');
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -46,6 +47,23 @@
         <nav class="dashboard-nav">
             <div class="nav-brand">FlueGuard Portal</div>
             <div class="nav-actions">
+                <!-- Notifications -->
+                <div class="notifications-container">
+                    <button id="notifications-btn" class="notifications-btn" title="Notificaciones">
+                        🔔
+                        <span id="notifications-badge" class="notifications-badge" style="display: none;">0</span>
+                    </button>
+                    <div id="notifications-dropdown" class="notifications-dropdown" style="display: none;">
+                        <div class="notifications-header">Alertas Activas</div>
+                        <div id="notifications-list" class="notifications-list">
+                            <!-- Alerts will be injected here -->
+                            <div class="notification-item empty">No hay alertas nuevas.</div>
+                        </div>
+                        <button id="clear-notifications-btn" class="clear-notifications-btn" disabled>Borrar Notificaciones</button>
+                    </div>
+                </div>
+
+                <!-- User Menu -->
                 <div class="user-menu-container">
                     <button id="user-menu-btn" class="user-menu-btn">
                         <span id="user-greeting" class="user-greeting"></span>
@@ -147,6 +165,49 @@
                         <span class="loader" style="display: none;"></span>
                     </button>
                 </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Device Detail View -->
+    <div id="device-detail-view" class="view">
+        <nav class="dashboard-nav">
+            <div class="nav-brand">FlueGuard Portal</div>
+            <div class="nav-actions">
+                <button id="back-devices-btn" class="btn outline-btn">← Volver a Dispositivos</button>
+            </div>
+        </nav>
+
+        <main class="dashboard-content">
+            <div class="device-detail-container">
+                <div class="device-header-large">
+                    <h2 id="detail-device-name">Cargando...</h2>
+                    <span id="detail-device-status" class="device-status">...</span>
+                </div>
+                
+                <div class="detail-stats-grid">
+                    <div class="stat-card">
+                        <h3>Temperatura Actual</h3>
+                        <div class="stat-value">
+                            <span id="detail-temp">--</span> <span class="stat-unit">°C</span>
+                        </div>
+                        <div id="detail-trend" class="stat-subtitle">Calculando tendencia...</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Última Actualización</h3>
+                        <div class="stat-value" id="detail-last-update" style="font-size: 1.2rem; margin-top: 0.5rem;">
+                            --
+                        </div>
+                        <div class="stat-subtitle" id="detail-serial">SN: --</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Historial (Últimas 2 horas)</h3>
+                    <div class="canvas-wrapper">
+                        <canvas id="temperatureChart"></canvas>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

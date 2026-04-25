@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginView = document.getElementById('login-view');
     const dashboardView = document.getElementById('dashboard-view');
     const profileView = document.getElementById('profile-view');
+    const deviceDetailView = document.getElementById('device-detail-view');
     const loginForm = document.getElementById('login-form');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -18,6 +19,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const devicesGrid = document.getElementById('devices-grid');
     const noDevices = document.getElementById('no-devices');
     const toast = document.getElementById('toast');
+
+    // Notifications
+    const notificationsBtn = document.getElementById('notifications-btn');
+    const notificationsBadge = document.getElementById('notifications-badge');
+    const notificationsDropdown = document.getElementById('notifications-dropdown');
+    const notificationsList = document.getElementById('notifications-list');
+    const clearNotificationsBtn = document.getElementById('clear-notifications-btn');
+
+    // Device Detail Elements
+    const backDevicesBtn = document.getElementById('back-devices-btn');
+    const detailDeviceName = document.getElementById('detail-device-name');
+    const detailDeviceStatus = document.getElementById('detail-device-status');
+    const detailTemp = document.getElementById('detail-temp');
+    const detailTrend = document.getElementById('detail-trend');
+    const detailLastUpdate = document.getElementById('detail-last-update');
+    const detailSerial = document.getElementById('detail-serial');
+    const ctx = document.getElementById('temperatureChart').getContext('2d');
+
+    let tempChart;
+    let currentDevices = [];
+    let unreadAlerts = [];
 
     // Profile Form Elements
     const profileForm = document.getElementById('profile-form');
@@ -52,11 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
         loginView.classList.add('active');
         dashboardView.classList.remove('active');
         profileView.classList.remove('active');
+        deviceDetailView.classList.remove('active');
     }
 
     function showDashboard() {
         loginView.classList.remove('active');
         profileView.classList.remove('active');
+        deviceDetailView.classList.remove('active');
         dashboardView.classList.add('active');
         userGreeting.textContent = `Hola, ${currentUser.first_name || currentUser.email}`;
         fetchDevices();
@@ -65,9 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function showProfile() {
         loginView.classList.remove('active');
         dashboardView.classList.remove('active');
+        deviceDetailView.classList.remove('active');
         profileView.classList.add('active');
         userDropdown.style.display = 'none';
         loadProfileData();
+    }
+
+    function showDeviceDetail() {
+        loginView.classList.remove('active');
+        dashboardView.classList.remove('active');
+        profileView.classList.remove('active');
+        deviceDetailView.classList.add('active');
     }
 
     // Toast Notification
@@ -152,10 +184,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
             userDropdown.style.display = 'none';
         }
+        if (!notificationsBtn.contains(e.target) && !notificationsDropdown.contains(e.target)) {
+            notificationsDropdown.style.display = 'none';
+        }
     });
 
     profileBtn.addEventListener('click', showProfile);
     backDashboardBtn.addEventListener('click', showDashboard);
+    backDevicesBtn.addEventListener('click', showDashboard);
+
+    notificationsBtn.addEventListener('click', () => {
+        const isVisible = notificationsDropdown.style.display === 'flex';
+        notificationsDropdown.style.display = isVisible ? 'none' : 'flex';
+    });
 
     // Handle Logout
     logoutBtn.addEventListener('click', () => {
@@ -201,7 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
+            currentDevices = data;
             renderDevices(data);
+            fetchNotifications();
 
         } catch (error) {
             console.error('Fetch devices error:', error);
@@ -248,6 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const card = document.createElement('div');
             card.className = 'device-card';
+            card.style.cursor = 'pointer';
             card.innerHTML = `
                 <div class="device-header">
                     <div class="device-info">
@@ -263,9 +307,176 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             `;
+            
+            card.addEventListener('click', () => {
+                openDeviceDetail(item, trendIcon, trendColor);
+            });
+
             devicesGrid.appendChild(card);
         });
     }
+
+    // --- Device Details Logic ---
+    async function openDeviceDetail(deviceData, trendIcon, trendColor) {
+        showDeviceDetail();
+        const device = deviceData.device;
+        
+        detailDeviceName.textContent = device.device_name;
+        detailSerial.textContent = `SN: ${device.serial_number}`;
+        
+        detailDeviceStatus.textContent = device.status === 'online' ? 'Conectado' : 'Desconectado';
+        detailDeviceStatus.className = 'device-status ' + (device.status === 'online' ? 'status-online' : 'status-offline');
+        
+        detailTemp.textContent = deviceData.last_temperature ? parseFloat(deviceData.last_temperature).toFixed(1) : '--';
+        detailTemp.style.color = trendColor;
+
+        if (device.diffTemp === 0) detailTrend.textContent = '↘ Temperatura bajando';
+        else if (device.diffTemp === 1) detailTrend.textContent = '→ Temperatura estable';
+        else if (device.diffTemp === 2) detailTrend.textContent = '↗ Temperatura subiendo';
+        else if (device.diffTemp === 3) detailTrend.textContent = '↑ Temperatura subiendo (acelerada)';
+        else if (device.diffTemp >= 4) detailTrend.textContent = '↑ Temperatura subiendo (peligrosa)';
+        else detailTrend.textContent = 'Tendencia desconocida';
+
+        if (deviceData.last_log_time) {
+            const date = new Date(deviceData.last_log_time);
+            detailLastUpdate.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' - ' + date.toLocaleDateString();
+        } else {
+            detailLastUpdate.textContent = 'Sin registros';
+        }
+
+        // Fetch telemetry for chart
+        try {
+            const response = await fetch(`${API_BASE_URL}/telemetry/device/${device.id}?hours=2`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (response.ok) {
+                const logs = await response.json();
+                renderChart(logs);
+            }
+        } catch (e) {
+            console.error('Chart fetch error:', e);
+        }
+    }
+
+    function renderChart(logs) {
+        if (tempChart) tempChart.destroy();
+        
+        const labels = logs.map(log => {
+            const d = new Date(log.created_at);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        });
+        
+        const data = logs.map(log => parseFloat(log.temperature));
+
+        tempChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Temperatura (°C)',
+                    data: data,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8', maxTicksLimit: 8 }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- Notifications Logic ---
+    async function fetchNotifications() {
+        if (!currentDevices.length) return;
+        unreadAlerts = [];
+        
+        try {
+            // Fetch alerts for all devices
+            for (const item of currentDevices) {
+                const response = await fetch(`${API_BASE_URL}/alerts/device/${item.device.id}`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                if (response.ok) {
+                    const alerts = await response.json();
+                    const unread = alerts.filter(a => !a.is_read);
+                    unreadAlerts.push(...unread);
+                }
+            }
+            
+            // Sort by latest
+            unreadAlerts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            renderNotifications();
+            
+        } catch (e) {
+            console.error('Notifications fetch error:', e);
+        }
+    }
+
+    function renderNotifications() {
+        if (unreadAlerts.length > 0) {
+            notificationsBadge.textContent = unreadAlerts.length;
+            notificationsBadge.style.display = 'block';
+            clearNotificationsBtn.disabled = false;
+            
+            notificationsList.innerHTML = '';
+            unreadAlerts.forEach(alert => {
+                const d = new Date(alert.created_at);
+                const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+                
+                notificationsList.innerHTML += `
+                    <div class="notification-item level-${alert.alert_level}">
+                        <div>${escapeHtml(alert.message)}</div>
+                        <div class="notification-date">${dateStr}</div>
+                    </div>
+                `;
+            });
+        } else {
+            notificationsBadge.style.display = 'none';
+            clearNotificationsBtn.disabled = true;
+            notificationsList.innerHTML = '<div class="notification-item empty">No hay alertas activas.</div>';
+        }
+    }
+
+    clearNotificationsBtn.addEventListener('click', async () => {
+        clearNotificationsBtn.disabled = true;
+        clearNotificationsBtn.textContent = 'Borrando...';
+        
+        try {
+            for (const alert of unreadAlerts) {
+                await fetch(`${API_BASE_URL}/alerts/${alert.id}/read`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+            }
+            unreadAlerts = [];
+            renderNotifications();
+            showToast('Notificaciones borradas', 'success');
+        } catch (e) {
+            console.error('Clear notifications error:', e);
+            showToast('Error al borrar notificaciones', 'error');
+        } finally {
+            clearNotificationsBtn.textContent = 'Borrar Notificaciones';
+        }
+    });
 
     // --- Profile Logic ---
     async function loadProfileData() {
