@@ -44,8 +44,16 @@
         <nav class="dashboard-nav">
             <div class="nav-brand">FlueGuard Portal</div>
             <div class="nav-actions">
-                <span id="user-greeting" class="user-greeting"></span>
-                <button id="logout-btn" class="btn outline-btn">Cerrar Sesión</button>
+                <div class="user-menu-container">
+                    <button id="user-menu-btn" class="user-menu-btn">
+                        <span id="user-greeting" class="user-greeting"></span>
+                        <span class="dropdown-icon">▼</span>
+                    </button>
+                    <div id="user-dropdown" class="user-dropdown" style="display: none;">
+                        <button id="profile-btn" class="dropdown-item">👤 Mi Perfil</button>
+                        <button id="logout-btn" class="dropdown-item text-danger">🚪 Cerrar Sesión</button>
+                    </div>
+                </div>
             </div>
         </nav>
         
@@ -70,6 +78,73 @@
                 <div class="empty-icon">📱</div>
                 <h3>Sin dispositivos</h3>
                 <p>Aún no tiene dispositivos vinculados a su cuenta.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Profile View -->
+    <div id="profile-view" class="view">
+        <nav class="dashboard-nav">
+            <div class="nav-brand">FlueGuard Portal</div>
+            <div class="nav-actions">
+                <button id="back-dashboard-btn" class="btn outline-btn">← Volver</button>
+            </div>
+        </nav>
+
+        <main class="dashboard-content">
+            <div class="profile-container">
+                <div class="section-header">
+                    <h2>Mi Perfil</h2>
+                </div>
+                
+                <form id="profile-form" class="profile-form">
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="profile-nombre">Nombre</label>
+                            <input type="text" id="profile-nombre" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="profile-apellido">Apellido</label>
+                            <input type="text" id="profile-apellido" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="profile-region">Región</label>
+                            <select id="profile-region">
+                                <option value="">Seleccione una región</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="profile-comuna">Comuna</label>
+                            <select id="profile-comuna" disabled>
+                                <option value="">Seleccione una comuna</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr class="divider">
+
+                    <h3>Cambiar Contraseña</h3>
+                    <p class="text-secondary" style="font-size: 0.9rem; margin-bottom: 1rem;">Deje en blanco si no desea cambiarla.</p>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="profile-password">Nueva Contraseña</label>
+                            <input type="password" id="profile-password" minlength="6">
+                        </div>
+                        <div class="input-group">
+                            <label for="profile-confirm-password">Confirmar Contraseña</label>
+                            <input type="password" id="profile-confirm-password">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="save-profile-btn" class="btn primary-btn" style="max-width: 200px; margin-top: 1rem;">
+                        <span class="btn-text">Guardar Cambios</span>
+                        <span class="loader" style="display: none;"></span>
+                    </button>
+                </form>
             </div>
         </main>
     </div>

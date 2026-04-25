@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const loginView = document.getElementById('login-view');
     const dashboardView = document.getElementById('dashboard-view');
+    const profileView = document.getElementById('profile-view');
     const loginForm = document.getElementById('login-form');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -9,10 +10,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     const refreshBtn = document.getElementById('refresh-btn');
     const userGreeting = document.getElementById('user-greeting');
+    const userMenuBtn = document.getElementById('user-menu-btn');
+    const userDropdown = document.getElementById('user-dropdown');
+    const profileBtn = document.getElementById('profile-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const backDashboardBtn = document.getElementById('back-dashboard-btn');
+    const refreshBtn = document.getElementById('refresh-btn');
     const devicesLoader = document.getElementById('devices-loader');
     const devicesGrid = document.getElementById('devices-grid');
     const noDevices = document.getElementById('no-devices');
     const toast = document.getElementById('toast');
+
+    // Profile Form Elements
+    const profileForm = document.getElementById('profile-form');
+    const profileNombre = document.getElementById('profile-nombre');
+    const profileApellido = document.getElementById('profile-apellido');
+    const profileRegion = document.getElementById('profile-region');
+    const profileComuna = document.getElementById('profile-comuna');
+    const profilePassword = document.getElementById('profile-password');
+    const profileConfirmPassword = document.getElementById('profile-confirm-password');
+    const saveProfileBtn = document.getElementById('save-profile-btn');
 
     // State
     let accessToken = localStorage.getItem('fg_access_token');
@@ -36,13 +53,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function showLogin() {
         loginView.classList.add('active');
         dashboardView.classList.remove('active');
+        profileView.classList.remove('active');
     }
 
     function showDashboard() {
         loginView.classList.remove('active');
+        profileView.classList.remove('active');
         dashboardView.classList.add('active');
         userGreeting.textContent = `Hola, ${currentUser.first_name || currentUser.email}`;
         fetchDevices();
+    }
+
+    function showProfile() {
+        loginView.classList.remove('active');
+        dashboardView.classList.remove('active');
+        profileView.classList.add('active');
+        userDropdown.style.display = 'none';
+        loadProfileData();
     }
 
     // Toast Notification
@@ -117,12 +144,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Menu Toggle
+    userMenuBtn.addEventListener('click', () => {
+        const isVisible = userDropdown.style.display === 'block';
+        userDropdown.style.display = isVisible ? 'none' : 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+            userDropdown.style.display = 'none';
+        }
+    });
+
+    profileBtn.addEventListener('click', showProfile);
+    backDashboardBtn.addEventListener('click', showDashboard);
+
     // Handle Logout
     logoutBtn.addEventListener('click', () => {
         accessToken = null;
         currentUser = null;
         localStorage.removeItem('fg_access_token');
         localStorage.removeItem('fg_user');
+        userDropdown.style.display = 'none';
         showLogin();
     });
 
@@ -225,6 +268,132 @@ document.addEventListener('DOMContentLoaded', () => {
             devicesGrid.appendChild(card);
         });
     }
+
+    // --- Profile Logic ---
+    async function loadProfileData() {
+        profileNombre.value = currentUser.first_name || '';
+        profileApellido.value = currentUser.last_name || '';
+        profilePassword.value = '';
+        profileConfirmPassword.value = '';
+
+        try {
+            // Load Regiones
+            const response = await fetch(`${API_BASE_URL}/regiones`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!response.ok) throw new Error('Error al cargar regiones');
+            const regiones = await response.json();
+            
+            profileRegion.innerHTML = '<option value="">Seleccione una región</option>';
+            regiones.forEach(r => {
+                profileRegion.innerHTML += `<option value="${r.id}">${r.region}</option>`;
+            });
+
+            // Set current region if any
+            if (currentUser.region_id) {
+                profileRegion.value = currentUser.region_id;
+                await loadComunas(currentUser.region_id);
+                if (currentUser.comuna_id) {
+                    profileComuna.value = currentUser.comuna_id;
+                }
+            } else {
+                profileComuna.innerHTML = '<option value="">Seleccione una comuna</option>';
+                profileComuna.disabled = true;
+            }
+        } catch (error) {
+            console.error('Profile load error:', error);
+            showToast('No se pudieron cargar los datos de ubicación', 'error');
+        }
+    }
+
+    async function loadComunas(regionId) {
+        if (!regionId) {
+            profileComuna.innerHTML = '<option value="">Seleccione una comuna</option>';
+            profileComuna.disabled = true;
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/region/${regionId}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!response.ok) throw new Error('Error al cargar comunas');
+            const comunas = await response.json();
+            
+            profileComuna.innerHTML = '<option value="">Seleccione una comuna</option>';
+            comunas.forEach(c => {
+                profileComuna.innerHTML += `<option value="${c.id}">${c.comuna}</option>`;
+            });
+            profileComuna.disabled = false;
+        } catch (error) {
+            console.error('Comunas load error:', error);
+            showToast('No se pudieron cargar las comunas', 'error');
+        }
+    }
+
+    profileRegion.addEventListener('change', (e) => {
+        loadComunas(e.target.value);
+    });
+
+    profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const pwd = profilePassword.value;
+        const confirmPwd = profileConfirmPassword.value;
+
+        if (pwd && pwd !== confirmPwd) {
+            showToast('Las contraseñas no coinciden', 'error');
+            return;
+        }
+
+        const payload = {
+            nombre: profileNombre.value.trim(),
+            apellido: profileApellido.value.trim()
+        };
+
+        if (profileRegion.value) payload.region = parseInt(profileRegion.value);
+        if (profileComuna.value) payload.comuna = parseInt(profileComuna.value);
+        if (pwd) payload.password = pwd;
+
+        const btnText = saveProfileBtn.querySelector('.btn-text');
+        const loader = saveProfileBtn.querySelector('.loader');
+        
+        saveProfileBtn.disabled = true;
+        btnText.style.display = 'none';
+        loader.style.display = 'block';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/update/${currentUser.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Error al actualizar perfil');
+
+            const updatedUser = await response.json();
+            
+            // Update local storage and current session state
+            currentUser = { ...currentUser, ...updatedUser };
+            localStorage.setItem('fg_user', JSON.stringify(currentUser));
+            userGreeting.textContent = `Hola, ${currentUser.first_name || currentUser.email}`;
+
+            showToast('Perfil actualizado correctamente', 'success');
+            profilePassword.value = '';
+            profileConfirmPassword.value = '';
+
+        } catch (error) {
+            console.error('Update profile error:', error);
+            showToast(error.message, 'error');
+        } finally {
+            saveProfileBtn.disabled = false;
+            btnText.style.display = 'block';
+            loader.style.display = 'none';
+        }
+    });
 
     // Utility
     function escapeHtml(unsafe) {
