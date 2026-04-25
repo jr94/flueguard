@@ -6,8 +6,8 @@ export class CreatePushTokenDto {
   user_id: number;
 
   @IsNumber()
-  @IsNotEmpty()
-  device_id: number;
+  @IsOptional()
+  device_id?: number;
 
   @IsString()
   @IsNotEmpty()

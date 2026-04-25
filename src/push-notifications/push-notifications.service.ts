@@ -13,13 +13,17 @@ export class PushNotificationsService {
 
   async sendAlertNotification(deviceId: number, alert: any, serialNumber: string = ''): Promise<void> {
     try {
-      // 1. Fetch active tokens for the device
-      const activeTokens = await this.pushTokenRepository.find({
-        where: { device_id: deviceId, is_active: 1 },
-      });
+      // 1. Fetch active tokens for all users associated with the device
+      const activeTokens = await this.pushTokenRepository.query(
+        `SELECT pt.id, pt.fcm_token 
+         FROM device_push_tokens pt
+         INNER JOIN user_devices ud ON pt.user_id = ud.user_id
+         WHERE ud.device_id = ? AND pt.is_active = 1`,
+        [deviceId]
+      );
 
       if (!activeTokens || activeTokens.length === 0) {
-        return; // Si no hay tokens para el dispositivo evitamos mandar nada
+        return; // Si no hay tokens activos para los usuarios de este dispositivo, salimos
       }
 
       const title = 'FlueGuard: Alerta de temperatura';

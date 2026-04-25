@@ -8,9 +8,6 @@ export class DevicePushToken {
   @Column({ name: 'user_id' })
   user_id: number;
 
-  @Column({ name: 'device_id' })
-  device_id: number;
-
   @Column({ name: 'fcm_token', length: 191, unique: true })
   fcm_token: string;
 
