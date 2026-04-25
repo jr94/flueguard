@@ -369,6 +369,8 @@ document.addEventListener('DOMContentLoaded', () => {
             detailLastUpdate.textContent = 'Sin registros';
         }
 
+        let deviceSettings = null;
+
         // Reset thresholds
         detailT1.textContent = '--';
         detailT2.textContent = '--';
@@ -380,10 +382,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             if (response.ok) {
-                const settings = await response.json();
-                if (settings.threshold_1) detailT1.textContent = parseFloat(settings.threshold_1).toFixed(0);
-                if (settings.threshold_2) detailT2.textContent = parseFloat(settings.threshold_2).toFixed(0);
-                if (settings.threshold_3) detailT3.textContent = parseFloat(settings.threshold_3).toFixed(0);
+                deviceSettings = await response.json();
+                if (deviceSettings.threshold_1) detailT1.textContent = parseFloat(deviceSettings.threshold_1).toFixed(0);
+                if (deviceSettings.threshold_2) detailT2.textContent = parseFloat(deviceSettings.threshold_2).toFixed(0);
+                if (deviceSettings.threshold_3) detailT3.textContent = parseFloat(deviceSettings.threshold_3).toFixed(0);
             }
         } catch (e) {
             console.error('Settings fetch error:', e);
@@ -396,14 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (response.ok) {
                 const logs = await response.json();
-                renderChart(logs);
+                renderChart(logs, deviceSettings);
             }
         } catch (e) {
             console.error('Chart fetch error:', e);
         }
     }
 
-    function renderChart(logs) {
+    function renderChart(logs, settings) {
         if (tempChart) tempChart.destroy();
         
         const labels = logs.map(log => {
@@ -413,26 +415,70 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const data = logs.map(log => parseFloat(log.temperature));
 
+        const datasets = [{
+            label: 'Temperatura (°C)',
+            data: data,
+            borderColor: '#10b981', // green for standard temp
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 2,
+            pointRadius: 2,
+            fill: true,
+            tension: 0.3
+        }];
+
+        if (settings) {
+            if (settings.threshold_1) {
+                datasets.push({
+                    label: 'Nivel 1 (Min)',
+                    data: Array(logs.length).fill(parseFloat(settings.threshold_1)),
+                    borderColor: '#3b82f6', // blue
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
+            if (settings.threshold_2) {
+                datasets.push({
+                    label: 'Nivel 2 (Max)',
+                    data: Array(logs.length).fill(parseFloat(settings.threshold_2)),
+                    borderColor: '#eab308', // warning yellow
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
+            if (settings.threshold_3) {
+                datasets.push({
+                    label: 'Nivel 3 (Crit)',
+                    data: Array(logs.length).fill(parseFloat(settings.threshold_3)),
+                    borderColor: '#ef4444', // danger red
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
+        }
+
         tempChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Temperatura (°C)',
-                    data: data,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    fill: true,
-                    tension: 0.3
-                }]
+                datasets: datasets
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
+                    legend: { 
+                        display: true,
+                        labels: { color: '#94a3b8' }
+                    }
                 },
                 scales: {
                     y: {
