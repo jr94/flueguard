@@ -415,6 +415,20 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const data = logs.map(log => parseFloat(log.temperature));
 
+        let allValues = [...data];
+        if (settings) {
+            if (settings.threshold_1) allValues.push(parseFloat(settings.threshold_1));
+            if (settings.threshold_2) allValues.push(parseFloat(settings.threshold_2));
+            if (settings.threshold_3) allValues.push(parseFloat(settings.threshold_3));
+        }
+
+        let minVal = 0;
+        let maxVal = 100;
+        if (allValues.length > 0) {
+            minVal = Math.floor(Math.min(...allValues)) - 20;
+            maxVal = Math.ceil(Math.max(...allValues)) + 20;
+        }
+
         const datasets = [{
             label: 'Temperatura (°C)',
             data: data,
@@ -477,11 +491,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 plugins: {
                     legend: { 
                         display: true,
-                        labels: { color: '#94a3b8' }
+                        onClick: null, // Prevents hiding datasets on click
+                        labels: { color: '#94a3b8', font: { size: 11 } }
                     }
                 },
                 scales: {
                     y: {
+                        min: minVal,
+                        max: maxVal,
                         beginAtZero: false,
                         grid: { color: 'rgba(255, 255, 255, 0.1)' },
                         ticks: { color: '#94a3b8' }
