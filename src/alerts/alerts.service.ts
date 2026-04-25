@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Alert } from './entities/alert.entity';
 import { CreateAlertDto } from './dto/create-alert.dto';
+import { Device } from '../devices/entities/device.entity';
 
 @Injectable()
 export class AlertsService {
   constructor(
     @InjectRepository(Alert)
     private readonly alertRepository: Repository<Alert>,
+    @InjectRepository(Device)
+    private readonly deviceRepository: Repository<Device>,
   ) {}
 
   async create(createAlertDto: CreateAlertDto): Promise<Alert> {
@@ -19,17 +22,16 @@ export class AlertsService {
   async findByDeviceId(deviceId: number): Promise<any[]> {
     const alerts = await this.alertRepository.find({
       where: { device_id: deviceId },
-      relations: ['device'],
       order: { created_at: 'DESC' },
     });
 
-    return alerts.map(alert => {
-      const { device, ...alertData } = alert;
-      return {
-        ...alertData,
-        device_name: device?.device_name || 'Desconocido'
-      };
-    });
+    const device = await this.deviceRepository.findOne({ where: { id: deviceId } });
+    const deviceName = device?.device_name || 'Desconocido';
+
+    return alerts.map(alert => ({
+      ...alert,
+      device_name: deviceName
+    }));
   }
 
   async markAsRead(id: number): Promise<Alert> {
