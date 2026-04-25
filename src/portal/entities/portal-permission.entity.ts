@@ -21,6 +21,9 @@ export class PortalPermission {
   @Column({ name: 'can_view_alerts', default: true })
   can_view_alerts: boolean;
 
+  @Column({ name: 'can_view_logs', default: true })
+  can_view_logs: boolean;
+
   @Column({ name: 'can_manage_devices', default: false })
   can_manage_devices: boolean;
 

@@ -113,7 +113,23 @@ export class PortalAuthService {
     await this.portalUserRepository.update(id, userData);
 
     if (permissions) {
-      await this.portalPermissionRepository.update({ portal_user_id: id }, permissions);
+      // Clean up permissions to ensure they are boolean
+      const cleanPermissions = {};
+      for (const key in permissions) {
+        cleanPermissions[key] = !!permissions[key];
+      }
+
+      // Check if permission record exists
+      const existingPerm = await this.portalPermissionRepository.findOne({ where: { portal_user_id: id } });
+      if (existingPerm) {
+        await this.portalPermissionRepository.update({ portal_user_id: id }, cleanPermissions);
+      } else {
+        const newPerm = this.portalPermissionRepository.create({
+          ...cleanPermissions,
+          portal_user_id: id,
+        });
+        await this.portalPermissionRepository.save(newPerm);
+      }
     }
 
     return this.findUserById(id);

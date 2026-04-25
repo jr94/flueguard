@@ -495,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Device Details Logic ---
     async function openDeviceDetail(deviceData, trendIcon, trendColor) {
         currentOpenDeviceId = deviceData.device.id;
-        showDeviceDetail();
+        switchView('device-detail-view');
         const device = deviceData.device;
         
         detailDeviceName.textContent = device.device_name;
@@ -1166,12 +1166,12 @@ document.addEventListener('DOMContentLoaded', () => {
             payload.role = uRole.value;
             payload.is_active = uActive.value === '1';
             payload.permissions = {
-                can_view_dashboard: 1,
-                can_view_devices: permViewDev.checked ? 1 : 0,
-                can_change_settings: permChangeSet.checked ? 1 : 0,
-                can_manage_devices: permManageDev.checked ? 1 : 0,
-                can_view_logs: permViewLogs.checked ? 1 : 0,
-                can_view_alerts: permViewAlerts.checked ? 1 : 0,
+                can_view_dashboard: true,
+                can_view_devices: permViewDev.checked,
+                can_change_settings: permChangeSet.checked,
+                can_manage_devices: permManageDev.checked,
+                can_view_logs: permViewLogs.checked,
+                can_view_alerts: permViewAlerts.checked,
             };
         }
 
