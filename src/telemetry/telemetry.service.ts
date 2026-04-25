@@ -138,6 +138,15 @@ export class TelemetryService {
 
   async getLastTempForUserDevices(userId: number) {
     const devices = await this.devicesService.findByUserId(userId);
+    return this.buildLastTempResults(devices);
+  }
+
+  async getLastTempAllDevices() {
+    const devices = await this.devicesService.findAll();
+    return this.buildLastTempResults(devices);
+  }
+
+  private async buildLastTempResults(devices: any[]) {
     const results: any[] = [];
 
     for (const device of devices) {
@@ -149,7 +158,7 @@ export class TelemetryService {
 
       const lastLog = lastLogs.length > 0 ? lastLogs[0] : null;
 
-      let diffTemp = 1; // 1 = se mantiene
+      let diffTemp = 1;
       if (lastLogs.length >= 2) {
         const count = Math.min(2, Math.floor(lastLogs.length / 2));
         const recentLogs = lastLogs.slice(0, count);
@@ -159,32 +168,26 @@ export class TelemetryService {
         const olderAvg = olderLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
         const diff = recentAvg - olderAvg;
 
-        if (diff < -1) {
-          diffTemp = 0; // bajando
-        } else if (diff <= 1) {
-          diffTemp = 1; // estable
-        } else if (diff <= 3) {
-          diffTemp = 2; // subiendo normal
-        } else if (diff <= 6) {
-          diffTemp = 3; // subiendo acelerada
-        } else {
-          diffTemp = 4; // subiendo peligrosa
-        }
+        if (diff < -1) diffTemp = 0;
+        else if (diff <= 1) diffTemp = 1;
+        else if (diff <= 3) diffTemp = 2;
+        else if (diff <= 6) diffTemp = 3;
+        else diffTemp = 4;
       }
 
-      let alarmLowTemp = true; // Default from DB is 1 (true)
+      let alarmLowTemp = true;
       try {
         const settings = await this.deviceSettingsService.findByDeviceId(device.id);
         alarmLowTemp = settings.sound_alarm_temp_low;
       } catch (e) {
-        // If settings not found, it keeps the default value
+        // keep default
       }
 
       results.push({
         device: {
           ...device,
           alarm_low_temp: alarmLowTemp,
-          diffTemp: diffTemp,
+          diffTemp,
         },
         last_temperature: lastLog ? lastLog.temperature : null,
         last_log_time: lastLog ? lastLog.created_at : null,

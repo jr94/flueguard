@@ -28,4 +28,10 @@ export class TelemetryController {
   getLastTempForUserDevices(@Param('userId', ParseIntPipe) userId: number) {
     return this.telemetryService.getLastTempForUserDevices(userId);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('lastTemp/all')
+  getLastTempAllDevices() {
+    return this.telemetryService.getLastTempAllDevices();
+  }
 }

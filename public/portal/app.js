@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/telemetry/lastTemp/user/${currentUser.id}`, {
+            const response = await fetch(`${API_BASE_URL}/telemetry/lastTemp/all`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,

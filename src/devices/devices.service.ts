@@ -65,6 +65,10 @@ export class DevicesService {
       .getMany();
   }
 
+  async findAll(): Promise<Device[]> {
+    return this.deviceRepository.find({ order: { id: 'ASC' } });
+  }
+
   async findOne(id: number): Promise<Device> {
     const device = await this.deviceRepository.findOne({ where: { id } });
     if (!device) {
