@@ -800,25 +800,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 audioCtx.resume();
             }
 
-            // Create a loud alarm sound (3 fast harsh beeps)
-            for (let i = 0; i < 3; i++) {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                
-                osc.type = 'square'; // Harsh, loud sound
-                osc.frequency.setValueAtTime(1000, audioCtx.currentTime + i * 0.3);
-                osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + i * 0.3 + 0.1);
-                
-                gain.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.3);
-                gain.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + i * 0.3 + 0.05); // Max volume
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + i * 0.3 + 0.2);
-                
-                osc.start(audioCtx.currentTime + i * 0.3);
-                osc.stop(audioCtx.currentTime + i * 0.3 + 0.2);
+            // Create a fire alarm siren sound (2 seconds duration)
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'sawtooth'; // Harsh and piercing like a fire alarm
+            
+            const now = audioCtx.currentTime;
+            const duration = 2.0; // 2 seconds total
+            
+            osc.frequency.setValueAtTime(600, now);
+            
+            // Fast wailing effect (up and down) 5 times in 2 seconds
+            for (let t = 0; t < duration; t += 0.4) {
+                osc.frequency.linearRampToValueAtTime(1200, now + t + 0.2);
+                osc.frequency.linearRampToValueAtTime(600, now + t + 0.4);
             }
+            
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(1.0, now + 0.1); // Max volume
+            gain.gain.setValueAtTime(1.0, now + duration - 0.1);
+            gain.gain.linearRampToValueAtTime(0, now + duration);
+            
+            osc.start(now);
+            osc.stop(now + duration);
         } catch (e) {
             console.error('No se pudo reproducir el sonido de alerta', e);
         }
