@@ -64,11 +64,17 @@ export class PortalAuthService {
     };
     const accessToken = this.jwtService.sign(payload);
 
-    // 5. Return token + safe user data + permissions
-    const { password: _, ...safeUser } = user;
+    // 5. Return token + safe user data
     return {
       access_token: accessToken,
-      user: safeUser,
+      user: {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        role: user.role,
+        permissions: user.permissions,
+      },
     };
   }
 
@@ -104,7 +110,7 @@ export class PortalAuthService {
       ...userData,
       password: hashedPassword,
     });
-    const savedUser = await this.portalUserRepository.save(newUser);
+    const savedUser = await this.portalUserRepository.save(newUser) as any;
 
     const newPermissions = this.portalPermissionRepository.create({
       ...permissions,
