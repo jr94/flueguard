@@ -29,7 +29,13 @@ export class AlertsService {
     const deviceName = device?.device_name || 'Desconocido';
 
     return alerts.map(alert => ({
-      ...alert,
+      id: alert.id,
+      device_id: alert.device_id,
+      temperature: alert.temperature,
+      alert_level: alert.alert_level,
+      message: alert.message,
+      is_read: alert.is_read,
+      created_at: alert.created_at,
       device_name: deviceName
     }));
   }
