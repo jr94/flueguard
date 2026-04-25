@@ -31,12 +31,12 @@ export class PushTokensService {
     const plat = platform || 'android';
 
     try {
-      // 2. Desactivar tokens antiguos del mismo usuario y dispositivo (extra recomendado)
+      // 2. Desactivar tokens antiguos del mismo usuario, dispositivo y plataforma
       await this.pushTokenRepository.query(
         `UPDATE device_push_tokens 
          SET is_active = 0 
-         WHERE user_id = ? AND device_id = ? AND fcm_token != ?`,
-        [user_id, device_id, fcm_token],
+         WHERE user_id = ? AND device_id = ? AND platform = ? AND fcm_token != ?`,
+        [user_id, device_id, plat, fcm_token],
       );
 
       // 3. Insert o Update según solicitado
@@ -46,6 +46,7 @@ export class PushTokensService {
          ON DUPLICATE KEY UPDATE
             user_id = VALUES(user_id),
             device_id = VALUES(device_id),
+            platform = VALUES(platform),
             is_active = 1,
             updated_at = CURRENT_TIMESTAMP`,
         [user_id, device_id, fcm_token, plat],
