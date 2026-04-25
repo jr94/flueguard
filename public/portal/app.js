@@ -35,6 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailTrend = document.getElementById('detail-trend');
     const detailLastUpdate = document.getElementById('detail-last-update');
     const detailSerial = document.getElementById('detail-serial');
+    const detailT1 = document.getElementById('detail-t1');
+    const detailT2 = document.getElementById('detail-t2');
+    const detailT3 = document.getElementById('detail-t3');
     const ctx = document.getElementById('temperatureChart').getContext('2d');
 
     let tempChart;
@@ -364,6 +367,26 @@ document.addEventListener('DOMContentLoaded', () => {
             detailLastUpdate.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' - ' + date.toLocaleDateString();
         } else {
             detailLastUpdate.textContent = 'Sin registros';
+        }
+
+        // Reset thresholds
+        detailT1.textContent = '--';
+        detailT2.textContent = '--';
+        detailT3.textContent = '--';
+
+        // Fetch thresholds
+        try {
+            const response = await fetch(`${API_BASE_URL}/device-settings/${device.id}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (response.ok) {
+                const settings = await response.json();
+                if (settings.threshold_1) detailT1.textContent = parseFloat(settings.threshold_1).toFixed(0);
+                if (settings.threshold_2) detailT2.textContent = parseFloat(settings.threshold_2).toFixed(0);
+                if (settings.threshold_3) detailT3.textContent = parseFloat(settings.threshold_3).toFixed(0);
+            }
+        } catch (e) {
+            console.error('Settings fetch error:', e);
         }
 
         // Fetch telemetry for chart

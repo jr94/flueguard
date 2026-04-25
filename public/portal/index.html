@@ -174,12 +174,19 @@
                 </div>
                 
                 <div class="detail-stats-grid">
-                    <div class="stat-card">
-                        <h3>Temperatura Actual</h3>
-                        <div class="stat-value">
-                            <span id="detail-temp">--</span> <span class="stat-unit">°C</span>
+                    <div class="stat-card" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3>Temperatura Actual</h3>
+                            <div class="stat-value">
+                                <span id="detail-temp">--</span> <span class="stat-unit">°C</span>
+                            </div>
+                            <div id="detail-trend" class="stat-subtitle">Calculando tendencia...</div>
                         </div>
-                        <div id="detail-trend" class="stat-subtitle">Calculando tendencia...</div>
+                        <div class="thresholds-list" style="text-align: right; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.3rem;">
+                            <div style="color: var(--danger); font-weight: 500;" title="Nivel 3: Riesgo de incendio">Crit: <span id="detail-t3">--</span>°C</div>
+                            <div style="color: var(--warning); font-weight: 500;" title="Nivel 2: Sobretemperatura">Max: <span id="detail-t2">--</span>°C</div>
+                            <div style="color: var(--primary); font-weight: 500;" title="Nivel 1: Alerta inferior">Min: <span id="detail-t1">--</span>°C</div>
+                        </div>
                     </div>
                     <div class="stat-card">
                         <h3>Última Actualización</h3>
