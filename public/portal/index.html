@@ -199,6 +199,100 @@
                         <canvas id="temperatureChart"></canvas>
                     </div>
                 </div>
+
+                <!-- Settings Panel — visible según permisos can_change_settings -->
+                <div id="settings-panel" class="settings-panel" style="display: none;">
+                    <div class="settings-panel-header">
+                        <h3>⚙️ Ajustes del Dispositivo</h3>
+                        <p class="text-secondary" style="font-size:0.9rem; margin-top:0.3rem;">Modifica umbrales y parámetros de alerta</p>
+                    </div>
+
+                    <form id="settings-form" class="settings-form">
+                        <!-- Nombre -->
+                        <div class="settings-group">
+                            <h4>Identificación</h4>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="s-device-name">Nombre del dispositivo</label>
+                                    <input type="text" id="s-device-name" placeholder="Ej: Estufa Living">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Umbrales de temperatura -->
+                        <div class="settings-group">
+                            <h4>Umbrales de Temperatura</h4>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="s-t1">
+                                        <span style="color:var(--primary)">●</span> Nivel 1 — Temp. mínima (°C)
+                                    </label>
+                                    <input type="number" id="s-t1" min="0" max="500" step="1" placeholder="Ej: 60">
+                                    <span class="input-hint">Alerta cuando la temperatura BAJA de este valor</span>
+                                </div>
+                                <div class="input-group">
+                                    <label for="s-t2">
+                                        <span style="color:var(--warning)">●</span> Nivel 2 — Temp. alta (°C)
+                                    </label>
+                                    <input type="number" id="s-t2" min="0" max="500" step="1" placeholder="Ej: 300">
+                                    <span class="input-hint">Alerta de sobretemperatura</span>
+                                </div>
+                                <div class="input-group">
+                                    <label for="s-t3">
+                                        <span style="color:var(--danger)">●</span> Nivel 3 — Crítico (°C)
+                                    </label>
+                                    <input type="number" id="s-t3" min="0" max="500" step="1" placeholder="Ej: 400">
+                                    <span class="input-hint">Alerta de riesgo de incendio</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alertas y notificaciones -->
+                        <div class="settings-group">
+                            <h4>Alertas y Notificaciones</h4>
+                            <div class="toggles-grid">
+                                <div class="toggle-row">
+                                    <div>
+                                        <div class="toggle-label">Notificaciones push</div>
+                                        <div class="toggle-hint">Enviar alertas al móvil del usuario</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="s-notifications-enabled">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="toggle-row">
+                                    <div>
+                                        <div class="toggle-label">Alarma sonora</div>
+                                        <div class="toggle-hint">Activar pitido en el dispositivo</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="s-sound-alarm">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="toggle-row">
+                                    <div>
+                                        <div class="toggle-label">Alarma por temp. baja</div>
+                                        <div class="toggle-hint">Alertar cuando la temperatura baja del Nivel 1</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="s-alarm-temp-low">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button type="submit" id="save-settings-btn" class="btn primary-btn" style="max-width:220px;">
+                                <span class="btn-text">💾 Guardar Cambios</span>
+                                <span class="loader" style="display:none;"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
             </div>
         </main>
     </div>

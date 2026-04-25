@@ -40,6 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailT3 = document.getElementById('detail-t3');
     const ctx = document.getElementById('temperatureChart').getContext('2d');
 
+    // Settings panel refs
+    const settingsPanel = document.getElementById('settings-panel');
+    const settingsForm = document.getElementById('settings-form');
+    const sDeviceName = document.getElementById('s-device-name');
+    const sT1 = document.getElementById('s-t1');
+    const sT2 = document.getElementById('s-t2');
+    const sT3 = document.getElementById('s-t3');
+    const sNotificationsEnabled = document.getElementById('s-notifications-enabled');
+    const sSoundAlarm = document.getElementById('s-sound-alarm');
+    const sAlarmTempLow = document.getElementById('s-alarm-temp-low');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+
     let tempChart;
     let currentDevices = [];
     let unreadAlerts = [];
@@ -414,6 +426,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         refreshDeviceDetail(deviceData);
 
+        // Show/hide settings panel based on permission
+        const canChangeSettings = hasPermission('can_change_settings');
+        settingsPanel.style.display = canChangeSettings ? 'block' : 'none';
+
         // Fetch thresholds
         try {
             const response = await fetch(`${API_BASE_URL}/device-settings/${device.id}`, {
@@ -425,6 +441,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentDeviceSettings.threshold_2) detailT2.textContent = parseFloat(currentDeviceSettings.threshold_2).toFixed(0);
                 if (currentDeviceSettings.threshold_3) detailT3.textContent = parseFloat(currentDeviceSettings.threshold_3).toFixed(0);
                 
+                // Populate settings form if panel is visible
+                if (canChangeSettings) {
+                    sDeviceName.value = device.device_name || '';
+                    sT1.value = currentDeviceSettings.threshold_1 != null ? parseFloat(currentDeviceSettings.threshold_1) : '';
+                    sT2.value = currentDeviceSettings.threshold_2 != null ? parseFloat(currentDeviceSettings.threshold_2) : '';
+                    sT3.value = currentDeviceSettings.threshold_3 != null ? parseFloat(currentDeviceSettings.threshold_3) : '';
+                    sNotificationsEnabled.checked = !!currentDeviceSettings.notifications_enabled;
+                    sSoundAlarm.checked = !!currentDeviceSettings.sound_alarm_enabled;
+                    sAlarmTempLow.checked = !!currentDeviceSettings.sound_alarm_temp_low;
+                }
+
                 // re-render chart with settings if logs already fetched
                 refreshDeviceChart(device.id);
             }
@@ -731,6 +758,62 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(error.message, 'error');
         } finally {
             saveProfileBtn.disabled = false;
+            btnText.style.display = 'block';
+            loader.style.display = 'none';
+        }
+    });
+
+    // ── Settings Form ────────────────────────────────────────────────────────
+    settingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!currentOpenDeviceId) return;
+
+        const payload = {};
+
+        if (sDeviceName.value.trim()) payload.device_name = sDeviceName.value.trim();
+        if (sT1.value !== '') payload.threshold_1 = parseFloat(sT1.value);
+        if (sT2.value !== '') payload.threshold_2 = parseFloat(sT2.value);
+        if (sT3.value !== '') payload.threshold_3 = parseFloat(sT3.value);
+        payload.notifications_enabled = sNotificationsEnabled.checked;
+        payload.sound_alarm_enabled = sSoundAlarm.checked;
+        payload.sound_alarm_temp_low = sAlarmTempLow.checked;
+
+        const btnText = saveSettingsBtn.querySelector('.btn-text');
+        const loader = saveSettingsBtn.querySelector('.loader');
+        saveSettingsBtn.disabled = true;
+        btnText.style.display = 'none';
+        loader.style.display = 'block';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/device-settings/${currentOpenDeviceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) throw new Error('Error al guardar los ajustes');
+
+            const saved = await response.json();
+            currentDeviceSettings = saved;
+
+            // Update displayed thresholds immediately
+            if (saved.threshold_1) detailT1.textContent = parseFloat(saved.threshold_1).toFixed(0);
+            if (saved.threshold_2) detailT2.textContent = parseFloat(saved.threshold_2).toFixed(0);
+            if (saved.threshold_3) detailT3.textContent = parseFloat(saved.threshold_3).toFixed(0);
+            if (payload.device_name) detailDeviceName.textContent = payload.device_name;
+
+            refreshDeviceChart(currentOpenDeviceId);
+            showToast('Ajustes guardados correctamente', 'success');
+
+        } catch (err) {
+            console.error('Save settings error:', err);
+            showToast(err.message, 'error');
+        } finally {
+            saveSettingsBtn.disabled = false;
             btnText.style.display = 'block';
             loader.style.display = 'none';
         }
