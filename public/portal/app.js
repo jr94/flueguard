@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let pollingInterval = null;
     let currentOpenDeviceId = null;
     let currentDeviceSettings = null;
+    let knownAlertIds = new Set();
+    let isFirstNotificationsFetch = true;
 
     // Profile Form Elements
     const profileForm = document.getElementById('profile-form');
@@ -572,6 +574,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
+            // Check for new alerts to play sound
+            let hasNewAlert = false;
+            unreadAlerts.forEach(alert => {
+                if (!knownAlertIds.has(alert.id)) {
+                    hasNewAlert = true;
+                    knownAlertIds.add(alert.id);
+                }
+            });
+
+            if (!isFirstNotificationsFetch && hasNewAlert) {
+                playAlertSound();
+            }
+            isFirstNotificationsFetch = false;
+
             // Sort by latest
             unreadAlerts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             renderNotifications();
@@ -618,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             unreadAlerts = [];
+            knownAlertIds.clear();
             renderNotifications();
             showToast('Notificaciones borradas', 'success');
         } catch (e) {
@@ -753,6 +770,41 @@ document.addEventListener('DOMContentLoaded', () => {
             loader.style.display = 'none';
         }
     });
+
+    // Audio Alert
+    let audioCtx = null;
+    function playAlertSound() {
+        try {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            // Create a double-beep sound
+            for (let i = 0; i < 2; i++) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime + i * 0.2); // A5 note
+                
+                gain.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.2);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + i * 0.2 + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.2 + 0.15);
+                
+                osc.start(audioCtx.currentTime + i * 0.2);
+                osc.stop(audioCtx.currentTime + i * 0.2 + 0.15);
+            }
+        } catch (e) {
+            console.error('No se pudo reproducir el sonido de alerta', e);
+        }
+    }
 
     // Utility
     function escapeHtml(unsafe) {
