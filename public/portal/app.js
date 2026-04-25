@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             profileRegion.innerHTML = '<option value="">Seleccione una región</option>';
             regiones.forEach(r => {
-                profileRegion.innerHTML += `<option value="${r.id}">${r.region}</option>`;
+                profileRegion.innerHTML += `<option value="${r.id}">${r.nombre}</option>`;
             });
 
             // Set current region if any
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             profileComuna.innerHTML = '<option value="">Seleccione una comuna</option>';
             comunas.forEach(c => {
-                profileComuna.innerHTML += `<option value="${c.id}">${c.comuna}</option>`;
+                profileComuna.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
             });
             profileComuna.disabled = false;
         } catch (error) {
