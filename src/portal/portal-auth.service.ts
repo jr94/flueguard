@@ -18,64 +18,75 @@ export class PortalAuthService {
   ) {}
 
   async login(dto: PortalLoginDto) {
-    // 1. Find user by email including permissions
-    const user = await this.portalUserRepository.findOne({
-      where: { email: dto.email },
-      relations: ['permissions'],
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    if (!user.is_active) {
-      throw new UnauthorizedException('Usuario inactivo. Contacte al administrador.');
-    }
-
-    // 2. Verify password
-    let isMatch = false;
     try {
-      isMatch = await bcrypt.compare(dto.password, user.password);
-    } catch (e) {
-      console.error('Error verifying password (possible plain text in DB):', e);
-      // If it's not a hash, check if it matches plain text (fallback for initial setup only)
-      isMatch = (dto.password === user.password);
-    }
-
-    if (!isMatch) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    // 3. Update last_login_at (safe update)
-    try {
-      await this.portalUserRepository.update(user.id, {
-        last_login_at: new Date(),
+      // 1. Find user by email including permissions
+      const user = await this.portalUserRepository.findOne({
+        where: { email: dto.email },
+        relations: ['permissions'],
       });
-    } catch (e) {
-      console.warn('Could not update last_login_at (column might be missing):', e);
-    }
 
-    // 4. Generate JWT with portal scope
-    const payload = {
-      email: user.email,
-      sub: user.id,
-      scope: 'portal',
-      role: user.role,
-    };
-    const accessToken = this.jwtService.sign(payload);
+      if (!user) {
+        throw new UnauthorizedException('Credenciales inválidas');
+      }
 
-    // 5. Return token + safe user data
-    return {
-      access_token: accessToken,
-      user: {
-        id: user.id,
+      if (!user.is_active) {
+        throw new UnauthorizedException('Usuario inactivo. Contacte al administrador.');
+      }
+
+      // 2. Verify password
+      let isMatch = false;
+      try {
+        isMatch = await bcrypt.compare(dto.password, user.password);
+      } catch (e) {
+        // Fallback for plain text
+        isMatch = (dto.password === user.password);
+      }
+
+      if (!isMatch) {
+        throw new UnauthorizedException('Credenciales inválidas');
+      }
+
+      // 3. Update last_login_at (safe update)
+      try {
+        await this.portalUserRepository.update(user.id, {
+          last_login_at: new Date(),
+        });
+      } catch (e) {
+        console.warn('Could not update last_login_at:', e);
+      }
+
+      // 4. Generate JWT with portal scope
+      const payload = {
         email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
+        sub: user.id,
+        scope: 'portal',
         role: user.role,
-        permissions: user.permissions,
-      },
-    };
+      };
+      
+      let accessToken;
+      try {
+        accessToken = this.jwtService.sign(payload);
+      } catch (jwtError) {
+        throw new Error('JWT Sign failed: ' + jwtError.message);
+      }
+
+      // 5. Return token + safe user data
+      return {
+        access_token: accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role,
+          permissions: user.permissions,
+        },
+      };
+    } catch (err) {
+      console.error('Login error detailed:', err);
+      if (err instanceof UnauthorizedException) throw err;
+      throw new Error(`Login crash: ${err.message}`);
+    }
   }
 
   async findUserById(id: number): Promise<PortalUser | null> {
