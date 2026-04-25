@@ -29,8 +29,8 @@ export class PushNotificationsService {
       }
 
       const deviceName = activeTokens[0].device_name || 'Dispositivo';
-      const title = 'FlueGuard: Alerta de temperatura';
-      const body = `${deviceName}: ${alert.message || `Nivel ${alert.alert_level}: Se detectó sobretemperatura`}`;
+      const title = `${deviceName}`;
+      const body = `${alert.message || 'Alerta de temperatura: se requiere revisión de la estufa.'}`;
 
       const level = String(alert.alert_level || '1');
       const channelKey = `flueguard_alert_l${level}`;
