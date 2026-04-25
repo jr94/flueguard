@@ -9,16 +9,18 @@ export class PushNotificationsService {
   constructor(
     @InjectRepository(DevicePushToken)
     private readonly pushTokenRepository: Repository<DevicePushToken>,
-  ) {}
+  ) { }
 
   async sendAlertNotification(deviceId: number, alert: any, serialNumber: string = ''): Promise<void> {
     try {
       // 1. Fetch active tokens for all users associated with the device
       const activeTokens = await this.pushTokenRepository.query(
-        `SELECT pt.id, pt.fcm_token 
-         FROM device_push_tokens pt
-         INNER JOIN user_devices ud ON pt.user_id = ud.user_id
-         WHERE ud.device_id = ? AND pt.is_active = 1`,
+        `SELECT pt.id, pt.fcm_token, d.device_name
+        FROM device_push_tokens pt
+        INNER JOIN user_devices ud ON pt.user_id = ud.user_id
+        INNER JOIN devices d ON d.id = ud.device_id
+        WHERE ud.device_id = ? 
+          AND pt.is_active = 1`,
         [deviceId]
       );
 
@@ -26,9 +28,10 @@ export class PushNotificationsService {
         return; // Si no hay tokens activos para los usuarios de este dispositivo, salimos
       }
 
+      const deviceName = activeTokens[0].device_name || 'Dispositivo';
       const title = 'FlueGuard: Alerta de temperatura';
-      const body = `Nivel ${alert.alert_level}: ${alert.message || 'Se detectó sobretemperatura'}`;
-      
+      const body = `${deviceName}: ${alert.message || `Nivel ${alert.alert_level}: Se detectó sobretemperatura`}`;
+
       const level = String(alert.alert_level || '1');
       const channelKey = `flueguard_alert_l${level}`;
       const soundKey = `alert_sound_l${level}`;
@@ -67,7 +70,7 @@ export class PushNotificationsService {
           }
         } catch (error: any) {
           console.error(`Error enviando FCM para device ${deviceId}: ${error.message}`);
-          
+
           // 3. Mark broken token as inactive
           if (
             error.code === 'messaging/invalid-registration-token' ||
