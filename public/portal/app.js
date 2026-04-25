@@ -274,19 +274,32 @@ document.addEventListener('DOMContentLoaded', () => {
             // Generate diffTemp icon/text if needed (0: bajando, 1: estable, 2: subiendo, 3: acelerada, 4: peligrosa)
             let trendIcon = '';
             let trendColor = '';
+            let trendText = '';
 
             if (device.diffTemp === 0) {
-                trendIcon = '↘'; // Bajando
+                trendIcon = '↘';
                 trendColor = 'var(--text-secondary)';
+                trendText = 'Temperatura bajando';
             } else if (device.diffTemp === 1) {
-                trendIcon = '→'; // Estable
+                trendIcon = '→';
                 trendColor = 'var(--text-secondary)';
+                trendText = 'Temperatura estable';
             } else if (device.diffTemp === 2) {
-                trendIcon = '↗'; // Subiendo
+                trendIcon = '↗';
                 trendColor = 'var(--warning)';
-            } else if (device.diffTemp >= 3) {
-                trendIcon = '↑'; // Peligrosa
+                trendText = 'Temperatura subiendo';
+            } else if (device.diffTemp === 3) {
+                trendIcon = '↑';
                 trendColor = 'var(--danger)';
+                trendText = 'Subiendo (acelerada)';
+            } else if (device.diffTemp >= 4) {
+                trendIcon = '↑';
+                trendColor = 'var(--danger)';
+                trendText = 'Subiendo (peligrosa)';
+            } else {
+                trendIcon = '';
+                trendColor = 'var(--text-secondary)';
+                trendText = 'Tendencia desconocida';
             }
 
             const card = document.createElement('div');
@@ -303,7 +316,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="device-body">
                     <div class="temp-display" title="Tendencia de temperatura">
                         <div class="temp-value" style="color: ${trendColor}">${temp}</div>
-                        <div class="temp-unit">°C ${trendIcon}</div>
+                        <div class="temp-unit">°C</div>
+                    </div>
+                    <div class="trend-text" style="color: ${trendColor}; font-size: 0.9rem; margin-top: 0.5rem; text-align: center;">
+                        ${trendIcon} ${trendText}
                     </div>
                 </div>
             `;
