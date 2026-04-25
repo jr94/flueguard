@@ -73,4 +73,35 @@ export class UsersService {
     
     return result;
   }
+  async findAll(): Promise<Partial<User>[]> {
+    const users = await this.userRepository.find({ order: { created_at: 'DESC' } });
+    return users.map(({ password_hash, ...u }) => u);
+  }
+
+  async adminCreate(dto: { first_name: string; last_name: string; email: string; password: string; is_active?: boolean }): Promise<Partial<User>> {
+    const existing = await this.userRepository.findOne({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('El email ya está registrado');
+    const password_hash = await bcrypt.hash(dto.password, 10);
+    const user = this.userRepository.create({ ...dto, password_hash, is_active: dto.is_active ?? true });
+    const saved = await this.userRepository.save(user);
+    const { password_hash: _, ...result } = saved;
+    return result;
+  }
+
+  async adminUpdate(id: number, dto: { first_name?: string; last_name?: string; email?: string; password?: string; is_active?: boolean }): Promise<Partial<User>> {
+    const user = await this.findOne(id);
+    if (dto.first_name !== undefined) user.first_name = dto.first_name;
+    if (dto.last_name !== undefined) user.last_name = dto.last_name;
+    if (dto.email !== undefined) user.email = dto.email;
+    if (dto.is_active !== undefined) user.is_active = dto.is_active;
+    if (dto.password) user.password_hash = await bcrypt.hash(dto.password, 10);
+    const saved = await this.userRepository.save(user);
+    const { password_hash: _, ...result } = saved;
+    return result;
+  }
+
+  async delete(id: number): Promise<void> {
+    await this.findOne(id);
+    await this.userRepository.delete(id);
+  }
 }

@@ -1,8 +1,9 @@
-import { Controller, Post, Body, Put, Param, ParseIntPipe, UseGuards, Request, Get, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Body, Put, Param, ParseIntPipe, UseGuards, Request, Get, ForbiddenException, Delete } from '@nestjs/common';
 import { PortalAuthService } from './portal-auth.service';
 import { PortalLoginDto } from './dto/portal-login.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeviceFirmwareUpdatesService } from '../device-firmware-updates/device-firmware-updates.service';
+import { UsersService } from '../users/users.service';
 import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
 
 class PortalOtaRequestDto {
@@ -17,6 +18,7 @@ export class PortalAuthController {
   constructor(
     private readonly portalAuthService: PortalAuthService,
     private readonly firmwareUpdatesService: DeviceFirmwareUpdatesService,
+    private readonly usersService: UsersService,
   ) {}
 
   /**
@@ -59,6 +61,66 @@ export class PortalAuthController {
     const updated = await this.portalAuthService.updateProfile(id, body);
     const { password: _, ...safeUser } = updated as any;
     return safeUser;
+  }
+
+  // ── FlueGuard Users Management (users table) ───────────────────────────
+
+  @UseGuards(JwtAuthGuard)
+  @Get('flueguard-users')
+  async getFlueGuardUsers(@Request() req) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('No tienes permisos');
+    return this.usersService.findAll();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('flueguard-users')
+  async createFlueGuardUser(@Request() req, @Body() dto: any) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('No tienes permisos');
+    return this.usersService.adminCreate(dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('flueguard-users/:id')
+  async updateFlueGuardUser(@Param('id', ParseIntPipe) id: number, @Request() req, @Body() dto: any) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('No tienes permisos');
+    return this.usersService.adminUpdate(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('flueguard-users/:id')
+  async deleteFlueGuardUser(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('No tienes permisos');
+    return this.usersService.delete(id);
+  }
+
+  // ── Monitoring Users Management (portal_users table) ───────────────────
+
+  @UseGuards(JwtAuthGuard)
+  @Get('monitoring-users')
+  async getMonitoringUsers(@Request() req) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('No tienes permisos');
+    return this.portalAuthService.findAll();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('monitoring-users')
+  async createMonitoringUser(@Request() req, @Body() dto: any) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('No tienes permisos');
+    return this.portalAuthService.createPortalUser(dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('monitoring-users/:id')
+  async updateMonitoringUser(@Param('id', ParseIntPipe) id: number, @Request() req, @Body() dto: any) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('No tienes permisos');
+    return this.portalAuthService.updatePortalUser(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('monitoring-users/:id')
+  async deleteMonitoringUser(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('No tienes permisos');
+    return this.portalAuthService.deletePortalUser(id);
   }
   /**
    * POST /api/portal/firmware/request

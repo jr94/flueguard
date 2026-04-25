@@ -74,4 +74,55 @@ export class PortalAuthService {
     await this.portalUserRepository.update(userId, updates);
     return this.findUserById(userId);
   }
+
+  // ── Administrative CRUD for Portal Users ────────────────────────────────
+
+  async findAll(): Promise<PortalUser[]> {
+    return this.portalUserRepository.find({
+      relations: ['permissions'],
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async createPortalUser(dto: any) {
+    const { permissions, password, ...userData } = dto;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = this.portalUserRepository.create({
+      ...userData,
+      password: hashedPassword,
+    });
+    const savedUser = await this.portalUserRepository.save(newUser);
+
+    const newPermissions = this.portalPermissionRepository.create({
+      ...permissions,
+      portal_user_id: savedUser.id,
+    });
+    await this.portalPermissionRepository.save(newPermissions);
+
+    return this.findUserById(savedUser.id);
+  }
+
+  async updatePortalUser(id: number, dto: any) {
+    const { permissions, password, ...userData } = dto;
+    
+    if (password) {
+      userData.password = await bcrypt.hash(password, 10);
+    }
+
+    await this.portalUserRepository.update(id, userData);
+
+    if (permissions) {
+      await this.portalPermissionRepository.update({ portal_user_id: id }, permissions);
+    }
+
+    return this.findUserById(id);
+  }
+
+  async deletePortalUser(id: number) {
+    // Delete permissions first due to relation
+    await this.portalPermissionRepository.delete({ portal_user_id: id });
+    await this.portalUserRepository.delete(id);
+    return { success: true };
+  }
 }

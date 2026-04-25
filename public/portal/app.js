@@ -1,32 +1,47 @@
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
-    const mainNav = document.getElementById('main-nav');
-    const globalBackBtn = document.getElementById('global-back-btn');
+    const sidebar = document.getElementById('main-sidebar');
+    const topNav = document.getElementById('top-nav');
+    const viewTitle = document.getElementById('view-title');
     const loginView = document.getElementById('login-view');
     const dashboardView = document.getElementById('dashboard-view');
     const profileView = document.getElementById('profile-view');
     const deviceDetailView = document.getElementById('device-detail-view');
+    const fgUsersView = document.getElementById('flueguard-users-view');
+    const monUsersView = document.getElementById('monitoring-users-view');
+
     const loginForm = document.getElementById('login-form');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
+    const logoutBtnSide = document.getElementById('logout-btn-side');
     const refreshBtn = document.getElementById('refresh-btn');
-    const userGreeting = document.getElementById('user-greeting');
+    
+    const navUserName = document.getElementById('nav-user-name');
+    const sideUserName = document.getElementById('side-user-name');
+    const sideUserRole = document.getElementById('side-user-role');
+    
     const userMenuBtn = document.getElementById('user-menu-btn');
     const userDropdown = document.getElementById('user-dropdown');
-    const profileBtn = document.getElementById('profile-btn');
+    const profileMenuBtn = document.getElementById('profile-menu-btn');
     const devicesLoader = document.getElementById('devices-loader');
     const devicesGrid = document.getElementById('devices-grid');
     const noDevices = document.getElementById('no-devices');
     const toast = document.getElementById('toast');
 
     // Notifications
+    const notificationsContainer = document.getElementById('notifications-container');
     const notificationsBtn = document.getElementById('notifications-btn');
     const notificationsBadge = document.getElementById('notifications-badge');
     const notificationsDropdown = document.getElementById('notifications-dropdown');
     const notificationsList = document.getElementById('notifications-list');
     const clearNotificationsBtn = document.getElementById('clear-notifications-btn');
+
+    // Search & Filters
+    const deviceSearch = document.getElementById('device-search');
+    const fgUserSearch = document.getElementById('fg-user-search');
+    const monUserSearch = document.getElementById('mon-user-search');
 
     // Device Detail Elements
     const detailDeviceName = document.getElementById('detail-device-name');
@@ -63,8 +78,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const fwPending = document.getElementById('fw-pending');
     const fwInstallBtn = document.getElementById('fw-install-btn');
 
+    // User Modal Refs
+    const userModal = document.getElementById('user-modal');
+    const userForm = document.getElementById('user-form');
+    const closeUserModal = document.getElementById('close-user-modal');
+    const cancelUserBtn = document.getElementById('cancel-user-btn');
+    const uId = document.getElementById('u-id');
+    const uType = document.getElementById('u-type');
+    const uFirstName = document.getElementById('u-first-name');
+    const uLastName = document.getElementById('u-last-name');
+    const uEmail = document.getElementById('u-email');
+    const uPassword = document.getElementById('u-password');
+    const uPwHint = document.getElementById('u-pw-hint');
+    const uRole = document.getElementById('u-role');
+    const uActive = document.getElementById('u-active');
+    const monSpecificFields = document.getElementById('mon-specific-fields');
+    
+    // Permission Checkboxes
+    const permViewDash = document.getElementById('p-view-dash');
+    const permViewDev = document.getElementById('p-view-dev');
+    const permChangeSet = document.getElementById('p-change-set');
+    const permManageDev = document.getElementById('p-manage-dev');
+    const permViewLogs = document.getElementById('p-view-logs');
+    const permViewAlerts = document.getElementById('p-view-alerts');
+
     let tempChart;
     let currentDevices = [];
+    let currentFgUsers = [];
+    let currentMonUsers = [];
     let unreadAlerts = [];
     let pollingInterval = null;
     let currentOpenDeviceId = null;
@@ -101,10 +142,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function init() {
         if (accessToken && currentUser) {
-            showDashboard();
+            setupUI();
+            switchView('dashboard-view');
         } else {
             showLogin();
         }
+    }
+
+    function setupUI() {
+        if (currentUser.role === 'admin') {
+            document.body.classList.add('is-admin');
+        } else {
+            document.body.classList.remove('is-admin');
+        }
+        
+        navUserName.textContent = currentUser.first_name || currentUser.email;
+        sideUserName.textContent = `${currentUser.first_name} ${currentUser.last_name || ''}`;
+        sideUserRole.textContent = currentUser.role;
+        
+        sidebar.style.display = 'flex';
+        topNav.style.display = 'flex';
     }
 
     function startPolling() {
@@ -124,58 +181,64 @@ document.addEventListener('DOMContentLoaded', () => {
     // View Routing
     function showLogin() {
         stopPolling();
-        mainNav.style.display = 'none';
-        loginView.classList.add('active');
-        dashboardView.classList.remove('active');
-        profileView.classList.remove('active');
-        deviceDetailView.classList.remove('active');
+        sidebar.style.display = 'none';
+        topNav.style.display = 'none';
+        switchView('login-view');
     }
 
-    function showDashboard() {
-        mainNav.style.display = 'flex';
-        globalBackBtn.style.display = 'none';
-        loginView.classList.remove('active');
-        profileView.classList.remove('active');
-        deviceDetailView.classList.remove('active');
-        dashboardView.classList.add('active');
-        userGreeting.textContent = `Hola, ${currentUser.first_name || currentUser.email}`;
-        currentOpenDeviceId = null;
+    function switchView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
 
-        // Apply permissions
-        const canViewAlerts = hasPermission('can_view_alerts');
-        document.querySelector('.notifications-container').style.display = canViewAlerts ? '' : 'none';
+        // Update sidebar active state
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            if (item.dataset.view === viewId) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
 
-        if (hasPermission('can_view_devices')) {
-            fetchDevices();
-        } else {
-            devicesLoader.style.display = 'none';
-            devicesGrid.style.display = 'none';
-            noDevices.style.display = 'block';
-            noDevices.querySelector('p').textContent = 'No tiene permiso para ver dispositivos.';
+        // Update top nav title
+        if (viewId === 'dashboard-view') viewTitle.textContent = 'Dispositivos';
+        else if (viewId === 'flueguard-users-view') viewTitle.textContent = 'Usuarios FlueGuard';
+        else if (viewId === 'monitoring-users-view') viewTitle.textContent = 'Usuarios Monitoreo';
+        else if (viewId === 'profile-view') viewTitle.textContent = 'Mi Perfil';
+        else if (viewId === 'device-detail-view') viewTitle.textContent = 'Detalle de Dispositivo';
+
+        // Load data based on view
+        if (viewId === 'dashboard-view') {
+            currentOpenDeviceId = null;
+            if (hasPermission('can_view_devices')) {
+                fetchDevices();
+                startPolling();
+            } else {
+                devicesGrid.style.display = 'none';
+                noDevices.style.display = 'block';
+                noDevices.querySelector('p').textContent = 'No tiene permiso para ver dispositivos.';
+            }
+        } else if (viewId === 'flueguard-users-view') {
+            fetchFgUsers();
+            stopPolling();
+        } else if (viewId === 'monitoring-users-view') {
+            fetchMonUsers();
+            stopPolling();
+        } else if (viewId === 'profile-view') {
+            loadProfileData();
+            stopPolling();
         }
-        startPolling();
+
+        // Apply visibility for alerts
+        notificationsContainer.style.display = hasPermission('can_view_alerts') ? 'block' : 'none';
     }
 
-    function showProfile() {
-        mainNav.style.display = 'flex';
-        globalBackBtn.style.display = 'inline-block';
-        loginView.classList.remove('active');
-        dashboardView.classList.remove('active');
-        deviceDetailView.classList.remove('active');
-        profileView.classList.add('active');
-        userDropdown.style.display = 'none';
-        loadProfileData();
-    }
-
-    function showDeviceDetail() {
-        mainNav.style.display = 'flex';
-        globalBackBtn.style.display = 'inline-block';
-        loginView.classList.remove('active');
-        dashboardView.classList.remove('active');
-        profileView.classList.remove('active');
-        deviceDetailView.classList.add('active');
-        startPolling();
-    }
+    // Sidebar Navigation
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const viewId = item.dataset.view;
+            if (viewId) switchView(viewId);
+        });
+    });
 
     // Toast Notification
     let toastTimeout;
@@ -238,7 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('fg_permissions', JSON.stringify(currentPermissions));
 
             showToast('Inicio de sesión exitoso');
-            showDashboard();
+            setupUI();
+            switchView('dashboard-view');
 
             // Clear form
             loginForm.reset();
@@ -257,17 +321,24 @@ document.addEventListener('DOMContentLoaded', () => {
         userDropdown.style.display = isVisible ? 'none' : 'block';
     });
 
-    document.addEventListener('click', (e) => {
-        if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-            userDropdown.style.display = 'none';
-        }
-        if (!notificationsBtn.contains(e.target) && !notificationsDropdown.contains(e.target)) {
-            notificationsDropdown.style.display = 'none';
-        }
+    profileMenuBtn.addEventListener('click', () => {
+        switchView('profile-view');
+        userDropdown.style.display = 'none';
     });
 
-    profileBtn.addEventListener('click', showProfile);
-    globalBackBtn.addEventListener('click', showDashboard);
+    const logoutAction = () => {
+        accessToken = null;
+        currentUser = null;
+        currentPermissions = null;
+        localStorage.removeItem('fg_access_token');
+        localStorage.removeItem('fg_user');
+        localStorage.removeItem('fg_permissions');
+        userDropdown.style.display = 'none';
+        showLogin();
+    };
+
+    logoutBtn.addEventListener('click', logoutAction);
+    logoutBtnSide.addEventListener('click', logoutAction);
 
     notificationsBtn.addEventListener('click', () => {
         const isVisible = notificationsDropdown.style.display === 'flex';
@@ -916,6 +987,251 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.style.display = 'block';
             loader.style.display = 'none';
         }
+    });
+
+    // ── User Management Logic ───────────────────────────────────────────
+
+    // Fetch FlueGuard Users
+    async function fetchFgUsers() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/portal/auth/flueguard-users`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!res.ok) throw new Error('Error al cargar usuarios');
+            currentFgUsers = await res.json();
+            renderFgUsers(currentFgUsers);
+        } catch (e) {
+            console.error('Fetch FG Users error:', e);
+            showToast(e.message, 'error');
+        }
+    }
+
+    function renderFgUsers(users) {
+        const tbody = document.getElementById('fg-users-table-body');
+        tbody.innerHTML = '';
+        users.forEach(u => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${escapeHtml(u.first_name)}</td>
+                <td>${escapeHtml(u.last_name)}</td>
+                <td>${escapeHtml(u.email)}</td>
+                <td><span class="badge ${u.is_active ? 'badge-active' : 'badge-inactive'}">${u.is_active ? 'Activo' : 'Inactivo'}</span></td>
+                <td class="actions-cell">
+                    <button class="btn icon-btn edit-fg-btn" data-id="${u.id}">✏️</button>
+                    <button class="btn icon-btn delete-fg-btn text-danger" data-id="${u.id}">🗑️</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Add event listeners for edit/delete
+        document.querySelectorAll('.edit-fg-btn').forEach(btn => {
+            btn.addEventListener('click', () => openUserModalForEdit('fg', btn.dataset.id));
+        });
+        document.querySelectorAll('.delete-fg-btn').forEach(btn => {
+            btn.addEventListener('click', () => deleteUser('fg', btn.dataset.id));
+        });
+    }
+
+    // Fetch Monitoring Users
+    async function fetchMonUsers() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/portal/auth/monitoring-users`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!res.ok) throw new Error('Error al cargar monitores');
+            currentMonUsers = await res.json();
+            renderMonUsers(currentMonUsers);
+        } catch (e) {
+            console.error('Fetch Mon Users error:', e);
+            showToast(e.message, 'error');
+        }
+    }
+
+    function renderMonUsers(users) {
+        const tbody = document.getElementById('mon-users-table-body');
+        tbody.innerHTML = '';
+        users.forEach(u => {
+            const lastLogin = u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Nunca';
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${escapeHtml(u.first_name)} ${escapeHtml(u.last_name || '')}</td>
+                <td>${escapeHtml(u.email)}</td>
+                <td><span class="role-badge">${u.role}</span></td>
+                <td>${lastLogin}</td>
+                <td><span class="badge ${u.is_active ? 'badge-active' : 'badge-inactive'}">${u.is_active ? 'Activo' : 'Inactivo'}</span></td>
+                <td class="actions-cell">
+                    <button class="btn icon-btn edit-mon-btn" data-id="${u.id}">✏️</button>
+                    <button class="btn icon-btn delete-mon-btn text-danger" data-id="${u.id}">🗑️</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Add event listeners for edit/delete
+        document.querySelectorAll('.edit-mon-btn').forEach(btn => {
+            btn.addEventListener('click', () => openUserModalForEdit('mon', btn.dataset.id));
+        });
+        document.querySelectorAll('.delete-mon-btn').forEach(btn => {
+            btn.addEventListener('click', () => deleteUser('mon', btn.dataset.id));
+        });
+    }
+
+    // Modal Handlers
+    function openUserModalForAdd(type) {
+        userForm.reset();
+        uId.value = '';
+        uType.value = type;
+        uPassword.required = true;
+        uPwHint.textContent = 'Obligatorio (mínimo 6 caracteres)';
+        userModal.classList.add('show');
+        document.getElementById('user-modal-title').textContent = type === 'fg' ? 'Nuevo Usuario FlueGuard' : 'Nuevo Monitor';
+        monSpecificFields.style.display = type === 'mon' ? 'block' : 'none';
+        
+        // Default permissions for monitors
+        if (type === 'mon') {
+            permViewDev.checked = true;
+            permChangeSet.checked = false;
+            permManageDev.checked = false;
+            permViewLogs.checked = true;
+            permViewAlerts.checked = true;
+        }
+    }
+
+    function openUserModalForEdit(type, id) {
+        const user = type === 'fg' 
+            ? currentFgUsers.find(u => u.id == id)
+            : currentMonUsers.find(u => u.id == id);
+        
+        if (!user) return;
+
+        uId.value = user.id;
+        uType.value = type;
+        uFirstName.value = user.first_name;
+        uLastName.value = user.last_name || '';
+        uEmail.value = user.email;
+        uPassword.required = false;
+        uPwHint.textContent = 'Deje en blanco para no cambiar';
+        
+        userModal.classList.add('show');
+        document.getElementById('user-modal-title').textContent = type === 'fg' ? 'Editar Usuario FlueGuard' : 'Editar Monitor';
+        
+        if (type === 'mon') {
+            monSpecificFields.style.display = 'block';
+            uRole.value = user.role;
+            uActive.value = user.is_active ? '1' : '0';
+            const p = user.permissions || {};
+            permViewDev.checked = !!p.can_view_devices;
+            permChangeSet.checked = !!p.can_change_settings;
+            permManageDev.checked = !!p.can_manage_devices;
+            permViewLogs.checked = !!p.can_view_logs;
+            permViewAlerts.checked = !!p.can_view_alerts;
+        } else {
+            monSpecificFields.style.display = 'none';
+        }
+    }
+
+    async function deleteUser(type, id) {
+        if (!confirm('¿Está seguro de eliminar este usuario?')) return;
+        
+        const endpoint = type === 'fg' ? 'flueguard-users' : 'monitoring-users';
+        try {
+            const res = await fetch(`${API_BASE_URL}/portal/auth/${endpoint}/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!res.ok) throw new Error('Error al eliminar');
+            showToast('Usuario eliminado');
+            if (type === 'fg') fetchFgUsers(); else fetchMonUsers();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    userForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const type = uType.value;
+        const id = uId.value;
+        const isEdit = !!id;
+        const endpoint = type === 'fg' ? 'flueguard-users' : 'monitoring-users';
+        
+        const payload = {
+            first_name: uFirstName.value,
+            last_name: uLastName.value,
+            email: uEmail.value,
+        };
+        if (uPassword.value) payload.password = uPassword.value;
+
+        if (type === 'mon') {
+            payload.role = uRole.value;
+            payload.is_active = uActive.value === '1';
+            payload.permissions = {
+                can_view_dashboard: 1,
+                can_view_devices: permViewDev.checked ? 1 : 0,
+                can_change_settings: permChangeSet.checked ? 1 : 0,
+                can_manage_devices: permManageDev.checked ? 1 : 0,
+                can_view_logs: permViewLogs.checked ? 1 : 0,
+                can_view_alerts: permViewAlerts.checked ? 1 : 0,
+            };
+        }
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/portal/auth/${endpoint}${isEdit ? '/' + id : ''}`, {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'Error al guardar');
+            }
+
+            showToast('Guardado correctamente');
+            userModal.classList.remove('show');
+            if (type === 'fg') fetchFgUsers(); else fetchMonUsers();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    });
+
+    document.getElementById('add-fg-user-btn').addEventListener('click', () => openUserModalForAdd('fg'));
+    document.getElementById('add-mon-user-btn').addEventListener('click', () => openUserModalForAdd('mon'));
+    closeUserModal.addEventListener('click', () => userModal.classList.remove('show'));
+    cancelUserBtn.addEventListener('click', () => userModal.classList.remove('show'));
+
+    // ── Filtering Logic ───────────────────────────────────────────────
+
+    deviceSearch.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = currentDevices.filter(item => 
+            item.device.device_name.toLowerCase().includes(term) || 
+            item.device.serial_number.toLowerCase().includes(term)
+        );
+        renderDevices(filtered);
+    });
+
+    fgUserSearch.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = currentFgUsers.filter(u => 
+            u.first_name.toLowerCase().includes(term) || 
+            (u.last_name && u.last_name.toLowerCase().includes(term)) || 
+            u.email.toLowerCase().includes(term)
+        );
+        renderFgUsers(filtered);
+    });
+
+    monUserSearch.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = currentMonUsers.filter(u => 
+            u.first_name.toLowerCase().includes(term) || 
+            (u.last_name && u.last_name.toLowerCase().includes(term)) || 
+            u.email.toLowerCase().includes(term)
+        );
+        renderMonUsers(filtered);
     });
 
     // Audio Alert

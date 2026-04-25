@@ -9,12 +9,14 @@ import { PortalAuthService } from './portal-auth.service';
 import { PortalAuthController } from './portal-auth.controller';
 import { AuthModule } from '../auth/auth.module';
 import { DeviceFirmwareUpdatesModule } from '../device-firmware-updates/device-firmware-updates.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([PortalUser, PortalPermission]),
     AuthModule,
     DeviceFirmwareUpdatesModule,
+    UsersModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
