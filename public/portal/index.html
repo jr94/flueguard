@@ -208,13 +208,24 @@
                     </div>
 
                     <form id="settings-form" class="settings-form">
-                        <!-- Nombre -->
+                        <!-- Nombre + tipo de estufa -->
                         <div class="settings-group">
                             <h4>Identificación</h4>
                             <div class="form-row">
                                 <div class="input-group">
                                     <label for="s-device-name">Nombre del dispositivo</label>
                                     <input type="text" id="s-device-name" placeholder="Ej: Estufa Living">
+                                </div>
+                                <div class="input-group">
+                                    <label for="s-type-device">Tipo de estufa / calefacción</label>
+                                    <select id="s-type-device">
+                                        <option value="0">🔥 Estufa a leña</option>
+                                        <option value="1">🚿 Calefón a gas</option>
+                                        <option value="2">🏠 Caldera central</option>
+                                        <option value="3">🌡️ Estufa a pellet</option>
+                                        <option value="4">⚡ Estufa eléctrica</option>
+                                        <option value="99">🔧 Otro</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -291,6 +302,41 @@
                             </button>
                         </div>
                     </form>
+
+                    <!-- Firmware Section — visible según permiso can_manage_devices -->
+                    <div id="firmware-section" class="firmware-section" style="display:none;">
+                        <div class="settings-group">
+                            <h4>Actualización de Firmware</h4>
+                            <div class="firmware-info-grid">
+                                <div class="firmware-info-card">
+                                    <div class="firmware-info-label">Versión instalada</div>
+                                    <div class="firmware-info-value" id="fw-current">--</div>
+                                </div>
+                                <div class="firmware-info-card">
+                                    <div class="firmware-info-label">Última versión disponible</div>
+                                    <div class="firmware-info-value" id="fw-latest">Consultando...</div>
+                                </div>
+                                <div class="firmware-info-card">
+                                    <div class="firmware-info-label">Notas de versión</div>
+                                    <div class="firmware-info-value" id="fw-notes" style="font-size:0.85rem; color:var(--text-secondary);">--</div>
+                                </div>
+                            </div>
+
+                            <div id="fw-update-available" style="display:none;" class="fw-alert">
+                                <span>🆕 Hay una actualización disponible</span>
+                                <button id="fw-install-btn" class="btn primary-btn" style="max-width:200px;">
+                                    <span class="btn-text">⬆️ Instalar Actualización</span>
+                                    <span class="loader" style="display:none;"></span>
+                                </button>
+                            </div>
+                            <div id="fw-up-to-date" style="display:none;" class="fw-ok">
+                                ✅ El firmware está actualizado
+                            </div>
+                            <div id="fw-pending" style="display:none;" class="fw-pending">
+                                ⏳ Actualización pendiente de instalación en el dispositivo
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>

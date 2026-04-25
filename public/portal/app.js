@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsPanel = document.getElementById('settings-panel');
     const settingsForm = document.getElementById('settings-form');
     const sDeviceName = document.getElementById('s-device-name');
+    const sTypeDevice = document.getElementById('s-type-device');
     const sT1 = document.getElementById('s-t1');
     const sT2 = document.getElementById('s-t2');
     const sT3 = document.getElementById('s-t3');
@@ -51,6 +52,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const sSoundAlarm = document.getElementById('s-sound-alarm');
     const sAlarmTempLow = document.getElementById('s-alarm-temp-low');
     const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+    // Firmware refs
+    const firmwareSection = document.getElementById('firmware-section');
+    const fwCurrent = document.getElementById('fw-current');
+    const fwLatest = document.getElementById('fw-latest');
+    const fwNotes = document.getElementById('fw-notes');
+    const fwUpdateAvailable = document.getElementById('fw-update-available');
+    const fwUpToDate = document.getElementById('fw-up-to-date');
+    const fwPending = document.getElementById('fw-pending');
+    const fwInstallBtn = document.getElementById('fw-install-btn');
 
     let tempChart;
     let currentDevices = [];
@@ -444,6 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Populate settings form if panel is visible
                 if (canChangeSettings) {
                     sDeviceName.value = device.device_name || '';
+                    sTypeDevice.value = currentDeviceSettings.type_device != null ? String(currentDeviceSettings.type_device) : '0';
                     sT1.value = currentDeviceSettings.threshold_1 != null ? parseFloat(currentDeviceSettings.threshold_1) : '';
                     sT2.value = currentDeviceSettings.threshold_2 != null ? parseFloat(currentDeviceSettings.threshold_2) : '';
                     sT3.value = currentDeviceSettings.threshold_3 != null ? parseFloat(currentDeviceSettings.threshold_3) : '';
@@ -457,6 +469,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) {
             console.error('Settings fetch error:', e);
+        }
+
+        // Firmware section
+        const canManageDevices = hasPermission('can_manage_devices');
+        firmwareSection.style.display = canManageDevices ? 'block' : 'none';
+        if (canManageDevices) {
+            loadFirmwareStatus(device);
         }
     }
 
@@ -772,6 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = {};
 
         if (sDeviceName.value.trim()) payload.device_name = sDeviceName.value.trim();
+        payload.type_device = parseInt(sTypeDevice.value);
         if (sT1.value !== '') payload.threshold_1 = parseFloat(sT1.value);
         if (sT2.value !== '') payload.threshold_2 = parseFloat(sT2.value);
         if (sT3.value !== '') payload.threshold_3 = parseFloat(sT3.value);
@@ -814,6 +834,86 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(err.message, 'error');
         } finally {
             saveSettingsBtn.disabled = false;
+            btnText.style.display = 'block';
+            loader.style.display = 'none';
+        }
+    });
+
+    // ── Firmware Logic ───────────────────────────────────────────────────────
+    let currentFirmwareDevice = null;
+    let latestFirmwareVersion = null;
+
+    async function loadFirmwareStatus(device) {
+        currentFirmwareDevice = device;
+        latestFirmwareVersion = null;
+
+        // Reset UI
+        fwUpdateAvailable.style.display = 'none';
+        fwUpToDate.style.display = 'none';
+        fwPending.style.display = 'none';
+        fwCurrent.textContent = device.firmware_version || 'Desconocida';
+        fwLatest.textContent = 'Consultando...';
+        fwNotes.textContent = '--';
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/firmware/check/serial_number/${device.serial_number}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+
+            if (!res.ok) throw new Error('No se pudo consultar el servidor de firmware');
+            const data = await res.json();
+
+            fwLatest.textContent = data.latest_version || data.current_version || '--';
+            fwNotes.textContent = data.notes || 'Sin notas';
+
+            if (data.update) {
+                latestFirmwareVersion = data.latest_version;
+                fwUpdateAvailable.style.display = 'flex';
+            } else {
+                fwUpToDate.style.display = 'block';
+            }
+        } catch (e) {
+            console.error('Firmware check error:', e);
+            fwLatest.textContent = 'Error al consultar';
+        }
+    }
+
+    fwInstallBtn.addEventListener('click', async () => {
+        if (!currentFirmwareDevice || !latestFirmwareVersion) return;
+
+        const btnText = fwInstallBtn.querySelector('.btn-text');
+        const loader = fwInstallBtn.querySelector('.loader');
+        fwInstallBtn.disabled = true;
+        btnText.style.display = 'none';
+        loader.style.display = 'block';
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/device-firmware-updates/request`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    serial_number: currentFirmwareDevice.serial_number,
+                    version: latestFirmwareVersion,
+                }),
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'Error al solicitar actualización');
+            }
+
+            fwUpdateAvailable.style.display = 'none';
+            fwPending.style.display = 'block';
+            showToast('Actualización solicitada. El dispositivo la instalará al reconectarse.', 'success');
+
+        } catch (e) {
+            console.error('OTA request error:', e);
+            showToast(e.message, 'error');
+        } finally {
+            fwInstallBtn.disabled = false;
             btnText.style.display = 'block';
             loader.style.display = 'none';
         }
