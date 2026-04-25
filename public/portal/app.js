@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileForm = document.getElementById('profile-form');
     const profileNombre = document.getElementById('profile-nombre');
     const profileApellido = document.getElementById('profile-apellido');
-    const profileRegion = document.getElementById('profile-region');
-    const profileComuna = document.getElementById('profile-comuna');
+    const profileEmail = document.getElementById('profile-email');
+    const profileRole = document.getElementById('profile-role');
     const profilePassword = document.getElementById('profile-password');
     const profileConfirmPassword = document.getElementById('profile-confirm-password');
     const saveProfileBtn = document.getElementById('save-profile-btn');
@@ -62,6 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // State
     let accessToken = localStorage.getItem('fg_access_token');
     let currentUser = JSON.parse(localStorage.getItem('fg_user') || 'null');
+    let currentPermissions = JSON.parse(localStorage.getItem('fg_permissions') || 'null');
+
+    function hasPermission(perm) {
+        if (!currentPermissions) return false;
+        if (currentUser && currentUser.role === 'admin') return true;
+        return !!currentPermissions[perm];
+    }
 
     // API Base URL
     const API_BASE_URL = '/api';
@@ -110,7 +117,19 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardView.classList.add('active');
         userGreeting.textContent = `Hola, ${currentUser.first_name || currentUser.email}`;
         currentOpenDeviceId = null;
-        fetchDevices();
+
+        // Apply permissions
+        const canViewAlerts = hasPermission('can_view_alerts');
+        document.querySelector('.notifications-container').style.display = canViewAlerts ? '' : 'none';
+
+        if (hasPermission('can_view_devices')) {
+            fetchDevices();
+        } else {
+            devicesLoader.style.display = 'none';
+            devicesGrid.style.display = 'none';
+            noDevices.style.display = 'block';
+            noDevices.querySelector('p').textContent = 'No tiene permiso para ver dispositivos.';
+        }
         startPolling();
     }
 
@@ -173,12 +192,12 @@ document.addEventListener('DOMContentLoaded', () => {
         setBtnLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            const response = await fetch(`${API_BASE_URL}/portal/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password, device_type: 'Navegador' }),
+                body: JSON.stringify({ email, password }),
             });
 
             const data = await response.json();
@@ -190,8 +209,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save to local storage
             accessToken = data.access_token;
             currentUser = data.user;
+            currentPermissions = data.user.permissions || null;
             localStorage.setItem('fg_access_token', accessToken);
             localStorage.setItem('fg_user', JSON.stringify(currentUser));
+            localStorage.setItem('fg_permissions', JSON.stringify(currentPermissions));
 
             showToast('Inicio de sesión exitoso');
             showDashboard();
@@ -234,8 +255,10 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', () => {
         accessToken = null;
         currentUser = null;
+        currentPermissions = null;
         localStorage.removeItem('fg_access_token');
         localStorage.removeItem('fg_user');
+        localStorage.removeItem('fg_permissions');
         userDropdown.style.display = 'none';
         showLogin();
     });
@@ -558,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Notifications Logic ---
     async function fetchNotifications() {
+        if (!hasPermission('can_view_alerts')) return;
         if (!currentDevices.length) return;
         unreadAlerts = [];
         
@@ -649,67 +673,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadProfileData() {
         profileNombre.value = currentUser.first_name || '';
         profileApellido.value = currentUser.last_name || '';
+        if (profileEmail) profileEmail.value = currentUser.email || '';
+        if (profileRole) profileRole.value = currentUser.role || '';
         profilePassword.value = '';
         profileConfirmPassword.value = '';
-
-        try {
-            // Load Regiones
-            const response = await fetch(`${API_BASE_URL}/regiones`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            if (!response.ok) throw new Error('Error al cargar regiones');
-            const regiones = await response.json();
-            
-            profileRegion.innerHTML = '<option value="">Seleccione una región</option>';
-            regiones.forEach(r => {
-                profileRegion.innerHTML += `<option value="${r.id}">${r.nombre}</option>`;
-            });
-
-            // Set current region if any
-            if (currentUser.region_id) {
-                profileRegion.value = currentUser.region_id;
-                await loadComunas(currentUser.region_id);
-                if (currentUser.comuna_id) {
-                    profileComuna.value = currentUser.comuna_id;
-                }
-            } else {
-                profileComuna.innerHTML = '<option value="">Seleccione una comuna</option>';
-                profileComuna.disabled = true;
-            }
-        } catch (error) {
-            console.error('Profile load error:', error);
-            showToast('No se pudieron cargar los datos de ubicación', 'error');
-        }
     }
-
-    async function loadComunas(regionId) {
-        if (!regionId) {
-            profileComuna.innerHTML = '<option value="">Seleccione una comuna</option>';
-            profileComuna.disabled = true;
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/region/${regionId}`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            if (!response.ok) throw new Error('Error al cargar comunas');
-            const comunas = await response.json();
-            
-            profileComuna.innerHTML = '<option value="">Seleccione una comuna</option>';
-            comunas.forEach(c => {
-                profileComuna.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
-            });
-            profileComuna.disabled = false;
-        } catch (error) {
-            console.error('Comunas load error:', error);
-            showToast('No se pudieron cargar las comunas', 'error');
-        }
-    }
-
-    profileRegion.addEventListener('change', (e) => {
-        loadComunas(e.target.value);
-    });
 
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -723,12 +691,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const payload = {
-            nombre: profileNombre.value.trim(),
-            apellido: profileApellido.value.trim()
+            first_name: profileNombre.value.trim(),
+            last_name: profileApellido.value.trim(),
         };
-
-        if (profileRegion.value) payload.region = parseInt(profileRegion.value);
-        if (profileComuna.value) payload.comuna = parseInt(profileComuna.value);
         if (pwd) payload.password = pwd;
 
         const btnText = saveProfileBtn.querySelector('.btn-text');
@@ -739,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loader.style.display = 'block';
 
         try {
-            const response = await fetch(`${API_BASE_URL}/users/update/${currentUser.id}`, {
+            const response = await fetch(`${API_BASE_URL}/portal/auth/profile/${currentUser.id}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,

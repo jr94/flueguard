@@ -20,6 +20,7 @@ import { LocationsModule } from './locations/locations.module';
 import { FirmwareModule } from './firmware/firmware.module';
 import { DeviceFirmwareUpdatesModule } from './device-firmware-updates/device-firmware-updates.module';
 import { AccountDeletionModule } from './account-deletion/account-deletion.module';
+import { PortalModule } from './portal/portal.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { AccountDeletionModule } from './account-deletion/account-deletion.modul
     FirmwareModule,
     DeviceFirmwareUpdatesModule,
     AccountDeletionModule,
+    PortalModule,
   ],
   controllers: [AppController],
   providers: [AppService],
