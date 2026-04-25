@@ -71,7 +71,7 @@ export class TelemetryService {
             // Se desactiva la alerta si comienza a bajar con diferencia <-2
           } else {
             finalLevel = '3';
-            message = `Riesgo de incendio: la temperatura alcanzó ${temperature}°C. Revisa la estufa de inmediato. (valor critico ${settings.threshold_3}°)`;
+            message = `Riesgo de incendio: la temperatura alcanzó ${temperature}°C. Revisa la estufa de inmediato.`;
           }
         }
         else if (t2 !== null && logTemp >= t2) {
@@ -79,7 +79,7 @@ export class TelemetryService {
             // Se desactiva la alerta si comienza a bajar con diferencia <=0
           } else {
             finalLevel = '2';
-            message = `Temperatura alta ${temperature}°C. Reduce la combustión o revisa la estufa. (valor máximo ${settings.threshold_2}°)`;
+            message = `Temperatura alta ${temperature}°C. Reduce la combustión o revisa la estufa.`;
           }
         }
         else if (t1 !== null && logTemp < t1 && settings.sound_alarm_temp_low) {
@@ -87,7 +87,7 @@ export class TelemetryService {
             // Se desactiva la alerta si vuelve a subir con diferencia >=0
           } else {
             finalLevel = '1';
-            message = `Temperatura baja ${temperature}°C. Es momento de agregar leña. (valor mínimo ${settings.threshold_1}°)`;
+            message = `Temperatura baja ${temperature}°C. Es momento de agregar leña.`;
           }
         }
 
