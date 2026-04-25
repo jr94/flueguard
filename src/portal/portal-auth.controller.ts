@@ -2,10 +2,22 @@ import { Controller, Post, Body, Put, Param, ParseIntPipe, UseGuards, Request, G
 import { PortalAuthService } from './portal-auth.service';
 import { PortalLoginDto } from './dto/portal-login.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { DeviceFirmwareUpdatesService } from '../device-firmware-updates/device-firmware-updates.service';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
+
+class PortalOtaRequestDto {
+  @IsString() @IsNotEmpty() serial_number: string;
+  @IsString() @IsNotEmpty() version: string;
+  @IsBoolean() @IsOptional() mandatory?: boolean;
+  @IsString() @IsOptional() notes?: string;
+}
 
 @Controller('portal/auth')
 export class PortalAuthController {
-  constructor(private readonly portalAuthService: PortalAuthService) {}
+  constructor(
+    private readonly portalAuthService: PortalAuthService,
+    private readonly firmwareUpdatesService: DeviceFirmwareUpdatesService,
+  ) {}
 
   /**
    * POST /api/portal/auth/login
@@ -47,5 +59,17 @@ export class PortalAuthController {
     const updated = await this.portalAuthService.updateProfile(id, body);
     const { password: _, ...safeUser } = updated as any;
     return safeUser;
+  }
+  /**
+   * POST /api/portal/firmware/request
+   * Solicita una actualización OTA desde el portal.
+   * No requiere validación de user_devices — el portal gestiona todos los dispositivos.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('/firmware/request')
+  async requestOta(@Body() dto: PortalOtaRequestDto) {
+    // Llama al service con userId=0 y luego hace el request directamente
+    // sin la validación de owner en user_devices
+    return this.firmwareUpdatesService.requestOtaFromPortal(dto.serial_number, dto.version, dto.mandatory, dto.notes);
   }
 }

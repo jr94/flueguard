@@ -856,9 +856,8 @@ document.addEventListener('DOMContentLoaded', () => {
         fwNotes.textContent = '--';
 
         try {
-            const res = await fetch(`${API_BASE_URL}/firmware/check/serial_number/${device.serial_number}`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
+            // El endpoint de firmware NO está bajo /api
+            const res = await fetch(`/firmware/check/serial_number/${device.serial_number}`);
 
             if (!res.ok) throw new Error('No se pudo consultar el servidor de firmware');
             const data = await res.json();
@@ -888,7 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loader.style.display = 'block';
 
         try {
-            const res = await fetch(`${API_BASE_URL}/device-firmware-updates/request`, {
+            const res = await fetch(`${API_BASE_URL}/portal/auth/firmware/request`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,

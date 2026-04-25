@@ -103,6 +103,71 @@ export class DeviceFirmwareUpdatesService {
     };
   }
 
+  /**
+   * Solicita OTA desde el portal — sin validación de user_devices.
+   * El portal tiene acceso administrativo a todos los dispositivos.
+   */
+  async requestOtaFromPortal(serial_number: string, version: string, mandatory?: boolean, notes?: string) {
+    const device = await this.devicesService.findBySerialNumber(serial_number);
+    if (!device) {
+      throw new NotFoundException(`Device with serial number ${serial_number} not found`);
+    }
+
+    if (device.firmware_version === version) {
+      throw new BadRequestException('El dispositivo ya tiene instalada la versión solicitada.');
+    }
+
+    if (device.firmware_version && compareVersion(device.firmware_version, version) > 0) {
+      throw new BadRequestException('La versión solicitada es menor que la versión actualmente instalada.');
+    }
+
+    const inProgressOta = await this.updatesRepository.findOne({
+      where: { device_id: device.id, status: 'in_progress' }
+    });
+    if (inProgressOta) {
+      throw new ConflictException('Ya existe una actualización en curso para este dispositivo');
+    }
+
+    const versions = await this.firmwareService.getVersions();
+    const targetFirmware = versions.find(v => v.version === version);
+    if (!targetFirmware) {
+      throw new NotFoundException(`Firmware version ${version} not found in metadata`);
+    }
+
+    const dateStr = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 8);
+    const request_id = `ota_${dateStr}_${crypto.randomBytes(4).toString('hex')}`;
+
+    await this.updatesRepository.manager.transaction(async transactionalEntityManager => {
+      await transactionalEntityManager.update(
+        DeviceFirmwareUpdate,
+        { device_id: device.id, status: 'pending' },
+        { status: 'canceled' }
+      );
+
+      const update = transactionalEntityManager.create(DeviceFirmwareUpdate, {
+        device_id: device.id,
+        request_id,
+        target_version: targetFirmware.version,
+        file_url: targetFirmware.file,
+        sha256: targetFirmware.sha256 || '',
+        size_bytes: targetFirmware.size_bytes || 0,
+        mandatory: mandatory !== undefined ? mandatory : (targetFirmware.mandatory || false),
+        notes: notes || targetFirmware.notes || '',
+        status: 'pending',
+      });
+
+      await transactionalEntityManager.save(update);
+    });
+
+    return {
+      success: true,
+      message: 'Solicitud OTA registrada correctamente desde el portal',
+      request_id,
+      device_id: device.id,
+      version: targetFirmware.version,
+    };
+  }
+
   async startOta(dto: StartOtaDto) {
     const device = await this.devicesService.findBySerialNumber(dto.serial_number);
     if (!device) {
