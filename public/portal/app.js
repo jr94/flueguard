@@ -99,8 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const permViewDev = document.getElementById('p-view-dev');
     const permChangeSet = document.getElementById('p-change-set');
     const permManageDev = document.getElementById('p-manage-dev');
-    const permViewLogs = document.getElementById('p-view-logs');
+    const permViewTelemetry = document.getElementById('p-view-telemetry');
     const permViewAlerts = document.getElementById('p-view-alerts');
+    const permManageUsers = document.getElementById('p-manage-users');
 
     let tempChart;
     let currentDevices = [];
@@ -1093,8 +1094,9 @@ document.addEventListener('DOMContentLoaded', () => {
             permViewDev.checked = true;
             permChangeSet.checked = false;
             permManageDev.checked = false;
-            permViewLogs.checked = true;
+            permViewTelemetry.checked = true;
             permViewAlerts.checked = true;
+            permManageUsers.checked = false;
         }
     }
 
@@ -1124,8 +1126,9 @@ document.addEventListener('DOMContentLoaded', () => {
             permViewDev.checked = !!p.can_view_devices;
             permChangeSet.checked = !!p.can_change_settings;
             permManageDev.checked = !!p.can_manage_devices;
-            permViewLogs.checked = !!p.can_view_logs;
+            permViewTelemetry.checked = !!p.can_view_telemetry;
             permViewAlerts.checked = !!p.can_view_alerts;
+            permManageUsers.checked = !!p.can_manage_users;
         } else {
             monSpecificFields.style.display = 'none';
         }
@@ -1170,8 +1173,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 can_view_devices: permViewDev.checked,
                 can_change_settings: permChangeSet.checked,
                 can_manage_devices: permManageDev.checked,
-                can_view_logs: permViewLogs.checked,
+                can_view_telemetry: permViewTelemetry.checked,
                 can_view_alerts: permViewAlerts.checked,
+                can_manage_users: permManageUsers.checked,
             };
         }
 

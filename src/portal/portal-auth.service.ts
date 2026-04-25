@@ -83,9 +83,8 @@ export class PortalAuthService {
         },
       };
     } catch (err) {
-      console.error('Login error detailed:', err);
       if (err instanceof UnauthorizedException) throw err;
-      throw new InternalServerErrorException(`Login crash: ${err.message}`);
+      throw new InternalServerErrorException('Error interno del servidor');
     }
   }
 
