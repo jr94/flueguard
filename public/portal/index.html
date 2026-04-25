@@ -42,41 +42,43 @@
         </div>
     </div>
 
-    <!-- Dashboard View -->
-    <div id="dashboard-view" class="view">
-        <nav class="dashboard-nav">
-            <div class="nav-brand">FlueGuard Portal</div>
-            <div class="nav-actions">
-                <!-- Notifications -->
-                <div class="notifications-container">
-                    <button id="notifications-btn" class="notifications-btn" title="Notificaciones">
-                        🔔
-                        <span id="notifications-badge" class="notifications-badge" style="display: none;">0</span>
-                    </button>
-                    <div id="notifications-dropdown" class="notifications-dropdown" style="display: none;">
-                        <div class="notifications-header">Alertas Activas</div>
-                        <div id="notifications-list" class="notifications-list">
-                            <!-- Alerts will be injected here -->
-                            <div class="notification-item empty">No hay alertas nuevas.</div>
-                        </div>
-                        <button id="clear-notifications-btn" class="clear-notifications-btn" disabled>Borrar Notificaciones</button>
+    <!-- Global Nav -->
+    <nav id="main-nav" class="dashboard-nav" style="display: none;">
+        <div class="nav-brand">FlueGuard Portal</div>
+        <div class="nav-actions">
+            <button id="global-back-btn" class="btn outline-btn" style="display: none; margin-right: 1rem;">← Volver</button>
+            
+            <!-- Notifications -->
+            <div class="notifications-container">
+                <button id="notifications-btn" class="notifications-btn" title="Notificaciones">
+                    🔔
+                    <span id="notifications-badge" class="notifications-badge" style="display: none;">0</span>
+                </button>
+                <div id="notifications-dropdown" class="notifications-dropdown" style="display: none;">
+                    <div class="notifications-header">Alertas Activas</div>
+                    <div id="notifications-list" class="notifications-list">
+                        <div class="notification-item empty">No hay alertas nuevas.</div>
                     </div>
-                </div>
-
-                <!-- User Menu -->
-                <div class="user-menu-container">
-                    <button id="user-menu-btn" class="user-menu-btn">
-                        <span id="user-greeting" class="user-greeting"></span>
-                        <span class="dropdown-icon">▼</span>
-                    </button>
-                    <div id="user-dropdown" class="user-dropdown" style="display: none;">
-                        <button id="profile-btn" class="dropdown-item">👤 Mi Perfil</button>
-                        <button id="logout-btn" class="dropdown-item text-danger">🚪 Cerrar Sesión</button>
-                    </div>
+                    <button id="clear-notifications-btn" class="clear-notifications-btn" disabled>Borrar Notificaciones</button>
                 </div>
             </div>
-        </nav>
-        
+
+            <!-- User Menu -->
+            <div class="user-menu-container">
+                <button id="user-menu-btn" class="user-menu-btn">
+                    <span id="user-greeting" class="user-greeting"></span>
+                    <span class="dropdown-icon">▼</span>
+                </button>
+                <div id="user-dropdown" class="user-dropdown" style="display: none;">
+                    <button id="profile-btn" class="dropdown-item">👤 Mi Perfil</button>
+                    <button id="logout-btn" class="dropdown-item text-danger">🚪 Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard View -->
+    <div id="dashboard-view" class="view">
         <main class="dashboard-content">
             <div class="section-header">
                 <h2>Mis Dispositivos</h2>
@@ -104,13 +106,6 @@
 
     <!-- Profile View -->
     <div id="profile-view" class="view">
-        <nav class="dashboard-nav">
-            <div class="nav-brand">FlueGuard Portal</div>
-            <div class="nav-actions">
-                <button id="back-dashboard-btn" class="btn outline-btn">← Volver</button>
-            </div>
-        </nav>
-
         <main class="dashboard-content">
             <div class="profile-container">
                 <div class="section-header">
@@ -171,13 +166,6 @@
 
     <!-- Device Detail View -->
     <div id="device-detail-view" class="view">
-        <nav class="dashboard-nav">
-            <div class="nav-brand">FlueGuard Portal</div>
-            <div class="nav-actions">
-                <button id="back-devices-btn" class="btn outline-btn">← Volver a Dispositivos</button>
-            </div>
-        </nav>
-
         <main class="dashboard-content">
             <div class="device-detail-container">
                 <div class="device-header-large">

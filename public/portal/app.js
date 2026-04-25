@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
+    const mainNav = document.getElementById('main-nav');
+    const globalBackBtn = document.getElementById('global-back-btn');
     const loginView = document.getElementById('login-view');
     const dashboardView = document.getElementById('dashboard-view');
     const profileView = document.getElementById('profile-view');
@@ -14,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userMenuBtn = document.getElementById('user-menu-btn');
     const userDropdown = document.getElementById('user-dropdown');
     const profileBtn = document.getElementById('profile-btn');
-    const backDashboardBtn = document.getElementById('back-dashboard-btn');
     const devicesLoader = document.getElementById('devices-loader');
     const devicesGrid = document.getElementById('devices-grid');
     const noDevices = document.getElementById('no-devices');
@@ -28,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearNotificationsBtn = document.getElementById('clear-notifications-btn');
 
     // Device Detail Elements
-    const backDevicesBtn = document.getElementById('back-devices-btn');
     const detailDeviceName = document.getElementById('detail-device-name');
     const detailDeviceStatus = document.getElementById('detail-device-status');
     const detailTemp = document.getElementById('detail-temp');
@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // View Routing
     function showLogin() {
+        mainNav.style.display = 'none';
         loginView.classList.add('active');
         dashboardView.classList.remove('active');
         profileView.classList.remove('active');
@@ -78,6 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showDashboard() {
+        mainNav.style.display = 'flex';
+        globalBackBtn.style.display = 'none';
         loginView.classList.remove('active');
         profileView.classList.remove('active');
         deviceDetailView.classList.remove('active');
@@ -87,6 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showProfile() {
+        mainNav.style.display = 'flex';
+        globalBackBtn.style.display = 'inline-block';
         loginView.classList.remove('active');
         dashboardView.classList.remove('active');
         deviceDetailView.classList.remove('active');
@@ -96,6 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showDeviceDetail() {
+        mainNav.style.display = 'flex';
+        globalBackBtn.style.display = 'inline-block';
         loginView.classList.remove('active');
         dashboardView.classList.remove('active');
         profileView.classList.remove('active');
@@ -190,8 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     profileBtn.addEventListener('click', showProfile);
-    backDashboardBtn.addEventListener('click', showDashboard);
-    backDevicesBtn.addEventListener('click', showDashboard);
+    globalBackBtn.addEventListener('click', showDashboard);
 
     notificationsBtn.addEventListener('click', () => {
         const isVisible = notificationsDropdown.style.display === 'flex';
