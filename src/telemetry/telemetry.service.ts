@@ -17,6 +17,8 @@ export class TelemetryService {
     private readonly deviceSettingsService: DeviceSettingsService,
     private readonly alertsService: AlertsService,
     private readonly pushNotificationsService: PushNotificationsService,
+    private readonly LOW_TEMP_ALERT_INTERVAL_MS = 10 * 60 * 1000,
+    private readonly lowTempAlertControl = new Map<number, number>(),
   ) { }
 
   async processTelemetry(createTelemetryDto: CreateTelemetryDto) {
@@ -82,12 +84,25 @@ export class TelemetryService {
             message = `Temperatura alta ${temperature}°C. Reduce la combustión o revisa la estufa.`;
           }
         }
-        else if (t1 !== null && logTemp < t1 && settings.sound_alarm_temp_low) {
-          if (diff >= 0) {
-            // Se desactiva la alerta si vuelve a subir con diferencia >=0
+        else if (t1 !== null && settings.sound_alarm_temp_low) {
+          const lastLowTempAlertAt = this.lowTempAlertControl.get(device.id);
+          const now = Date.now();
+
+          if (logTemp < t1) {
+            const shouldSendLowTempAlert =
+              !lastLowTempAlertAt ||
+              now - lastLowTempAlertAt >= this.LOW_TEMP_ALERT_INTERVAL_MS;
+
+            if (shouldSendLowTempAlert) {
+              finalLevel = '1';
+              message = `Temperatura baja ${temperature}°C. Es momento de agregar leña.`;
+
+              // Guarda el momento de la última alerta nivel 1
+              this.lowTempAlertControl.set(device.id, now);
+            }
           } else {
-            finalLevel = '1';
-            message = `Temperatura baja ${temperature}°C. Es momento de agregar leña.`;
+            // Si supera o iguala el umbral, se resetea el contador
+            this.lowTempAlertControl.delete(device.id);
           }
         }
 
