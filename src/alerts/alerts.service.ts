@@ -15,7 +15,10 @@ export class AlertsService {
   ) {}
 
   async create(createAlertDto: CreateAlertDto): Promise<Alert> {
-    const alert = this.alertRepository.create(createAlertDto);
+    const alert = this.alertRepository.create({
+      ...createAlertDto,
+      is_read: true,
+    });
     return this.alertRepository.save(alert);
   }
 
