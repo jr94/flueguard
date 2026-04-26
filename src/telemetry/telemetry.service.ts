@@ -217,7 +217,17 @@ export class TelemetryService {
     results.sort((a, b) => {
       const timeA = a.last_log_time ? new Date(a.last_log_time).getTime() : 0;
       const timeB = b.last_log_time ? new Date(b.last_log_time).getTime() : 0;
-      return timeB - timeA;
+
+      // 1. Prioridad: más reciente
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+
+      // 2. Prioridad secundaria: mayor temperatura
+      const tempA = a.last_temperature !== null ? Number(a.last_temperature) : -Infinity;
+      const tempB = b.last_temperature !== null ? Number(b.last_temperature) : -Infinity;
+
+      return tempB - tempA;
     });
 
     return results;
