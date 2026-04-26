@@ -10,6 +10,9 @@ import { PushNotificationsService } from '../push-notifications/push-notificatio
 
 @Injectable()
 export class TelemetryService {
+  private readonly LOW_TEMP_ALERT_INTERVAL_MS = 10 * 60 * 1000;
+  private readonly lowTempAlertControl = new Map<number, number>();
+
   constructor(
     @InjectRepository(TemperatureLog)
     private readonly temperatureLogRepository: Repository<TemperatureLog>,
@@ -17,8 +20,6 @@ export class TelemetryService {
     private readonly deviceSettingsService: DeviceSettingsService,
     private readonly alertsService: AlertsService,
     private readonly pushNotificationsService: PushNotificationsService,
-    private readonly LOW_TEMP_ALERT_INTERVAL_MS = 10 * 60 * 1000,
-    private readonly lowTempAlertControl = new Map<number, number>(),
   ) { }
 
   async processTelemetry(createTelemetryDto: CreateTelemetryDto) {
@@ -52,6 +53,10 @@ export class TelemetryService {
         const t1 = settings.threshold_1 ? Number(settings.threshold_1) : null;
         const t2 = settings.threshold_2 ? Number(settings.threshold_2) : null;
         const t3 = settings.threshold_3 ? Number(settings.threshold_3) : null;
+
+        if (t1 !== null && logTemp >= t1) {
+          this.lowTempAlertControl.delete(device.id);
+        }
 
         // Obtener historial reciente para calcular la diferencia de temperatura
         const lastLogs = await this.temperatureLogRepository.find({
