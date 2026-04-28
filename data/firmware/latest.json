@@ -1,13 +1,21 @@
 {
   "latest": {
-    "version": "1.0.11",
-    "file": "https://flueguard.cl/firmware/flueguard_v1_0_11.bin",
-    "notes": "Actualizacion: reset cada 1 hora",
-    "date": "2026-04-27",
+    "version": "2.0.1",
+    "file": "https://flueguard.cl/firmware/flueguard_v2_0_1.bin",
+    "notes": "FIX: wifi, searchWifi, update telemetry, WifiSaveEnergy",
+    "date": "2026-04-28",
     "mandatory": false,
     "sha256": "FlueGuardUpdate2026V1"
   },
   "versions": [
+    {
+      "version": "2.0.1",
+      "file": "https://flueguard.cl/firmware/flueguard_v2_0_1.bin",
+      "notes": "FIX: wifi, searchWifi, update telemetry, WifiSaveEnergy",
+      "date": "2026-04-28",
+      "mandatory": false,
+      "sha256": "FlueGuardUpdate2026V1"
+    },
     {
       "version": "1.0.11",
       "file": "https://flueguard.cl/firmware/flueguard_v1_0_11.bin",
