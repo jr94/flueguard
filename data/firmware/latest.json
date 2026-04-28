@@ -1,13 +1,21 @@
 {
   "latest": {
-    "version": "1.0.10",
-    "file": "https://flueguard.cl/firmware/flueguard_v1_0_10.bin",
-    "notes": "Actualizacion: alerta nivel 1 buzzer cada 5 minutos",
-    "date": "2026-04-26",
+    "version": "1.0.11",
+    "file": "https://flueguard.cl/firmware/flueguard_v1_0_11.bin",
+    "notes": "Actualizacion: reset cada 1 hora",
+    "date": "2026-04-27",
     "mandatory": false,
     "sha256": "FlueGuardUpdate2026V1"
   },
   "versions": [
+    {
+      "version": "1.0.11",
+      "file": "https://flueguard.cl/firmware/flueguard_v1_0_11.bin",
+      "notes": "Actualizacion: reset cada 1 hora",
+      "date": "2026-04-27",
+      "mandatory": false,
+      "sha256": "FlueGuardUpdate2026V1"
+    },
     {
       "version": "1.0.10",
       "file": "https://flueguard.cl/firmware/flueguard_v1_0_10.bin",
