@@ -196,9 +196,16 @@ export class TelemetryService {
       }
 
       let alarmLowTemp = true;
+      let threshold_1 = null;
+      let threshold_2 = null;
+      let threshold_3 = null;
+
       try {
         const settings = await this.deviceSettingsService.findByDeviceId(device.id);
         alarmLowTemp = settings.sound_alarm_temp_low;
+        threshold_1 = settings.threshold_1;
+        threshold_2 = settings.threshold_2;
+        threshold_3 = settings.threshold_3;
       } catch (e) {
         // keep default
       }
@@ -207,6 +214,9 @@ export class TelemetryService {
         device: {
           ...device,
           alarm_low_temp: alarmLowTemp,
+          threshold_1,
+          threshold_2,
+          threshold_3,
           diffTemp,
         },
         last_temperature: lastLog ? lastLog.temperature : null,
