@@ -107,18 +107,74 @@ export class MailService {
         ],
         subject: `[FlueGuard Soporte] Nueva consulta: ${type}`,
         htmlContent: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #333;">Nueva solicitud de soporte</h2>
-          <p><strong>Tipo de consulta:</strong> ${type}</p>
-          <p><strong>Usuario ID:</strong> ${userId}</p>
-          <p><strong>Nombre:</strong> ${firstName} ${lastName}</p>
-          <p><strong>Email:</strong> ${userEmail}</p>
-          <p><strong>Fecha y hora:</strong> ${new Date().toLocaleString('es-CL')}</p>
-          ${environmentUrl ? `<p><strong>Ambiente/URL:</strong> ${environmentUrl}</p>` : ''}
-          <hr style="border: 1px solid #eee; margin: 20px 0;" />
-          <h3 style="color: #333;">Mensaje del usuario:</h3>
-          <p style="white-space: pre-wrap; background-color: #f9f9f9; padding: 15px; border-radius: 5px;">${message}</p>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+        </head>
+        <body style="background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <!-- Header -->
+            <div style="background-color: #1e293b; color: #ffffff; padding: 30px 40px; text-align: center;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 0.5px;">FlueGuard Soporte</h1>
+              <p style="margin: 10px 0 0 0; font-size: 14px; color: #94a3b8;">Nueva solicitud recibida desde la app</p>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 40px;">
+              
+              <!-- Meta info block -->
+              <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 4px; margin-bottom: 30px;">
+                <h3 style="margin: 0 0 15px 0; color: #0f172a; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">Detalles del Contacto</h3>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; width: 140px; font-size: 14px;">Tipo de consulta:</td>
+                    <td style="padding: 8px 0; color: #0f172a; font-weight: 600; font-size: 14px;">${type}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Usuario ID:</td>
+                    <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">${userId}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Nombre:</td>
+                    <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">${firstName} ${lastName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Email:</td>
+                    <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">
+                      <a href="mailto:${userEmail}" style="color: #3b82f6; text-decoration: none;">${userEmail}</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Fecha y hora:</td>
+                    <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">${new Date().toLocaleString('es-CL')}</td>
+                  </tr>
+                  ${environmentUrl ? `
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Ambiente:</td>
+                    <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">
+                      <a href="${environmentUrl}" style="color: #3b82f6; text-decoration: none;">${environmentUrl}</a>
+                    </td>
+                  </tr>
+                  ` : ''}
+                </table>
+              </div>
+
+              <!-- Message block -->
+              <h3 style="margin: 0 0 15px 0; color: #0f172a; font-size: 16px;">Mensaje del usuario:</h3>
+              <div style="background-color: #ffffff; border: 1px solid #e2e8f0; padding: 25px; border-radius: 8px; color: #334155; line-height: 1.6; font-size: 15px; white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">${message}</div>
+              
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #f1f5f9; padding: 20px; text-align: center; color: #64748b; font-size: 12px; border-top: 1px solid #e2e8f0;">
+              <p style="margin: 0;">Este es un correo automático generado por el sistema de soporte de FlueGuard.</p>
+              <p style="margin: 5px 0 0 0;">Puedes responder directamente a este correo para contactar a <a href="mailto:${userEmail}" style="color: #3b82f6; text-decoration: none;">${userEmail}</a>.</p>
+            </div>
+          </div>
+        </body>
+        </html>
         `,
       },
       {
