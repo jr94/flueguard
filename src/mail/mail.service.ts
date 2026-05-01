@@ -148,7 +148,7 @@ export class MailService {
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Fecha y hora:</td>
-                    <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">${new Date().toLocaleString('es-CL')}</td>
+                    <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">${new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' })}</td>
                   </tr>
                   ${environmentUrl ? `
                   <tr>
