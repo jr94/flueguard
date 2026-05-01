@@ -196,9 +196,9 @@ export class TelemetryService {
       }
 
       let alarmLowTemp = true;
-      let threshold_1 = null;
-      let threshold_2 = null;
-      let threshold_3 = null;
+      let threshold_1: number | null = null;
+      let threshold_2: number | null = null;
+      let threshold_3: number | null = null;
 
       try {
         const settings = await this.deviceSettingsService.findByDeviceId(device.id);

@@ -21,6 +21,7 @@ import { FirmwareModule } from './firmware/firmware.module';
 import { DeviceFirmwareUpdatesModule } from './device-firmware-updates/device-firmware-updates.module';
 import { AccountDeletionModule } from './account-deletion/account-deletion.module';
 import { PortalModule } from './portal/portal.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { PortalModule } from './portal/portal.module';
     DeviceFirmwareUpdatesModule,
     AccountDeletionModule,
     PortalModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

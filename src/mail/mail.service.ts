@@ -81,4 +81,52 @@ export class MailService {
       },
     );
   }
+
+  async sendSupportEmail(
+    userEmail: string,
+    firstName: string,
+    lastName: string,
+    userId: number,
+    type: string,
+    message: string,
+    environmentUrl: string
+  ): Promise<void> {
+    const apiKey = this.configService.get<string>('BREVO_API_KEY');
+
+    await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: {
+          name: 'FlueGuard Soporte',
+          email: 'no-reply@flueguard.cl',
+        },
+        to: [
+          {
+            email: 'jose.riquelme94@gmail.com',
+          },
+        ],
+        subject: `[FlueGuard Soporte] Nueva consulta: ${type}`,
+        htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333;">Nueva solicitud de soporte</h2>
+          <p><strong>Tipo de consulta:</strong> ${type}</p>
+          <p><strong>Usuario ID:</strong> ${userId}</p>
+          <p><strong>Nombre:</strong> ${firstName} ${lastName}</p>
+          <p><strong>Email:</strong> ${userEmail}</p>
+          <p><strong>Fecha y hora:</strong> ${new Date().toLocaleString('es-CL')}</p>
+          ${environmentUrl ? `<p><strong>Ambiente/URL:</strong> ${environmentUrl}</p>` : ''}
+          <hr style="border: 1px solid #eee; margin: 20px 0;" />
+          <h3 style="color: #333;">Mensaje del usuario:</h3>
+          <p style="white-space: pre-wrap; background-color: #f9f9f9; padding: 15px; border-radius: 5px;">${message}</p>
+        </div>
+        `,
+      },
+      {
+        headers: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  }
 }
