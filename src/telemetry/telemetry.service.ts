@@ -129,10 +129,14 @@ export class TelemetryService {
 
         // 7. Lógica Predictiva
         if (t2 !== null && t3 !== null) {
+          const twentyMinsAgo = new Date(Date.now() - 20 * 60 * 1000);
           const historyLogs = await this.temperatureLogRepository.find({
-            where: { device_id: device.id },
+            where: {
+              device_id: device.id,
+              created_at: MoreThanOrEqual(twentyMinsAgo),
+            },
             order: { created_at: 'DESC' },
-            take: 10,
+            take: 20,
           });
 
           const points = historyLogs.map(log => ({

@@ -48,7 +48,22 @@ export function calculatePredictiveCurveAlert(
     .filter(p => p && typeof p.temperature === 'number' && !Number.isNaN(p.temperature))
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
-  const currentTemperature = orderedPoints[orderedPoints.length - 1]?.temperature ?? 0;
+  let continuousPoints: TemperaturePoint[] = [];
+  if (orderedPoints.length > 0) {
+    continuousPoints.push(orderedPoints[orderedPoints.length - 1]);
+    for (let i = orderedPoints.length - 2; i >= 0; i--) {
+      const current = orderedPoints[i + 1];
+      const prev = orderedPoints[i];
+      const diffMinutes = (current.createdAt.getTime() - prev.createdAt.getTime()) / 60000;
+      
+      if (diffMinutes > 5) {
+        break; // gap mayor a 5 min, descartamos puntos antiguos
+      }
+      continuousPoints.unshift(prev);
+    }
+  }
+
+  const currentTemperature = continuousPoints[continuousPoints.length - 1]?.temperature ?? 0;
 
   if (currentTemperature < MIN_TEMP_TO_PREDICT) {
     return {
@@ -61,7 +76,7 @@ export function calculatePredictiveCurveAlert(
     };
   }
 
-  if (orderedPoints.length < MIN_POINTS) {
+  if (continuousPoints.length < MIN_POINTS) {
     return {
       canPredict: false,
       currentTemperature,
@@ -72,13 +87,22 @@ export function calculatePredictiveCurveAlert(
     };
   }
 
-  const selectedPoints = orderedPoints.slice(-RECOMMENDED_POINTS);
+  const selectedPoints = continuousPoints.slice(-RECOMMENDED_POINTS);
   const n = selectedPoints.length;
 
-  const data = selectedPoints.map((p, index) => ({
-    t: index - (n - 1),
-    y: p.temperature,
-  }));
+  const lastTimestamp = selectedPoints[n - 1].createdAt.getTime();
+
+  const data = selectedPoints.map((p) => {
+    const currentTimestamp = p.createdAt.getTime();
+    const diffMinutes = (currentTimestamp - lastTimestamp) / 60000;
+
+    return {
+      t: diffMinutes,
+      y: p.temperature,
+    };
+  });
+
+  console.log('[PREDICT] Data points:', data);
 
   let coefficients;
 
