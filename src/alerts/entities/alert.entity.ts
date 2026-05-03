@@ -19,6 +19,9 @@ export class Alert {
   @Column({ name: 'alert_level', length: 50 })
   alert_level: string;
 
+  @Column({ name: 'alert_type', length: 50, default: 'NORMAL' })
+  alert_type: string;
+
   @Column({ type: 'text' })
   message: string;
 

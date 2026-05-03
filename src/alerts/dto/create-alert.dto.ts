@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
 
 export class CreateAlertDto {
   @IsNumber()
@@ -12,6 +12,10 @@ export class CreateAlertDto {
   @IsString()
   @IsNotEmpty()
   alert_level: string;
+
+  @IsString()
+  @IsOptional()
+  alert_type?: string;
 
   @IsString()
   @IsNotEmpty()

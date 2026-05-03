@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { calculatePredictiveCurveAlert } from './predictive-alert.utils';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { TemperatureLog } from './entities/temperature-log.entity';
@@ -117,12 +118,53 @@ export class TelemetryService {
             device_id: device.id,
             temperature,
             alert_level: finalLevel,
+            alert_type: `NORMAL_LEVEL_${finalLevel}`,
             message,
           });
 
           // 6. Enviar notificación push de forma independiente
           this.pushNotificationsService.sendAlertNotification(device.id, newAlert, serial_number)
             .catch((e) => console.error('Error en ejecución background de push notification:', e));
+        }
+
+        // 7. Lógica Predictiva
+        if (t2 !== null && t3 !== null) {
+          const historyLogs = await this.temperatureLogRepository.find({
+            where: { device_id: device.id },
+            order: { created_at: 'DESC' },
+            take: 10,
+          });
+
+          const points = historyLogs.map(log => ({
+            temperature: Number(log.temperature),
+            createdAt: new Date(log.created_at)
+          })).reverse();
+
+          const prediction = calculatePredictiveCurveAlert(points, t2, t3, 10);
+
+          if (prediction.canPredict && (prediction.alertLevel === 2 || prediction.alertLevel === 3)) {
+            const predLevelStr = String(prediction.alertLevel);
+            
+            // Si la temperatura actual ya genera alerta normal 3, o si genera normal 2 y la predicción es 2, no predecimos
+            const skipPredictive = (finalLevel === '3') || (finalLevel === '2' && predLevelStr === '2');
+
+            if (!skipPredictive) {
+              const hasRecent = await this.alertsService.hasRecentPredictiveAlert(device.id, predLevelStr, 10);
+
+              if (!hasRecent) {
+                const newPredictiveAlert = await this.alertsService.create({
+                  device_id: device.id,
+                  temperature: prediction.predictedMax,
+                  alert_level: predLevelStr,
+                  alert_type: `PREDICTIVE_LEVEL_${predLevelStr}`,
+                  message: prediction.notificationMessage || prediction.reason,
+                });
+
+                this.pushNotificationsService.sendAlertNotification(device.id, newPredictiveAlert, serial_number)
+                  .catch((e) => console.error('Error en ejecución background de push notification predictiva:', e));
+              }
+            }
+          }
         }
       }
     } catch (error) {
