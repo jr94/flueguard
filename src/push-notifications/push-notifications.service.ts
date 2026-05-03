@@ -60,14 +60,21 @@ export class PushNotificationsService {
 
       // 2. Iterate and send notification
       let tokensEnviados = 0;
+      const alertLevel = Number(alert.alert_level || 1);
+      const isCriticalAlert = alertLevel === 3;
+
       for (const record of activeTokens) {
-        if (!record.notifications_enabled) {
+        if (!isCriticalAlert && !record.notifications_enabled) {
           console.log(`[PUSH] Usuario ${record.user_id} tiene notificaciones desactivadas para device_id ${deviceId}`);
           continue;
         }
 
+        if (isCriticalAlert && !record.notifications_enabled) {
+          console.log(`[PUSH] Alerta crítica nivel 3: se ignora switch desactivado del usuario ${record.user_id} para device_id ${deviceId}`);
+        }
+
         tokensEnviados++;
-        console.log(`[PUSH] Enviando alerta a usuario ${record.user_id} para device_id ${deviceId}`);
+        console.log(`[PUSH] Enviando alerta nivel ${alertLevel} a usuario ${record.user_id} para device_id ${deviceId}`);
         try {
           // Verify we have Firebase mapped properly
           if (admin.apps.length > 0) {
