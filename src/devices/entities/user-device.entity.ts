@@ -29,4 +29,7 @@ export class UserDevice {
 
   @Column({ type: 'tinyint', width: 1, default: 1 })
   edit: boolean;
+
+  @Column({ type: 'tinyint', width: 1, default: 1 })
+  notifications_enabled: boolean;
 }

@@ -13,9 +13,9 @@ export class PushNotificationsService {
 
   async sendAlertNotification(deviceId: number, alert: any, serialNumber: string = ''): Promise<void> {
     try {
-      // 1. Fetch active tokens for all users associated with the device
+      // 1. Obtener tokens activos para todos los usuarios asociados al dispositivo
       const activeTokens = await this.pushTokenRepository.query(
-        `SELECT pt.id, pt.fcm_token, d.device_name
+        `SELECT pt.id, pt.fcm_token, d.device_name, pt.user_id, ud.notifications_enabled
         FROM device_push_tokens pt
         INNER JOIN user_devices ud ON pt.user_id = ud.user_id
         INNER JOIN devices d ON d.id = ud.device_id
@@ -25,6 +25,7 @@ export class PushNotificationsService {
       );
 
       if (!activeTokens || activeTokens.length === 0) {
+        console.log(`[PUSH] No hay tokens activos para usuarios con notificaciones habilitadas en device_id ${deviceId}`);
         return; // Si no hay tokens activos para los usuarios de este dispositivo, salimos
       }
 
@@ -56,7 +57,15 @@ export class PushNotificationsService {
       };
 
       // 2. Iterate and send notification
+      let tokensEnviados = 0;
       for (const record of activeTokens) {
+        if (!record.notifications_enabled) {
+          console.log(`[PUSH] Usuario ${record.user_id} tiene notificaciones desactivadas para device_id ${deviceId}`);
+          continue;
+        }
+
+        tokensEnviados++;
+        console.log(`[PUSH] Enviando alerta a usuario ${record.user_id} para device_id ${deviceId}`);
         try {
           // Verify we have Firebase mapped properly
           if (admin.apps.length > 0) {
@@ -81,6 +90,10 @@ export class PushNotificationsService {
             console.log(`Token FCM invalidado por rechazo de servidor.`);
           }
         }
+      }
+
+      if (tokensEnviados === 0 && activeTokens.length > 0) {
+        console.log(`[PUSH] No hay usuarios con notificaciones habilitadas para device_id ${deviceId}`);
       }
     } catch (err) {
       // Bloque general que encapsula y prohíbe explícitamente cualquier crasheo exterior

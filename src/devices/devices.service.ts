@@ -265,4 +265,39 @@ export class DevicesService {
       };
     }
   }
+
+  async updateNotifications(deviceId: number, userId: number, enabled: boolean): Promise<{ device_id: number; user_id: number; notifications_enabled: boolean }> {
+    const userDevice = await this.userDeviceRepository.findOne({
+      where: { user_id: userId, device_id: deviceId },
+    });
+
+    if (!userDevice) {
+      throw new NotFoundException('Relación user_devices no encontrada');
+    }
+
+    userDevice.notifications_enabled = enabled;
+    await this.userDeviceRepository.save(userDevice);
+
+    return {
+      device_id: deviceId,
+      user_id: userId,
+      notifications_enabled: enabled,
+    };
+  }
+
+  async getNotificationsStatus(deviceId: number, userId: number): Promise<{ device_id: number; user_id: number; notifications_enabled: boolean }> {
+    const userDevice = await this.userDeviceRepository.findOne({
+      where: { user_id: userId, device_id: deviceId },
+    });
+
+    if (!userDevice) {
+      throw new NotFoundException('Relación user_devices no encontrada');
+    }
+
+    return {
+      device_id: deviceId,
+      user_id: userId,
+      notifications_enabled: userDevice.notifications_enabled,
+    };
+  }
 }
