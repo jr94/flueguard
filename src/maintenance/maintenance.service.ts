@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Device } from '../devices/entities/device.entity';
 import { TemperatureLog } from '../telemetry/entities/temperature-log.entity';
 import { Alert } from '../alerts/entities/alert.entity';
+import { DeviceFirmwareUpdate } from '../device-firmware-updates/entities/device-firmware-update.entity';
+import { DevicePushToken } from '../push-tokens/entities/device-push-token.entity';
 @Injectable()
 export class MaintenanceService {
   constructor(
@@ -13,6 +15,10 @@ export class MaintenanceService {
     private readonly logRepository: Repository<TemperatureLog>,
     @InjectRepository(Alert)
     private readonly alertRepository: Repository<Alert>,
+    @InjectRepository(DeviceFirmwareUpdate)
+    private readonly firmwareUpdateRepository: Repository<DeviceFirmwareUpdate>,
+    @InjectRepository(DevicePushToken)
+    private readonly pushTokenRepository: Repository<DevicePushToken>,
   ) {}
 
   async runCleanup() {
@@ -68,6 +74,22 @@ export class MaintenanceService {
       .andWhere('created_at < :date', { date: thirtyDaysAgo })
       .execute();
 
+    // 4. Firmware updates cleanup: delete earlier than 7 days
+    const deleteFirmwareUpdates = await this.firmwareUpdateRepository
+      .createQueryBuilder()
+      .delete()
+      .from(DeviceFirmwareUpdate)
+      .where('created_at < :date', { date: sevenDaysAgo })
+      .execute();
+
+    // 5. Inactive push tokens cleanup
+    const deleteInactiveTokens = await this.pushTokenRepository
+      .createQueryBuilder()
+      .delete()
+      .from(DevicePushToken)
+      .where('is_active = :isActive', { isActive: false })
+      .execute();
+
     return {
       success: true,
       message: 'Maintenance completed',
@@ -76,6 +98,8 @@ export class MaintenanceService {
       alerts_info_deleted: deleteInfoAlerts.affected || 0,
       alerts_warning_deleted: deleteWarningAlerts.affected || 0,
       alerts_critical_deleted: deleteCriticalAlerts.affected || 0,
+      firmware_updates_deleted: deleteFirmwareUpdates.affected || 0,
+      inactive_push_tokens_deleted: deleteInactiveTokens.affected || 0,
       executed_at: now.toISOString(),
     };
   }
