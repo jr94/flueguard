@@ -16,16 +16,18 @@ export class PushNotificationsService {
       // 1. Obtener tokens activos para todos los usuarios asociados al dispositivo
       const activeTokens = await this.pushTokenRepository.query(
         `SELECT pt.id, pt.fcm_token, d.device_name, pt.user_id, ud.notifications_enabled
-        FROM device_push_tokens pt
-        INNER JOIN user_devices ud ON pt.user_id = ud.user_id
-        INNER JOIN devices d ON d.id = ud.device_id
-        WHERE ud.device_id = ? 
+        FROM user_devices ud
+        INNER JOIN device_push_tokens pt
+          ON pt.user_id = ud.user_id
+        INNER JOIN devices d
+          ON d.id = ud.device_id
+        WHERE ud.device_id = ?
           AND pt.is_active = 1`,
         [deviceId]
       );
 
       if (!activeTokens || activeTokens.length === 0) {
-        console.log(`[PUSH] No hay tokens activos para usuarios con notificaciones habilitadas en device_id ${deviceId}`);
+        console.log(`[PUSH] No hay tokens activos para usuarios vinculados al device_id ${deviceId}`);
         return; // Si no hay tokens activos para los usuarios de este dispositivo, salimos
       }
 
