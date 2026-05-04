@@ -24,6 +24,16 @@ export class Device {
   @Column({ type: 'varchar', length: 50, nullable: true })
   firmware_version: string | null;
 
+  @Column({ type: 'int', nullable: true })
+  region_id: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  comuna_id: number | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  direccion: string | null;
+
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

@@ -1,9 +1,23 @@
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, IsInt, MaxLength } from 'class-validator';
 
 export class UpdateDeviceSettingDto {
   @IsOptional()
   @IsString()
   device_name?: string;
+
+  @IsOptional()
+  @IsInt()
+  region_id?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  comuna_id?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  direccion?: string | null;
+
 
   @IsOptional()
   @IsNumber()

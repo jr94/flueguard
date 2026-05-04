@@ -5,6 +5,8 @@ import { DeviceSetting } from './entities/device-setting.entity';
 import { UpdateDeviceSettingDto } from './dto/update-device-setting.dto';
 import { DevicesService } from '../devices/devices.service';
 import { DeviceFirmwareUpdatesService } from '../device-firmware-updates/device-firmware-updates.service';
+import { Device } from '../devices/entities/device.entity';
+
 
 @Injectable()
 export class DeviceSettingsService {
@@ -15,12 +17,21 @@ export class DeviceSettingsService {
     private readonly deviceFirmwareUpdatesService: DeviceFirmwareUpdatesService,
   ) {}
 
-  async findByDeviceId(deviceId: number): Promise<DeviceSetting> {
+  async findByDeviceId(deviceId: number): Promise<any> {
     const setting = await this.deviceSettingRepository.findOne({ where: { device_id: deviceId } });
     if (!setting) {
       throw new NotFoundException(`Settings for device ID ${deviceId} not found`);
     }
-    return setting;
+
+    const device = await this.devicesService.findOne(deviceId);
+
+    return {
+      ...setting,
+      device_name: device.device_name,
+      region_id: device.region_id,
+      comuna_id: device.comuna_id,
+      direccion: device.direccion,
+    };
   }
 
   async findBySerialNumber(serialNumber: string): Promise<any> {
@@ -41,6 +52,10 @@ export class DeviceSettingsService {
 
     return {
       ...setting,
+      device_name: device.device_name,
+      region_id: device.region_id,
+      comuna_id: device.comuna_id,
+      direccion: device.direccion,
       firmware_update: otaRequest ? {
         requested: true,
         status: otaRequest.status,
@@ -72,12 +87,29 @@ export class DeviceSettingsService {
     };
   }
 
-  async update(deviceId: number, updateDto: UpdateDeviceSettingDto): Promise<DeviceSetting> {
-    const { device_name, ...settingsDto } = updateDto;
+  async update(deviceId: number, updateDto: UpdateDeviceSettingDto): Promise<any> {
+    const { device_name, region_id, comuna_id, direccion, ...settingsDto } = updateDto;
 
-    // Si viene el nombre del dispositivo, lo actualizamos a través del DevicesService
-    if (device_name) {
-      await this.devicesService.updateDeviceName(deviceId, device_name);
+    const deviceUpdatePayload: Partial<Device> = {};
+
+    if (device_name !== undefined) {
+      deviceUpdatePayload.device_name = device_name;
+    }
+
+    if (region_id !== undefined) {
+      deviceUpdatePayload.region_id = region_id;
+    }
+
+    if (comuna_id !== undefined) {
+      deviceUpdatePayload.comuna_id = comuna_id;
+    }
+
+    if (direccion !== undefined) {
+      deviceUpdatePayload.direccion = direccion;
+    }
+
+    if (Object.keys(deviceUpdatePayload).length > 0) {
+      await this.devicesService.updateDevicePartial(deviceId, deviceUpdatePayload);
     }
 
     let setting = await this.deviceSettingRepository.findOne({ where: { device_id: deviceId } });
@@ -85,7 +117,7 @@ export class DeviceSettingsService {
     if (setting) {
       // 2. Si existe: actualizar los campos
       Object.assign(setting, settingsDto);
-      return this.deviceSettingRepository.save(setting);
+      setting = await this.deviceSettingRepository.save(setting);
     } else {
       // 3. Si NO existe: crear un nuevo registro
       // Este método lanzará NotFoundException automáticamente si no existe el dispositivo
@@ -97,7 +129,18 @@ export class DeviceSettingsService {
       });
 
       // 4. Guardar usando TypeORM repository.save()
-      return this.deviceSettingRepository.save(setting);
+      setting = await this.deviceSettingRepository.save(setting);
     }
+
+    const updatedDevice = await this.devicesService.findOne(deviceId);
+
+    return {
+      ...setting,
+      device_name: updatedDevice.device_name,
+      region_id: updatedDevice.region_id,
+      comuna_id: updatedDevice.comuna_id,
+      direccion: updatedDevice.direccion,
+      updated_at: updatedDevice.updated_at,
+    };
   }
 }

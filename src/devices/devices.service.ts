@@ -100,6 +100,13 @@ export class DevicesService {
     });
   }
 
+  async updateDevicePartial(id: number, payload: Partial<Device>): Promise<void> {
+    if (Object.keys(payload).length > 0) {
+      payload.updated_at = new Date();
+      await this.deviceRepository.update(id, payload);
+    }
+  }
+
   async shareDevice(shareDeviceDto: ShareDeviceDto): Promise<{ success: boolean; message: string }> {
     const { device_id, email } = shareDeviceDto;
 
