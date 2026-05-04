@@ -152,7 +152,7 @@ export function calculatePredictiveCurveAlert(
     };
   }
 
-  const slope = calculateLinearRegressionSlopeCPerMinute(selectedPoints);
+  let slope = calculateLinearRegressionSlopeCPerMinute(selectedPoints);
 
   if (slope === null) {
     return {
@@ -162,6 +162,22 @@ export function calculatePredictiveCurveAlert(
       predictedMaxMinute: 0,
       alertLevel: 0,
       reason: 'No hay suficientes datos válidos (tiempo/cantidad) para regresión lineal.',
+    };
+  }
+
+  // Hacer la predicción más conservadora (Opción A):
+  // 1. Penalizamos la pendiente reduciéndola un 15% para evitar sobreestimar
+  slope = slope * 0.85;
+
+  // 2. Si la pendiente resultante es muy baja, ignoramos para evitar falsas alarmas
+  if (slope < 0.5) {
+    return {
+      canPredict: true,
+      currentTemperature,
+      predictedMax: Number((currentTemperature + slope * horizonMinutes).toFixed(2)),
+      predictedMaxMinute: horizonMinutes,
+      alertLevel: 0,
+      reason: `Pendiente muy baja (${slope.toFixed(2)}°C/min) tras ajuste conservador.`,
     };
   }
 
