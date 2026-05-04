@@ -13,12 +13,85 @@ export type PredictiveResult = {
   minutesToThreshold?: number;
   notificationMessage?: string;
   reason: string;
-  coefficients?: {
-    a: number;
-    b: number;
-    c: number;
-  };
 };
+
+export function calculateLinearRegressionSlopeCPerMinute(points: TemperaturePoint[]): number | null {
+  if (!points || points.length < 4) {
+    return null;
+  }
+
+  const firstTime = new Date(points[0].createdAt).getTime();
+
+  const values = points
+    .map((p) => ({
+      x: (new Date(p.createdAt).getTime() - firstTime) / 60000,
+      y: Number(p.temperature),
+    }))
+    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+
+  if (values.length < 4) {
+    return null;
+  }
+
+  const totalMinutes = values[values.length - 1].x - values[0].x;
+
+  if (totalMinutes < 3) {
+    return null;
+  }
+
+  const n = values.length;
+  const sumX = values.reduce((sum, p) => sum + p.x, 0);
+  const sumY = values.reduce((sum, p) => sum + p.y, 0);
+  const sumXY = values.reduce((sum, p) => sum + p.x * p.y, 0);
+  const sumX2 = values.reduce((sum, p) => sum + p.x * p.x, 0);
+
+  const denominator = n * sumX2 - sumX * sumX;
+
+  if (denominator === 0) {
+    return null;
+  }
+
+  const slope = (n * sumXY - sumX * sumY) / denominator;
+
+  if (!Number.isFinite(slope)) {
+    return null;
+  }
+
+  return slope;
+}
+
+export function shouldCreatePredictiveAlert({
+  currentTemperature,
+  threshold,
+  slopeCPerMinute,
+  predictionWindowMinutes = 10,
+}: {
+  currentTemperature: number;
+  threshold: number;
+  slopeCPerMinute: number;
+  predictionWindowMinutes?: number;
+}): boolean {
+  if (!Number.isFinite(currentTemperature)) return false;
+  if (!Number.isFinite(threshold)) return false;
+  if (!Number.isFinite(slopeCPerMinute)) return false;
+
+  if (currentTemperature >= threshold) {
+    return false;
+  }
+
+  if (slopeCPerMinute <= 0) {
+    return false;
+  }
+
+  const predictedTemperature = currentTemperature + slopeCPerMinute * predictionWindowMinutes;
+  const minutesToThreshold = (threshold - currentTemperature) / slopeCPerMinute;
+
+  return (
+    predictedTemperature >= threshold &&
+    minutesToThreshold > 0 &&
+    minutesToThreshold <= predictionWindowMinutes
+  );
+}
 
 export function calculatePredictiveCurveAlert(
   points: TemperaturePoint[],
@@ -26,12 +99,7 @@ export function calculatePredictiveCurveAlert(
   threshold3: number,
   horizonMinutes = 10,
 ): PredictiveResult {
-  const MIN_POINTS = 6;
-  const RECOMMENDED_POINTS = 10;
   const MIN_TEMP_TO_PREDICT = 100;
-  const MARGIN = 3;
-  const MAX_REASONABLE_INCREASE = 120;
-  const MAX_REASONABLE_TEMP = 600;
 
   if (!points || points.length === 0) {
     return {
@@ -45,25 +113,10 @@ export function calculatePredictiveCurveAlert(
   }
 
   const orderedPoints = points
-    .filter(p => p && typeof p.temperature === 'number' && !Number.isNaN(p.temperature))
-    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    .filter((p) => p && typeof p.temperature === 'number' && !Number.isNaN(p.temperature))
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  let continuousPoints: TemperaturePoint[] = [];
-  if (orderedPoints.length > 0) {
-    continuousPoints.push(orderedPoints[orderedPoints.length - 1]);
-    for (let i = orderedPoints.length - 2; i >= 0; i--) {
-      const current = orderedPoints[i + 1];
-      const prev = orderedPoints[i];
-      const diffMinutes = (current.createdAt.getTime() - prev.createdAt.getTime()) / 60000;
-      
-      if (diffMinutes > 5) {
-        break; // gap mayor a 5 min, descartamos puntos antiguos
-      }
-      continuousPoints.unshift(prev);
-    }
-  }
-
-  const currentTemperature = continuousPoints[continuousPoints.length - 1]?.temperature ?? 0;
+  const currentTemperature = orderedPoints[orderedPoints.length - 1]?.temperature ?? 0;
 
   if (currentTemperature < MIN_TEMP_TO_PREDICT) {
     return {
@@ -76,232 +129,62 @@ export function calculatePredictiveCurveAlert(
     };
   }
 
-  if (continuousPoints.length < MIN_POINTS) {
+  // Tomamos hasta los ultimos 10 puntos para la regresión (ventana reciente)
+  const selectedPoints = orderedPoints.slice(-10);
+
+  const slope = calculateLinearRegressionSlopeCPerMinute(selectedPoints);
+
+  if (slope === null) {
     return {
       canPredict: false,
       currentTemperature,
       predictedMax: 0,
       predictedMaxMinute: 0,
       alertLevel: 0,
-      reason: 'No hay suficientes datos para calcular una predicción confiable.',
+      reason: 'No hay suficientes datos válidos (tiempo/cantidad) para regresión lineal.',
     };
   }
 
-  const selectedPoints = continuousPoints.slice(-RECOMMENDED_POINTS);
-  const n = selectedPoints.length;
-
-  const lastTimestamp = selectedPoints[n - 1].createdAt.getTime();
-
-  const data = selectedPoints.map((p) => {
-    const currentTimestamp = p.createdAt.getTime();
-    const diffMinutes = (currentTimestamp - lastTimestamp) / 60000;
-
-    return {
-      t: diffMinutes,
-      y: p.temperature,
-    };
-  });
-
-  console.log('[PREDICT] Data points:', data);
-
-  let coefficients;
-
-  try {
-    coefficients = quadraticRegression(data);
-  } catch (error) {
-    return {
-      canPredict: false,
-      currentTemperature,
-      predictedMax: 0,
-      predictedMaxMinute: 0,
-      alertLevel: 0,
-      reason: 'No se pudo resolver la regresión cuadrática.',
-    };
-  }
-
-  const { a, b, c } = coefficients;
-
-  const predict = (t: number): number => a * t * t + b * t + c;
-
-  let predictedMax = predict(0);
-  let predictedMaxMinute = 0;
-
-  for (let minute = 0; minute <= horizonMinutes; minute++) {
-    const value = predict(minute);
-
-    if (value > predictedMax) {
-      predictedMax = value;
-      predictedMaxMinute = minute;
-    }
-  }
-
-  if (a < 0) {
-    const vertexMinute = -b / (2 * a);
-
-    if (vertexMinute >= 0 && vertexMinute <= horizonMinutes) {
-      const vertexTemperature = predict(vertexMinute);
-
-      if (vertexTemperature > predictedMax) {
-        predictedMax = vertexTemperature;
-        predictedMaxMinute = vertexMinute;
-      }
-    }
-  }
-
-  if (
-    Number.isNaN(predictedMax) ||
-    predictedMax < 0 ||
-    predictedMax > MAX_REASONABLE_TEMP ||
-    predictedMax > currentTemperature + MAX_REASONABLE_INCREASE
-  ) {
-    return {
-      canPredict: false,
-      currentTemperature,
-      predictedMax,
-      predictedMaxMinute,
-      alertLevel: 0,
-      reason: 'Predicción descartada por entregar un valor fuera de rango razonable.',
-      coefficients: { a, b, c },
-    };
-  }
+  const predictedMax = currentTemperature + slope * horizonMinutes;
 
   let alertLevel: 0 | 2 | 3 = 0;
-  let reason = 'La predicción no supera los umbrales dentro de los próximos 10 minutos.';
-  let thresholdToBeExceeded: number | undefined = undefined;
-  let minutesToThreshold: number | undefined = undefined;
-  let notificationMessage: string | undefined = undefined;
-
-  // Determine if it crosses threshold_3 first, else threshold_2
   let targetThreshold: number | undefined = undefined;
-  if (predictedMax >= threshold3 + MARGIN) {
+
+  if (shouldCreatePredictiveAlert({ currentTemperature, threshold: threshold3, slopeCPerMinute: slope, predictionWindowMinutes: horizonMinutes })) {
     alertLevel = 3;
     targetThreshold = threshold3;
-  } else if (predictedMax >= threshold2 + MARGIN) {
+  } else if (shouldCreatePredictiveAlert({ currentTemperature, threshold: threshold2, slopeCPerMinute: slope, predictionWindowMinutes: horizonMinutes })) {
     alertLevel = 2;
     targetThreshold = threshold2;
   }
 
-  if (targetThreshold !== undefined) {
-    // Find the exact minute it crosses
-    for (let minute = 0; minute <= horizonMinutes; minute++) {
-      const value = predict(minute);
-      if (value >= targetThreshold) {
-        minutesToThreshold = minute;
-        break;
-      }
-    }
-
-    if (minutesToThreshold !== undefined) {
-      thresholdToBeExceeded = targetThreshold;
-      notificationMessage = `La T° superará el umbral de ${targetThreshold}°C en ${minutesToThreshold} min.`;
-      reason = `La predicción indica que podría superar el umbral ${targetThreshold}°C en aproximadamente ${minutesToThreshold} minutos.`;
-    } else {
-      // It didn't cross within 10 minutes according to integer minutes check, maybe between minutes.
-      // Or we only reached it on the vertex and the vertex is not an integer.
-      // We can fallback to predictedMaxMinute
-      minutesToThreshold = Math.round(predictedMaxMinute);
-      thresholdToBeExceeded = targetThreshold;
-      notificationMessage = `La T° superará el umbral de ${targetThreshold}°C en ${minutesToThreshold} min.`;
-      reason = `La predicción indica que podría superar el umbral ${targetThreshold}°C en aproximadamente ${minutesToThreshold} minutos.`;
-    }
+  if (alertLevel > 0 && targetThreshold !== undefined) {
+    const minutesToThreshold = (targetThreshold - currentTemperature) / slope;
+    
+    console.log(`[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${targetThreshold} slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)} minutesToThreshold=${minutesToThreshold.toFixed(2)}`);
+    
+    return {
+      canPredict: true,
+      currentTemperature,
+      predictedMax: Number(predictedMax.toFixed(2)),
+      predictedMaxMinute: horizonMinutes,
+      alertLevel,
+      thresholdToBeExceeded: targetThreshold,
+      minutesToThreshold: Number(minutesToThreshold.toFixed(2)),
+      notificationMessage: `La T° superará el umbral de ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
+      reason: `La pendiente es de ${slope.toFixed(2)}°C/min, superará el umbral de ${targetThreshold}°C en aprox ${Math.ceil(minutesToThreshold)} minutos.`,
+    };
   } else {
-    // Reset alertLevel if targetThreshold is undefined
-    alertLevel = 0;
+    console.log(`[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${threshold2}(T2)/${threshold3}(T3) slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)}`);
+    console.log(`[PREDICTIVE] No se genera alerta: no alcanza threshold dentro de la ventana predictiva.`);
+    
+    return {
+      canPredict: true,
+      currentTemperature,
+      predictedMax: Number(predictedMax.toFixed(2)),
+      predictedMaxMinute: horizonMinutes,
+      alertLevel: 0,
+      reason: 'La predicción no supera los umbrales dentro de la ventana de predicción.',
+    };
   }
-
-  return {
-    canPredict: true,
-    currentTemperature,
-    predictedMax: Number(predictedMax.toFixed(2)),
-    predictedMaxMinute: Number(predictedMaxMinute.toFixed(1)),
-    alertLevel,
-    thresholdToBeExceeded,
-    minutesToThreshold,
-    notificationMessage,
-    reason,
-    coefficients: {
-      a,
-      b,
-      c,
-    },
-  };
-}
-
-function quadraticRegression(data: { t: number; y: number }[]) {
-  const n = data.length;
-
-  let sumX = 0;
-  let sumX2 = 0;
-  let sumX3 = 0;
-  let sumX4 = 0;
-  let sumY = 0;
-  let sumXY = 0;
-  let sumX2Y = 0;
-
-  for (const point of data) {
-    const x = point.t;
-    const y = point.y;
-
-    const x2 = x * x;
-    const x3 = x2 * x;
-    const x4 = x2 * x2;
-
-    sumX += x;
-    sumX2 += x2;
-    sumX3 += x3;
-    sumX4 += x4;
-    sumY += y;
-    sumXY += x * y;
-    sumX2Y += x2 * y;
-  }
-
-  const matrix = [
-    [n, sumX, sumX2],
-    [sumX, sumX2, sumX3],
-    [sumX2, sumX3, sumX4],
-  ];
-
-  const vector = [sumY, sumXY, sumX2Y];
-
-  const [c, b, a] = solve3x3(matrix, vector);
-
-  return { a, b, c };
-}
-
-function solve3x3(matrix: number[][], vector: number[]) {
-  const m = matrix.map((row, i) => [...row, vector[i]]);
-
-  for (let i = 0; i < 3; i++) {
-    let maxRow = i;
-
-    for (let k = i + 1; k < 3; k++) {
-      if (Math.abs(m[k][i]) > Math.abs(m[maxRow][i])) {
-        maxRow = k;
-      }
-    }
-
-    [m[i], m[maxRow]] = [m[maxRow], m[i]];
-
-    const pivot = m[i][i];
-
-    if (Math.abs(pivot) < 1e-10) {
-      throw new Error('No se pudo resolver la regresión cuadrática.');
-    }
-
-    for (let j = i; j < 4; j++) {
-      m[i][j] /= pivot;
-    }
-
-    for (let k = 0; k < 3; k++) {
-      if (k !== i) {
-        const factor = m[k][i];
-
-        for (let j = i; j < 4; j++) {
-          m[k][j] -= factor * m[i][j];
-        }
-      }
-    }
-  }
-
-  return [m[0][3], m[1][3], m[2][3]];
 }
