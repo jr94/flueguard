@@ -112,11 +112,34 @@ export function calculatePredictiveCurveAlert(
     };
   }
 
-  const orderedPoints = points
-    .filter((p) => p && typeof p.temperature === 'number' && !Number.isNaN(p.temperature))
+  const validPoints = points
+    .filter((p) => {
+      const temp = Number(p?.temperature);
+      const time = new Date(p?.createdAt).getTime();
+      return Number.isFinite(temp) && Number.isFinite(time);
+    })
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  const currentTemperature = orderedPoints[orderedPoints.length - 1]?.temperature ?? 0;
+  if (validPoints.length === 0) {
+    return {
+      canPredict: false,
+      currentTemperature: 0,
+      predictedMax: 0,
+      predictedMaxMinute: 0,
+      alertLevel: 0,
+      reason: 'No hay datos válidos de temperatura para predecir.',
+    };
+  }
+
+  const latestTime = new Date(validPoints[validPoints.length - 1].createdAt).getTime();
+  const windowStartTime = latestTime - 10 * 60 * 1000;
+
+  // Tomamos hasta los últimos 10 puntos de los últimos 10 minutos relativos al dato más reciente
+  const selectedPoints = validPoints
+    .filter((p) => new Date(p.createdAt).getTime() >= windowStartTime)
+    .slice(-10);
+
+  const currentTemperature = selectedPoints[selectedPoints.length - 1]?.temperature ?? 0;
 
   if (currentTemperature < MIN_TEMP_TO_PREDICT) {
     return {
@@ -128,9 +151,6 @@ export function calculatePredictiveCurveAlert(
       reason: 'Predicción desactivada porque la temperatura actual es menor a 100°C.',
     };
   }
-
-  // Tomamos hasta los ultimos 10 puntos para la regresión (ventana reciente)
-  const selectedPoints = orderedPoints.slice(-10);
 
   const slope = calculateLinearRegressionSlopeCPerMinute(selectedPoints);
 
