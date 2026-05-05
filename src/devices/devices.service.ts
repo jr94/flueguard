@@ -7,6 +7,7 @@ import { CreateDeviceDto } from './dto/create-device.dto';
 import { ShareDeviceDto } from './dto/share-device.dto';
 import { UpdateShareDeviceDto } from './dto/update-share-device.dto';
 import { UsersService } from '../users/users.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class DevicesService {
@@ -16,6 +17,7 @@ export class DevicesService {
     @InjectRepository(UserDevice)
     private readonly userDeviceRepository: Repository<UserDevice>,
     private readonly usersService: UsersService,
+    private readonly subscriptionsService: SubscriptionsService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
@@ -57,12 +59,30 @@ export class DevicesService {
     return device;
   }
 
-  async findByUserId(userId: number): Promise<Device[]> {
-    return this.deviceRepository
+  async findByUserId(userId: number): Promise<any[]> {
+    const devices = await this.deviceRepository
       .createQueryBuilder('device')
       .innerJoin('user_devices', 'ud', 'ud.device_id = device.id')
       .where('ud.user_id = :userId', { userId })
       .getMany();
+
+    const deviceIds = devices.map(d => d.id);
+    const premiumMap = await this.subscriptionsService.getActiveSubscriptionsForDevices(deviceIds);
+
+    return devices.map(device => {
+      const premiumStatus = premiumMap.get(device.id);
+      return {
+        ...device,
+        user_id: userId, // Assuming you need user_id as requested
+        premium: premiumStatus || {
+          is_active: false,
+          status: 'inactive',
+          plan_code: null,
+          plan_name: null,
+          current_period_end: null,
+        }
+      };
+    });
   }
 
   async findAll(): Promise<Device[]> {

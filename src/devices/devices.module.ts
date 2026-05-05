@@ -7,11 +7,13 @@ import { UserDevice } from './entities/user-device.entity';
 import { UsersModule } from '../users/users.module';
 
 import { UserDevicesController } from './user-devices.controller';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Device, UserDevice]),
     UsersModule,
+    SubscriptionsModule,
   ],
   controllers: [DevicesController, UserDevicesController],
   providers: [DevicesService],
