@@ -26,7 +26,7 @@ export class SubscriptionEvent {
   event_type: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  provider_event_id: string;
+  provider_event_id: string | null;
 
   @Column({ type: 'json', nullable: true })
   raw_payload: any;

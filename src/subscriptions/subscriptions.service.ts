@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { SubscriptionPlan } from './entities/subscription-plan.entity';
@@ -9,6 +9,8 @@ import { ManualActivateSubscriptionDto } from './dto/manual-activate-subscriptio
 import { ManualCancelSubscriptionDto } from './dto/manual-cancel-subscription.dto';
 import { Device } from '../devices/entities/device.entity';
 import { In } from 'typeorm';
+import { GooglePlayVerifyDto } from './dto/google-play-verify.dto';
+import { google } from 'googleapis';
 
 @Injectable()
 export class SubscriptionsService {
@@ -323,5 +325,169 @@ export class SubscriptionsService {
       device_id: dto.device_id,
       status: subscription.status,
     };
+  }
+
+  private async getGooglePlaySubscription(token: string) {
+    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME;
+    const clientEmail = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL;
+    const privateKey = process.env.GOOGLE_PLAY_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    if (!packageName || (!clientEmail && !process.env.GOOGLE_APPLICATION_CREDENTIALS) || (!privateKey && !process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+      throw new InternalServerErrorException('Google Play credentials not configured');
+    }
+
+    try {
+      const auth = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: clientEmail,
+          private_key: privateKey,
+        },
+        scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+      });
+
+      const androidPublisher = google.androidpublisher({
+        version: 'v3',
+        auth: auth,
+      });
+
+      const response = await androidPublisher.purchases.subscriptionsv2.get({
+        packageName: packageName,
+        token: token,
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Google Play API Error:', error.message);
+      throw new InternalServerErrorException('Google Play verification failed');
+    }
+  }
+
+  async verifyGooglePlayPurchase(userId: number, dto: GooglePlayVerifyDto): Promise<any> {
+    await this.validateUserDeviceAccess(userId, dto.device_id);
+
+    const productToPlanMap: { [key: string]: string } = {
+      flueguard_plus_monthly: 'plus',
+      flueguard_pro_monthly: 'pro',
+      flueguard_business_monthly: 'business',
+    };
+
+    const planCode = productToPlanMap[dto.product_id];
+    if (!planCode) {
+      throw new BadRequestException('Invalid Google Play product_id');
+    }
+
+    const plan = await this.planRepository.findOne({ where: { code: planCode, is_active: true } });
+    if (!plan) {
+      throw new NotFoundException('Subscription plan not found');
+    }
+
+    // Check if token is used by another device
+    const existingWithToken = await this.deviceSubscriptionRepository.findOne({
+      where: { provider: 'google_play', provider_purchase_token: dto.purchase_token }
+    });
+
+    if (existingWithToken && existingWithToken.device_id !== dto.device_id) {
+      throw new ConflictException('This Google Play subscription is already linked to another device');
+    }
+
+    const googleData = await this.getGooglePlaySubscription(dto.purchase_token);
+    
+    // Log info for debugging
+    console.log(`[Google Play] device_id=${dto.device_id} product_id=${dto.product_id} state=${googleData.subscriptionState} order=${googleData.latestOrderId}`);
+
+    const activeStates = ['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'];
+    
+    if (!activeStates.includes(googleData.subscriptionState || '')) {
+      const event = this.eventRepository.create({
+        device_id: dto.device_id,
+        user_id: userId,
+        plan_id: plan.id,
+        provider: 'google_play',
+        event_type: 'google_play_verification_rejected',
+        raw_payload: {
+          product_id: dto.product_id,
+          purchase_id: dto.purchase_id,
+          subscriptionState: googleData.subscriptionState,
+          latestOrderId: googleData.latestOrderId,
+        },
+      });
+      await this.eventRepository.save(event);
+
+      throw new BadRequestException('Google Play subscription is not active');
+    }
+
+    // Validar product_id
+    const lineItem = googleData.lineItems?.find(item => item.productId === dto.product_id) || googleData.lineItems?.[0];
+    if (!lineItem || lineItem.productId !== dto.product_id) {
+      throw new BadRequestException('Google Play product_id does not match purchase token');
+    }
+
+    if (!lineItem.expiryTime) {
+      throw new BadRequestException('Google Play subscription expiryTime not found');
+    }
+
+    const expiryTime = new Date(lineItem.expiryTime);
+    const startTime = googleData.startTime ? new Date(googleData.startTime) : new Date();
+    const latestOrderId = googleData.latestOrderId || dto.purchase_id || null;
+
+    let subscription = await this.deviceSubscriptionRepository.findOne({
+      where: { device_id: dto.device_id, provider: 'google_play' },
+      order: { created_at: 'DESC' }
+    });
+
+    if (subscription) {
+      subscription.plan_id = plan.id;
+      subscription.user_id = userId;
+      subscription.status = 'active';
+      subscription.provider_product_id = dto.product_id;
+      subscription.provider_subscription_id = latestOrderId;
+      subscription.provider_purchase_token = dto.purchase_token;
+      subscription.current_period_start = startTime;
+      subscription.current_period_end = expiryTime;
+      subscription.cancel_at_period_end = false;
+      subscription.canceled_at = null;
+      subscription.updated_at = new Date();
+      await this.deviceSubscriptionRepository.save(subscription);
+    } else {
+      subscription = this.deviceSubscriptionRepository.create({
+        device_id: dto.device_id,
+        user_id: userId,
+        plan_id: plan.id,
+        status: 'active',
+        provider: 'google_play',
+        provider_product_id: dto.product_id,
+        provider_subscription_id: latestOrderId,
+        provider_purchase_token: dto.purchase_token,
+        started_at: startTime,
+        current_period_start: startTime,
+        current_period_end: expiryTime,
+        cancel_at_period_end: false,
+        canceled_at: null,
+      });
+      subscription = await this.deviceSubscriptionRepository.save(subscription);
+    }
+
+    // TODO: acknowledge subscription purchase after successful backend validation if required by Google Play Billing flow.
+
+    const event = this.eventRepository.create({
+      device_subscription_id: subscription.id,
+      device_id: dto.device_id,
+      user_id: userId,
+      plan_id: plan.id,
+      provider: 'google_play',
+      provider_event_id: latestOrderId,
+      event_type: 'google_play_subscription_verified',
+      raw_payload: {
+        product_id: dto.product_id,
+        purchase_id: dto.purchase_id,
+        subscriptionState: googleData.subscriptionState,
+        latestOrderId: googleData.latestOrderId,
+        expiryTime: lineItem.expiryTime,
+        lineItems: googleData.lineItems,
+      },
+    });
+    await this.eventRepository.save(event);
+
+    return this.getDeviceSubscriptionStatus(dto.device_id, userId);
   }
 }

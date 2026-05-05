@@ -25,13 +25,13 @@ export class DeviceSubscription {
   provider: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  provider_product_id: string;
+  provider_product_id: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  provider_subscription_id: string;
+  provider_subscription_id: string | null;
 
   @Column({ type: 'text', nullable: true })
-  provider_purchase_token: string;
+  provider_purchase_token: string | null;
 
   @Column({ type: 'datetime', nullable: true })
   started_at: Date | null;

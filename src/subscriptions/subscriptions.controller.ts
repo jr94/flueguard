@@ -2,11 +2,22 @@ import { Controller, Get, Post, Body, Param, UseGuards, Req, ParseIntPipe } from
 import { SubscriptionsService } from './subscriptions.service';
 import { ManualActivateSubscriptionDto } from './dto/manual-activate-subscription.dto';
 import { ManualCancelSubscriptionDto } from './dto/manual-cancel-subscription.dto';
+import { GooglePlayVerifyDto } from './dto/google-play-verify.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Post('google-play/verify')
+  async verifyGooglePlayPurchase(
+    @Body() dto: GooglePlayVerifyDto,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id;
+    return this.subscriptionsService.verifyGooglePlayPurchase(userId, dto);
+  }
 
   @Get('plans')
   async getActivePlans() {
