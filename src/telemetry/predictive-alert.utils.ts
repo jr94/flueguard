@@ -99,7 +99,7 @@ export function calculatePredictiveCurveAlert(
   threshold3: number,
   horizonMinutes = 10,
 ): PredictiveResult {
-  const MIN_TEMP_TO_PREDICT = 100;
+  const MIN_TEMP_TO_PREDICT = 180;
 
   if (!points || points.length === 0) {
     return {
@@ -148,7 +148,7 @@ export function calculatePredictiveCurveAlert(
       predictedMax: 0,
       predictedMaxMinute: 0,
       alertLevel: 0,
-      reason: 'Predicción desactivada porque la temperatura actual es menor a 100°C.',
+      reason: 'Predicción desactivada porque la temperatura actual es menor a 180°C.',
     };
   }
 
@@ -196,9 +196,9 @@ export function calculatePredictiveCurveAlert(
 
   if (alertLevel > 0 && targetThreshold !== undefined) {
     const minutesToThreshold = ((targetThreshold - currentTemperature) / slope) + 2;
-    
+
     console.log(`[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${targetThreshold} slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)} minutesToThreshold=${minutesToThreshold.toFixed(2)}`);
-    
+
     return {
       canPredict: true,
       currentTemperature,
@@ -207,13 +207,13 @@ export function calculatePredictiveCurveAlert(
       alertLevel,
       thresholdToBeExceeded: targetThreshold,
       minutesToThreshold: Number(minutesToThreshold.toFixed(2)),
-      notificationMessage: `La T° superará el umbral de ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
-      reason: `La pendiente es de ${slope.toFixed(2)}°C/min, superará el umbral de ${targetThreshold}°C en aprox ${Math.ceil(minutesToThreshold)} minutos.`,
+      notificationMessage: `La T° podría superar los ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
+      reason: `Tendencia actual: posible superación de ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
     };
   } else {
     console.log(`[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${threshold2}(T2)/${threshold3}(T3) slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)}`);
     console.log(`[PREDICTIVE] No se genera alerta: no alcanza threshold dentro de la ventana predictiva.`);
-    
+
     return {
       canPredict: true,
       currentTemperature,
