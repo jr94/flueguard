@@ -10,7 +10,6 @@ import { ManualCancelSubscriptionDto } from './dto/manual-cancel-subscription.dt
 import { Device } from '../devices/entities/device.entity';
 import { In } from 'typeorm';
 import { GooglePlayVerifyDto } from './dto/google-play-verify.dto';
-import { google } from 'googleapis';
 
 @Injectable()
 export class SubscriptionsService {
@@ -337,6 +336,10 @@ export class SubscriptionsService {
     }
 
     try {
+      // Usar require en lugar de import estático para evitar que TypeScript compile todas las definiciones 
+      // masivas de googleapis, lo que causa el error "JavaScript heap out of memory" durante el build en servidores con poca RAM.
+      const { google } = require('googleapis');
+
       const auth = new google.auth.GoogleAuth({
         credentials: {
           client_email: clientEmail,
