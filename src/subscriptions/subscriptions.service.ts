@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { SubscriptionPlan } from './entities/subscription-plan.entity';
@@ -10,6 +10,23 @@ import { ManualCancelSubscriptionDto } from './dto/manual-cancel-subscription.dt
 import { Device } from '../devices/entities/device.entity';
 import { In } from 'typeorm';
 import { GooglePlayVerifyDto } from './dto/google-play-verify.dto';
+
+const GOOGLE_PLAY_NOTIFICATION_TYPES: { [key: number]: string } = {
+  1: 'SUBSCRIPTION_RECOVERED',
+  2: 'SUBSCRIPTION_RENEWED',
+  3: 'SUBSCRIPTION_CANCELED',
+  4: 'SUBSCRIPTION_PURCHASED',
+  5: 'SUBSCRIPTION_ON_HOLD',
+  6: 'SUBSCRIPTION_IN_GRACE_PERIOD',
+  7: 'SUBSCRIPTION_RESTARTED',
+  8: 'SUBSCRIPTION_PRICE_CHANGE_CONFIRMED',
+  9: 'SUBSCRIPTION_DEFERRED',
+  10: 'SUBSCRIPTION_PAUSED',
+  11: 'SUBSCRIPTION_PAUSE_SCHEDULE_CHANGED',
+  12: 'SUBSCRIPTION_REVOKED',
+  13: 'SUBSCRIPTION_EXPIRED',
+  20: 'SUBSCRIPTION_PENDING_PURCHASE_CANCELED',
+};
 
 @Injectable()
 export class SubscriptionsService {
@@ -492,5 +509,257 @@ export class SubscriptionsService {
     await this.eventRepository.save(event);
 
     return this.getDeviceSubscriptionStatus(dto.device_id, userId);
+  }
+
+  private validateRtdnSecret(querySecret?: string, headerSecret?: string) {
+    const expectedSecret = process.env.GOOGLE_PLAY_RTDN_SECRET;
+    if (!expectedSecret) {
+      console.warn('GOOGLE_PLAY_RTDN_SECRET is not set in environment variables');
+      throw new UnauthorizedException('Invalid RTDN secret');
+    }
+    if (querySecret !== expectedSecret && headerSecret !== expectedSecret) {
+      throw new UnauthorizedException('Invalid RTDN secret');
+    }
+  }
+
+  private decodePubSubMessage(body: any): any {
+    if (!body?.message?.data) {
+      return null;
+    }
+    try {
+      const buffer = Buffer.from(body.message.data, 'base64');
+      return JSON.parse(buffer.toString('utf-8'));
+    } catch (error) {
+      console.error('Error decoding PubSub message:', error);
+      return null;
+    }
+  }
+
+  private getNotificationTypeName(type: number): string {
+    return GOOGLE_PLAY_NOTIFICATION_TYPES[type] || `UNKNOWN_${type}`;
+  }
+
+  async handleGooglePlayRtdn(params: {
+    body: any;
+    querySecret?: string;
+    headerSecret?: string;
+  }) {
+    // 1. Validar secret
+    this.validateRtdnSecret(params.querySecret, params.headerSecret);
+
+    // 2 & 3 & 4. Validar y decodificar data base64
+    const decoded = this.decodePubSubMessage(params.body);
+    if (!decoded) {
+      throw new BadRequestException('Invalid Pub/Sub message data');
+    }
+
+    const messageId = params.body?.message?.messageId;
+    const publishTime = params.body?.message?.publishTime;
+
+    // 5. Validar packageName
+    if (decoded.packageName && decoded.packageName !== process.env.GOOGLE_PLAY_PACKAGE_NAME) {
+      console.warn(`[RTDN] Ignored message for package: ${decoded.packageName}`);
+      return { success: true, message: 'Ignored unknown package' };
+    }
+
+    // 6. Si viene testNotification
+    if (decoded.testNotification) {
+      const event = this.eventRepository.create({
+        provider: 'google_play',
+        event_type: 'google_play_rtdn_test',
+        raw_payload: { decoded, pubsub: params.body },
+      });
+      await this.eventRepository.save(event);
+      return { success: true, type: 'testNotification' };
+    }
+
+    // 7. Si no viene subscriptionNotification
+    if (!decoded.subscriptionNotification) {
+      const event = this.eventRepository.create({
+        provider: 'google_play',
+        event_type: 'google_play_rtdn_ignored',
+        raw_payload: { decoded, pubsub: params.body },
+      });
+      await this.eventRepository.save(event);
+      return { success: true, message: 'Ignored non-subscription notification' };
+    }
+
+    // 8. Extraer datos
+    const notification = decoded.subscriptionNotification;
+    const purchaseToken = notification.purchaseToken;
+    const subscriptionId = notification.subscriptionId;
+    const notificationType = notification.notificationType;
+    const notificationName = this.getNotificationTypeName(notificationType);
+    
+    // Log útil
+    const partialToken = purchaseToken ? `${purchaseToken.substring(0, 6)}...${purchaseToken.substring(purchaseToken.length - 6)}` : 'null';
+    console.log(`[RTDN] Received ${notificationName} for sub ${subscriptionId}, token ${partialToken}, msgId ${messageId}`);
+
+    // 9. Buscar en device_subscriptions
+    const subscription = await this.deviceSubscriptionRepository.findOne({
+      where: { provider: 'google_play', provider_purchase_token: purchaseToken },
+      order: { id: 'DESC' }
+    });
+
+    // 10. Si no existe device_subscription
+    if (!subscription) {
+      console.warn(`[RTDN] No active subscription found for token ${partialToken}`);
+      const event = this.eventRepository.create({
+        provider: 'google_play',
+        event_type: 'google_play_rtdn_unmatched',
+        provider_event_id: messageId,
+        raw_payload: { decoded, pubsub: params.body },
+      });
+      await this.eventRepository.save(event);
+      return { success: true, event: notificationName, matched: false };
+    }
+
+    // 11. Consultar Google Play Developer API
+    let googleData;
+    try {
+      googleData = await this.getGooglePlaySubscription(purchaseToken);
+    } catch (error) {
+      console.error(`[RTDN] Google API error for token ${partialToken}:`, error.message);
+      // Responder 500 para que Pub/Sub reintente si es error de red
+      throw new InternalServerErrorException('Error verifying subscription with Google Play');
+    }
+
+    // 12. Actualizar device_subscriptions
+    const lineItem = googleData.lineItems?.find((item: any) => item.productId === subscriptionId) || googleData.lineItems?.[0];
+    const expiryTimeDate = lineItem?.expiryTime ? new Date(lineItem.expiryTime) : null;
+    const startTimeDate = googleData.startTime ? new Date(googleData.startTime) : null;
+    const now = new Date();
+
+    let status = subscription.status;
+    let current_period_end = subscription.current_period_end;
+    let cancel_at_period_end = subscription.cancel_at_period_end;
+    let canceled_at = subscription.canceled_at;
+
+    // Actualizar current_period_end si existe en Google
+    if (expiryTimeDate) {
+      current_period_end = expiryTimeDate;
+    }
+
+    // Mapeo de subscriptionState a status interno
+    switch (googleData.subscriptionState) {
+      case 'SUBSCRIPTION_STATE_ACTIVE':
+      case 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD':
+        status = 'active';
+        cancel_at_period_end = false;
+        canceled_at = null; 
+        break;
+      case 'SUBSCRIPTION_STATE_ON_HOLD':
+      case 'SUBSCRIPTION_STATE_PAUSED':
+      case 'SUBSCRIPTION_STATE_PENDING':
+        status = 'past_due';
+        cancel_at_period_end = false;
+        break;
+      case 'SUBSCRIPTION_STATE_CANCELED':
+        if (expiryTimeDate && expiryTimeDate > now) {
+          status = 'active';
+          cancel_at_period_end = true;
+          canceled_at = canceled_at || now;
+        } else {
+          status = 'canceled';
+          current_period_end = expiryTimeDate || now;
+          cancel_at_period_end = false;
+          canceled_at = canceled_at || now;
+        }
+        break;
+      case 'SUBSCRIPTION_STATE_EXPIRED':
+        status = 'expired';
+        current_period_end = expiryTimeDate || now;
+        cancel_at_period_end = false;
+        canceled_at = canceled_at || now;
+        break;
+      default:
+        break;
+    }
+
+    // notificationType forzar algunos estados
+    if (notificationType === 12) { // SUBSCRIPTION_REVOKED
+      status = 'canceled';
+      current_period_end = now;
+      cancel_at_period_end = false;
+      canceled_at = now;
+    } else if (notificationType === 13) { // SUBSCRIPTION_EXPIRED
+      status = 'expired';
+      current_period_end = expiryTimeDate || now;
+      cancel_at_period_end = false;
+    } else if (notificationType === 5) { // SUBSCRIPTION_ON_HOLD
+      status = 'past_due';
+    } else if (notificationType === 6) { // SUBSCRIPTION_IN_GRACE_PERIOD
+      status = 'active';
+    } else if (notificationType === 2) { // SUBSCRIPTION_RENEWED
+      status = 'active';
+      cancel_at_period_end = false;
+      canceled_at = null;
+    } else if (notificationType === 3) { // SUBSCRIPTION_CANCELED
+      if (current_period_end && current_period_end > now) {
+        status = 'active';
+        cancel_at_period_end = true;
+        canceled_at = canceled_at || now;
+      } else {
+        status = 'canceled';
+        canceled_at = canceled_at || now;
+      }
+    }
+
+    // Actualizar plan_id si cambia
+    const productToPlanMap: { [key: string]: string } = {
+      flueguard_plus_monthly: 'plus',
+      flueguard_pro_monthly: 'pro',
+    };
+    let newPlanId = subscription.plan_id;
+    if (subscriptionId && productToPlanMap[subscriptionId]) {
+      const planCode = productToPlanMap[subscriptionId];
+      const plan = await this.planRepository.findOne({ where: { code: planCode } });
+      if (plan) {
+        newPlanId = plan.id;
+      }
+    }
+
+    subscription.status = status;
+    subscription.plan_id = newPlanId;
+    subscription.provider_product_id = subscriptionId || subscription.provider_product_id;
+    subscription.provider_subscription_id = googleData.latestOrderId || subscription.provider_subscription_id;
+    subscription.current_period_start = startTimeDate || subscription.current_period_start;
+    subscription.current_period_end = current_period_end;
+    subscription.cancel_at_period_end = cancel_at_period_end;
+    subscription.canceled_at = canceled_at;
+    subscription.updated_at = now;
+
+    await this.deviceSubscriptionRepository.save(subscription);
+
+    // Guardar evento
+    const event = this.eventRepository.create({
+      device_subscription_id: subscription.id,
+      device_id: subscription.device_id,
+      user_id: subscription.user_id,
+      plan_id: subscription.plan_id,
+      provider: 'google_play',
+      event_type: 'google_play_rtdn_' + notificationName.toLowerCase(),
+      provider_event_id: messageId || googleData.latestOrderId,
+      raw_payload: {
+        pubsubMessageId: messageId,
+        publishTime: publishTime,
+        decoded: decoded,
+        subscriptionState: googleData.subscriptionState,
+        latestOrderId: googleData.latestOrderId,
+        lineItems: googleData.lineItems,
+        mappedStatus: status,
+        expiryTime: lineItem?.expiryTime,
+      },
+    });
+    await this.eventRepository.save(event);
+
+    console.log(`[RTDN] Updated subscription ${subscription.id} to status ${status}`);
+
+    return {
+      success: true,
+      event: notificationName,
+      device_subscription_id: subscription.id,
+      status: status,
+    };
   }
 }

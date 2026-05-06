@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req, ParseIntPipe, Query, Headers } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { ManualActivateSubscriptionDto } from './dto/manual-activate-subscription.dto';
 import { ManualCancelSubscriptionDto } from './dto/manual-cancel-subscription.dto';
@@ -17,6 +17,19 @@ export class SubscriptionsController {
   ) {
     const userId = req.user.id;
     return this.subscriptionsService.verifyGooglePlayPurchase(userId, dto);
+  }
+
+  @Post('google-play/rtdn')
+  async handleGooglePlayRtdn(
+    @Body() body: any,
+    @Query('secret') querySecret: string,
+    @Headers('x-rtdn-secret') headerSecret: string,
+  ) {
+    return this.subscriptionsService.handleGooglePlayRtdn({
+      body,
+      querySecret,
+      headerSecret,
+    });
   }
 
   @Get('plans')
