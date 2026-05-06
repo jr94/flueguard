@@ -60,6 +60,107 @@ export function calculateLinearRegressionSlopeCPerMinute(points: TemperaturePoin
   return slope;
 }
 
+function calculateDiffTempTrend(points: TemperaturePoint[]): 0 | 1 | 2 | 3 | 4 {
+  if (!points || points.length < 4) {
+    return 1;
+  }
+
+  const orderedPoints = [...points].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
+  const lastLogs = [...orderedPoints].reverse().slice(0, 4);
+
+  if (lastLogs.length < 2) {
+    return 1;
+  }
+
+  const count = Math.min(2, Math.floor(lastLogs.length / 2));
+  const recentLogs = lastLogs.slice(0, count);
+  const olderLogs = lastLogs.slice(count, count * 2);
+
+  const recentAvg =
+    recentLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
+
+  const olderAvg =
+    olderLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
+
+  const diff = recentAvg - olderAvg;
+
+  if (diff < -1) return 0;      // Bajando
+  if (diff <= 1) return 1;      // Estable
+  if (diff <= 3) return 2;      // Subiendo normal
+  if (diff <= 6) return 3;      // Subiendo acelerada
+  return 4;                     // Subiendo peligrosa
+}
+
+function shouldBlockByLastTemperatureDiff(points: TemperaturePoint[]): {
+  block: boolean;
+  reason?: string;
+} {
+  if (!points || points.length < 4) {
+    return {
+      block: true,
+      reason: 'Predicción desactivada: faltan datos para validar cambios recientes de temperatura.',
+    };
+  }
+
+  const orderedPoints = [...points].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
+  const diffs: number[] = [];
+
+  for (let i = 1; i < orderedPoints.length; i++) {
+    const prevTemp = Number(orderedPoints[i - 1].temperature);
+    const currentTemp = Number(orderedPoints[i].temperature);
+    const diff = currentTemp - prevTemp;
+
+    if (Number.isFinite(diff)) {
+      diffs.push(diff);
+    }
+  }
+
+  if (diffs.length < 3) {
+    return {
+      block: true,
+      reason: 'Predicción desactivada: no hay suficientes diferencias de temperatura para validar tendencia.',
+    };
+  }
+
+  const lastDiff = diffs[diffs.length - 1];
+  const previousDiffs = diffs.slice(0, -1);
+
+  const maxPreviousDiff = Math.max(...previousDiffs);
+  const avgPreviousDiff =
+    previousDiffs.reduce((sum, diff) => sum + diff, 0) / previousDiffs.length;
+
+  if (lastDiff <= 0) {
+    return {
+      block: true,
+      reason: `Predicción desactivada: la última diferencia indica baja o estabilidad (${lastDiff.toFixed(2)}°C).`,
+    };
+  }
+
+  if (maxPreviousDiff > 0 && lastDiff < maxPreviousDiff * 0.35) {
+    return {
+      block: true,
+      reason: `Predicción desactivada: la última subida perdió fuerza (${lastDiff.toFixed(2)}°C vs máximo previo ${maxPreviousDiff.toFixed(2)}°C).`,
+    };
+  }
+
+  if (avgPreviousDiff > 0 && lastDiff < avgPreviousDiff * 0.5) {
+    return {
+      block: true,
+      reason: `Predicción desactivada: la última subida es mucho menor al promedio anterior (${lastDiff.toFixed(2)}°C vs promedio ${avgPreviousDiff.toFixed(2)}°C).`,
+    };
+  }
+
+  return {
+    block: false,
+  };
+}
+
 export function shouldCreatePredictiveAlert({
   currentTemperature,
   threshold,
@@ -84,7 +185,7 @@ export function shouldCreatePredictiveAlert({
   }
 
   const predictedTemperature = currentTemperature + slopeCPerMinute * predictionWindowMinutes;
-  const minutesToThreshold = ((threshold - currentTemperature) / slopeCPerMinute) + 2;
+  const minutesToThreshold = (threshold - currentTemperature) / slopeCPerMinute + 2;
 
   return (
     predictedTemperature >= threshold &&
@@ -134,12 +235,11 @@ export function calculatePredictiveCurveAlert(
   const latestTime = new Date(validPoints[validPoints.length - 1].createdAt).getTime();
   const windowStartTime = latestTime - 10 * 60 * 1000;
 
-  // Tomamos hasta los últimos 10 puntos de los últimos 10 minutos relativos al dato más reciente
   const selectedPoints = validPoints
     .filter((p) => new Date(p.createdAt).getTime() >= windowStartTime)
     .slice(-10);
 
-  const currentTemperature = selectedPoints[selectedPoints.length - 1]?.temperature ?? 0;
+  const currentTemperature = Number(selectedPoints[selectedPoints.length - 1]?.temperature ?? 0);
 
   if (currentTemperature < MIN_TEMP_TO_PREDICT) {
     return {
@@ -149,6 +249,32 @@ export function calculatePredictiveCurveAlert(
       predictedMaxMinute: 0,
       alertLevel: 0,
       reason: 'Predicción desactivada porque la temperatura actual es menor a 180°C.',
+    };
+  }
+
+  const diffTempTrend = calculateDiffTempTrend(selectedPoints);
+
+  if (diffTempTrend < 3) {
+    return {
+      canPredict: false,
+      currentTemperature,
+      predictedMax: 0,
+      predictedMaxMinute: 0,
+      alertLevel: 0,
+      reason: `Predicción desactivada: tendencia diffTemp=${diffTempTrend}. Solo se predice con tendencia 3 o 4.`,
+    };
+  }
+
+  const lastDiffValidation = shouldBlockByLastTemperatureDiff(selectedPoints);
+
+  if (lastDiffValidation.block) {
+    return {
+      canPredict: false,
+      currentTemperature,
+      predictedMax: 0,
+      predictedMaxMinute: 0,
+      alertLevel: 0,
+      reason: lastDiffValidation.reason || 'Predicción desactivada por validación de última diferencia de temperatura.',
     };
   }
 
@@ -165,11 +291,8 @@ export function calculatePredictiveCurveAlert(
     };
   }
 
-  // Hacer la predicción más conservadora (Opción A):
-  // 1. Penalizamos la pendiente reduciéndola un 15% para evitar sobreestimar
   slope = slope * 0.85;
 
-  // 2. Si la pendiente resultante es muy baja, ignoramos para evitar falsas alarmas
   if (slope < 0.5) {
     return {
       canPredict: true,
@@ -186,18 +309,34 @@ export function calculatePredictiveCurveAlert(
   let alertLevel: 0 | 2 | 3 = 0;
   let targetThreshold: number | undefined = undefined;
 
-  if (shouldCreatePredictiveAlert({ currentTemperature, threshold: threshold3, slopeCPerMinute: slope, predictionWindowMinutes: horizonMinutes })) {
+  if (
+    shouldCreatePredictiveAlert({
+      currentTemperature,
+      threshold: threshold3,
+      slopeCPerMinute: slope,
+      predictionWindowMinutes: horizonMinutes,
+    })
+  ) {
     alertLevel = 3;
     targetThreshold = threshold3;
-  } else if (shouldCreatePredictiveAlert({ currentTemperature, threshold: threshold2, slopeCPerMinute: slope, predictionWindowMinutes: horizonMinutes })) {
+  } else if (
+    shouldCreatePredictiveAlert({
+      currentTemperature,
+      threshold: threshold2,
+      slopeCPerMinute: slope,
+      predictionWindowMinutes: horizonMinutes,
+    })
+  ) {
     alertLevel = 2;
     targetThreshold = threshold2;
   }
 
   if (alertLevel > 0 && targetThreshold !== undefined) {
-    const minutesToThreshold = ((targetThreshold - currentTemperature) / slope) + 2;
+    const minutesToThreshold = (targetThreshold - currentTemperature) / slope + 2;
 
-    console.log(`[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${targetThreshold} slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)} minutesToThreshold=${minutesToThreshold.toFixed(2)}`);
+    console.log(
+      `[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${targetThreshold} slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)} minutesToThreshold=${minutesToThreshold.toFixed(2)} diffTempTrend=${diffTempTrend}`,
+    );
 
     return {
       canPredict: true,
@@ -208,19 +347,21 @@ export function calculatePredictiveCurveAlert(
       thresholdToBeExceeded: targetThreshold,
       minutesToThreshold: Number(minutesToThreshold.toFixed(2)),
       notificationMessage: `La T° podría superar los ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
-      reason: `Tendencia actual: posible superación de ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
-    };
-  } else {
-    console.log(`[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${threshold2}(T2)/${threshold3}(T3) slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)}`);
-    console.log(`[PREDICTIVE] No se genera alerta: no alcanza threshold dentro de la ventana predictiva.`);
-
-    return {
-      canPredict: true,
-      currentTemperature,
-      predictedMax: Number(predictedMax.toFixed(2)),
-      predictedMaxMinute: horizonMinutes,
-      alertLevel: 0,
-      reason: 'La predicción no supera los umbrales dentro de la ventana de predicción.',
+      reason: `Tendencia acelerada: posible superación de ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
     };
   }
+
+  console.log(
+    `[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${threshold2}(T2)/${threshold3}(T3) slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)} diffTempTrend=${diffTempTrend}`,
+  );
+  console.log('[PREDICTIVE] No se genera alerta: no alcanza threshold dentro de la ventana predictiva.');
+
+  return {
+    canPredict: true,
+    currentTemperature,
+    predictedMax: Number(predictedMax.toFixed(2)),
+    predictedMaxMinute: horizonMinutes,
+    alertLevel: 0,
+    reason: 'La predicción no supera los umbrales dentro de la ventana de predicción.',
+  };
 }
