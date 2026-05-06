@@ -131,45 +131,52 @@ export class TelemetryService {
 
         // 7. Lógica Predictiva
         if (t2 !== null && t3 !== null) {
-          const twentyMinsAgo = new Date(Date.now() - 20 * 60 * 1000);
-          const historyLogs = await this.temperatureLogRepository.find({
-            where: {
-              device_id: device.id,
-              created_at: MoreThanOrEqual(twentyMinsAgo),
-            },
-            order: { created_at: 'DESC' },
-            take: 20,
-          });
+          const canUsePredictive = await this.subscriptionsService.deviceHasActiveFeature(device.id, 'predictive_curve_alerts');
 
-          const points = historyLogs.map(log => ({
-            temperature: Number(log.temperature),
-            createdAt: new Date(log.created_at)
-          })).reverse();
+          if (canUsePredictive) {
+            console.log(`[PREDICTIVE] Enabled for device ${device.id}`);
+            const twentyMinsAgo = new Date(Date.now() - 20 * 60 * 1000);
+            const historyLogs = await this.temperatureLogRepository.find({
+              where: {
+                device_id: device.id,
+                created_at: MoreThanOrEqual(twentyMinsAgo),
+              },
+              order: { created_at: 'DESC' },
+              take: 20,
+            });
 
-          const prediction = calculatePredictiveCurveAlert(points, t2, t3, 10);
+            const points = historyLogs.map(log => ({
+              temperature: Number(log.temperature),
+              createdAt: new Date(log.created_at)
+            })).reverse();
 
-          if (prediction.canPredict && (prediction.alertLevel === 2 || prediction.alertLevel === 3)) {
-            const predLevelStr = String(prediction.alertLevel);
+            const prediction = calculatePredictiveCurveAlert(points, t2, t3, 10);
 
-            // Si la temperatura actual ya genera alerta normal 3, o si genera normal 2 y la predicción es 2, no predecimos
-            const skipPredictive = (finalLevel === '3') || (finalLevel === '2' && predLevelStr === '2');
+            if (prediction.canPredict && (prediction.alertLevel === 2 || prediction.alertLevel === 3)) {
+              const predLevelStr = String(prediction.alertLevel);
 
-            if (!skipPredictive) {
-              const hasRecent = await this.alertsService.hasRecentPredictiveAlert(device.id, predLevelStr, 10);
+              // Si la temperatura actual ya genera alerta normal 3, o si genera normal 2 y la predicción es 2, no predecimos
+              const skipPredictive = (finalLevel === '3') || (finalLevel === '2' && predLevelStr === '2');
 
-              if (!hasRecent) {
-                const newPredictiveAlert = await this.alertsService.create({
-                  device_id: device.id,
-                  temperature: prediction.predictedMax,
-                  alert_level: predLevelStr,
-                  alert_type: `PREDICTIVE_LEVEL_${predLevelStr}`,
-                  message: prediction.notificationMessage || prediction.reason,
-                });
+              if (!skipPredictive) {
+                const hasRecent = await this.alertsService.hasRecentPredictiveAlert(device.id, predLevelStr, 10);
 
-                this.pushNotificationsService.sendAlertNotification(device.id, newPredictiveAlert, serial_number)
-                  .catch((e) => console.error('Error en ejecución background de push notification predictiva:', e));
+                if (!hasRecent) {
+                  const newPredictiveAlert = await this.alertsService.create({
+                    device_id: device.id,
+                    temperature: prediction.predictedMax,
+                    alert_level: predLevelStr,
+                    alert_type: `PREDICTIVE_LEVEL_${predLevelStr}`,
+                    message: prediction.notificationMessage || prediction.reason,
+                  });
+
+                  this.pushNotificationsService.sendAlertNotification(device.id, newPredictiveAlert, serial_number)
+                    .catch((e) => console.error('Error en ejecución background de push notification predictiva:', e));
+                }
               }
             }
+          } else {
+            console.log(`[PREDICTIVE] Skipped for device ${device.id}: predictive_curve_alerts not enabled`);
           }
         }
       }

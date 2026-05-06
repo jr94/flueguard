@@ -1037,4 +1037,36 @@ export class SubscriptionsService {
     console.log("Google Play daily subscription revalidation finished", result);
     return result;
   }
+
+  public isFeatureEnabled(value: any): boolean {
+    if (value === null || value === undefined) return false;
+
+    const normalized = String(value).trim().toLowerCase();
+
+    if (
+      normalized === '' ||
+      normalized === 'false' ||
+      normalized === '0' ||
+      normalized === 'no' ||
+      normalized === 'disabled'
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  async deviceHasActiveFeature(
+    deviceId: number,
+    featureCode: string,
+  ): Promise<boolean> {
+    const status = await this.getDeviceSubscriptionStatus(deviceId);
+
+    if (!status.is_active || !status.features) {
+      return false;
+    }
+
+    const featureValue = status.features[featureCode];
+    return this.isFeatureEnabled(featureValue);
+  }
 }
