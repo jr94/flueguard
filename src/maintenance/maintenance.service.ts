@@ -39,19 +39,18 @@ export class MaintenanceService {
       .andWhere('status != :offlineStatus', { offlineStatus: 'offline' })
       .execute();
 
-    // 2. Logs cleanup: delete earlier than 3 hours
-    const threeHoursAgo = new Date(now.getTime() - 3 * 3600000);
+    // 2. Logs cleanup: delete earlier than 30 days
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600000); // 30 days
     
     const deleteResult = await this.logRepository
       .createQueryBuilder()
       .delete()
       .from(TemperatureLog)
-      .where('created_at < :threeHoursAgo', { threeHoursAgo })
+      .where('created_at < :thirtyDaysAgo', { thirtyDaysAgo })
       .execute();
     // 3. Alerts cleanup by severity/type
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 3600000); // 24 hours
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 3600000);   // 7 days
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600000); // 30 days
 
     const deleteInfoAlerts = await this.alertRepository
       .createQueryBuilder()
