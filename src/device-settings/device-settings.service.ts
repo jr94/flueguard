@@ -6,6 +6,7 @@ import { UpdateDeviceSettingDto } from './dto/update-device-setting.dto';
 import { DevicesService } from '../devices/devices.service';
 import { DeviceFirmwareUpdatesService } from '../device-firmware-updates/device-firmware-updates.service';
 import { Device } from '../devices/entities/device.entity';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 
 @Injectable()
@@ -15,6 +16,7 @@ export class DeviceSettingsService {
     private readonly deviceSettingRepository: Repository<DeviceSetting>,
     private readonly devicesService: DevicesService,
     private readonly deviceFirmwareUpdatesService: DeviceFirmwareUpdatesService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async findByDeviceId(deviceId: number): Promise<any> {
@@ -80,10 +82,22 @@ export class DeviceSettingsService {
       throw new NotFoundException(`User has no access to device with serial number ${serialNumber}`);
     }
 
+    const subscriptionStatus = await this.subscriptionsService.getDeviceSubscriptionStatus(setting.device_id);
+    
+    let planInfo = { id: null, code: 'basic', name: 'FlueGuard Básico' };
+    if (subscriptionStatus && subscriptionStatus.is_active && subscriptionStatus.plan) {
+      planInfo = {
+        id: subscriptionStatus.plan.id,
+        code: subscriptionStatus.plan.code,
+        name: subscriptionStatus.plan.name
+      };
+    }
+
     return {
       ...setting,
       owner: link.owner ? 1 : 0,
       edit: link.edit ? 1 : 0,
+      plan: planInfo,
     };
   }
 
