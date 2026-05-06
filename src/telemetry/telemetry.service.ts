@@ -242,7 +242,6 @@ export class TelemetryService {
 
   private async executeHistoryQuery(deviceId: number, view: string) {
     let query = '';
-    let parameters: any = { deviceId };
 
     switch (view) {
       case 'hour':
@@ -258,7 +257,7 @@ export class TelemetryService {
             MAX(temperature) AS max_temperature,
             COUNT(*) AS sample_count
           FROM temperature_logs 
-          WHERE device_id = :deviceId 
+          WHERE device_id = ? 
           AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
           GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H')
           ORDER BY bucket ASC;
@@ -275,7 +274,7 @@ export class TelemetryService {
             MAX(temperature) AS max_temperature,
             COUNT(*) AS sample_count
           FROM temperature_logs 
-          WHERE device_id = :deviceId 
+          WHERE device_id = ? 
           AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
           GROUP BY DATE(created_at)
           ORDER BY bucket ASC;
@@ -293,7 +292,7 @@ export class TelemetryService {
             MAX(temperature) AS max_temperature,
             COUNT(*) AS sample_count
           FROM temperature_logs 
-          WHERE device_id = :deviceId 
+          WHERE device_id = ? 
           AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
           GROUP BY week_bucket
           ORDER BY week_bucket ASC;
@@ -301,21 +300,27 @@ export class TelemetryService {
         break;
     }
 
-    const rawResults = await this.temperatureLogRepository.query(
-      query.replace(/:deviceId/g, '?'),
-      [deviceId]
-    );
+    try {
+      const rawResults = await this.temperatureLogRepository.query(query, [deviceId]);
 
-    // Formatear para compatibilidad con Flutter (TelemetryLog.fromJson)
-    return rawResults.map(r => ({
-      ...r,
-      temperature: Number(Number(r.temperature).toFixed(2)),
-      avg_temperature: Number(Number(r.avg_temperature).toFixed(2)),
-      min_temperature: Number(Number(r.min_temperature).toFixed(2)),
-      max_temperature: Number(Number(r.max_temperature).toFixed(2)),
-      sample_count: Number(r.sample_count),
-      created_at: r.bucket, // Para Flutter
-    }));
+      if (!Array.isArray(rawResults)) {
+        return [];
+      }
+
+      // Formatear para compatibilidad con Flutter (TelemetryLog.fromJson)
+      return rawResults.map(r => ({
+        ...r,
+        temperature: r.temperature !== null ? Number(Number(r.temperature).toFixed(2)) : 0,
+        avg_temperature: r.avg_temperature !== null ? Number(Number(r.avg_temperature).toFixed(2)) : 0,
+        min_temperature: r.min_temperature !== null ? Number(Number(r.min_temperature).toFixed(2)) : 0,
+        max_temperature: r.max_temperature !== null ? Number(Number(r.max_temperature).toFixed(2)) : 0,
+        sample_count: Number(r.sample_count || 0),
+        created_at: r.bucket, // Para Flutter
+      }));
+    } catch (error) {
+      console.error(`[Telemetry] Error executing history query for view ${view}:`, error);
+      throw error; // Re-throw to be caught by NestJS exception filter
+    }
   }
 
   async getLastTempForUserDevices(userId: number) {
