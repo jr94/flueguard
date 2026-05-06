@@ -302,100 +302,41 @@ export class TelemetryService {
 
     try {
       const rawResults = await this.temperatureLogRepository.manager.query(query, [deviceId]);
-      let results = Array.isArray(rawResults) ? rawResults : [];
 
-      // Rellenar huecos con 0 si no hay datos suficientes
-      if (view === 'day') {
-        results = this.fillGapsDay(results);
-      } else if (view === 'week') {
-        results = this.fillGapsWeek(results);
-      }
+      const results = Array.isArray(rawResults)
+        ? rawResults.filter((r) => {
+          const temperature = r.temperature;
+          const sampleCount = Number(r.sample_count ?? 0);
 
-      // Formatear para compatibilidad con Flutter (TelemetryLog.fromJson)
-      return results.map(r => ({
+          return temperature !== null &&
+            temperature !== undefined &&
+            Number.isFinite(Number(temperature)) &&
+            sampleCount > 0;
+        })
+        : [];
+
+      // No rellenar huecos.
+      // Si una hora/día/semana no tiene datos, no se retorna punto.
+      // Esto evita caídas falsas a 0°C en el gráfico.
+      return results.map((r) => ({
         ...r,
-        temperature: r.temperature !== null ? Number(Number(r.temperature).toFixed(2)) : 0,
-        avg_temperature: r.avg_temperature !== null ? Number(Number(r.avg_temperature).toFixed(2)) : 0,
-        min_temperature: r.min_temperature !== null ? Number(Number(r.min_temperature).toFixed(2)) : 0,
-        max_temperature: r.max_temperature !== null ? Number(Number(r.max_temperature).toFixed(2)) : 0,
-        sample_count: Number(r.sample_count || 0),
-        created_at: r.bucket, // Para Flutter
+        temperature: Number(Number(r.temperature).toFixed(2)),
+        avg_temperature: r.avg_temperature !== null && r.avg_temperature !== undefined
+          ? Number(Number(r.avg_temperature).toFixed(2))
+          : null,
+        min_temperature: r.min_temperature !== null && r.min_temperature !== undefined
+          ? Number(Number(r.min_temperature).toFixed(2))
+          : null,
+        max_temperature: r.max_temperature !== null && r.max_temperature !== undefined
+          ? Number(Number(r.max_temperature).toFixed(2))
+          : null,
+        sample_count: Number(r.sample_count ?? 0),
+        created_at: r.bucket,
       }));
     } catch (error) {
       console.error(`[Telemetry] Error executing history query for view ${view}:`, error);
       throw error;
     }
-  }
-
-  private fillGapsDay(results: any[]): any[] {
-    const filled: any[] = [];
-    const now = new Date();
-    // Ajustar a la hora actual
-    const start = new Date(now.getTime());
-    start.setMinutes(0, 0, 0);
-
-    for (let i = 23; i >= 0; i--) {
-      const bucketDate = new Date(start.getTime() - i * 3600000);
-      const bucketStr = this.formatDateToMySQL(bucketDate);
-
-      const existing = results.find(r => r.bucket === bucketStr);
-      if (existing) {
-        filled.push(existing);
-      } else {
-        filled.push({
-          bucket: bucketStr,
-          temperature: 0,
-          avg_temperature: 0,
-          min_temperature: 0,
-          max_temperature: 0,
-          sample_count: 0,
-        });
-      }
-    }
-    return filled;
-  }
-
-  private fillGapsWeek(results: any[]): any[] {
-    const filled: any[] = [];
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    for (let i = 6; i >= 0; i--) {
-      const bucketDate = new Date(now.getTime() - i * 24 * 3600000);
-      const bucketStr = this.formatDateOnlyToMySQL(bucketDate);
-
-      const existing = results.find(r => {
-        const rBucketStr = r.bucket instanceof Date ? this.formatDateOnlyToMySQL(r.bucket) : String(r.bucket);
-        return rBucketStr.startsWith(bucketStr);
-      });
-
-      if (existing) {
-        filled.push({
-          ...existing,
-          bucket: bucketStr // Asegurar formato YYYY-MM-DD
-        });
-      } else {
-        filled.push({
-          bucket: bucketStr,
-          temperature: 0,
-          avg_temperature: 0,
-          min_temperature: 0,
-          max_temperature: 0,
-          sample_count: 0,
-        });
-      }
-    }
-    return filled;
-  }
-
-  private formatDateToMySQL(date: Date): string {
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:00:00`;
-  }
-
-  private formatDateOnlyToMySQL(date: Date): string {
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   }
 
   async getLastTempForUserDevices(userId: number) {
