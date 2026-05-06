@@ -7,6 +7,7 @@ import { DevicesModule } from '../devices/devices.module';
 import { DeviceSettingsModule } from '../device-settings/device-settings.module';
 import { AlertsModule } from '../alerts/alerts.module';
 import { PushNotificationsModule } from '../push-notifications/push-notifications.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PushNotificationsModule } from '../push-notifications/push-notification
     DeviceSettingsModule,
     AlertsModule,
     PushNotificationsModule,
+    SubscriptionsModule,
   ],
   controllers: [TelemetryController],
   providers: [TelemetryService],

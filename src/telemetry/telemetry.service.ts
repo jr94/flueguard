@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { calculatePredictiveCurveAlert } from './predictive-alert.utils';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
@@ -8,6 +8,7 @@ import { DevicesService } from '../devices/devices.service';
 import { DeviceSettingsService } from '../device-settings/device-settings.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class TelemetryService {
@@ -21,6 +22,7 @@ export class TelemetryService {
     private readonly deviceSettingsService: DeviceSettingsService,
     private readonly alertsService: AlertsService,
     private readonly pushNotificationsService: PushNotificationsService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) { }
 
   async processTelemetry(createTelemetryDto: CreateTelemetryDto) {
@@ -200,6 +202,120 @@ export class TelemetryService {
         created_at: 'ASC',
       },
     });
+  }
+
+  async getDeviceHistory(userId: number, deviceId: number, view: string) {
+    console.log(`[Telemetry] History request: deviceId=${deviceId}, userId=${userId}, view=${view}`);
+    // 1. Validar acceso al dispositivo
+    await this.subscriptionsService.validateUserDeviceAccess(userId, deviceId);
+
+    // 2. Obtener features de suscripción
+    const status = await this.subscriptionsService.getDeviceSubscriptionStatus(deviceId);
+    const historyDays = Number(status.features?.extended_history_days || 0);
+
+    // 3. Validar permisos según la vista solicitada
+    this.validateHistoryAccess(view, historyDays);
+
+    // 4. Ejecutar query según la vista
+    return this.executeHistoryQuery(deviceId, view);
+  }
+
+  private validateHistoryAccess(view: string, historyDays: number) {
+    if (view === 'hour') return; // Siempre permitido
+
+    if (view === 'day' || view === 'week') {
+      if (historyDays < 7) {
+        throw new ForbiddenException('Esta vista de historial requiere un plan superior.');
+      }
+      return;
+    }
+
+    if (view === 'month') {
+      if (historyDays < 30) {
+        throw new ForbiddenException('Esta vista de historial requiere un plan superior.');
+      }
+      return;
+    }
+
+    throw new ForbiddenException('Vista de historial no válida.');
+  }
+
+  private async executeHistoryQuery(deviceId: number, view: string) {
+    let query = '';
+    let parameters: any = { deviceId };
+
+    switch (view) {
+      case 'hour':
+        return this.getDeviceTelemetry(deviceId, 1);
+
+      case 'day':
+        query = `
+          SELECT 
+            DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') AS bucket,
+            AVG(temperature) AS temperature,
+            AVG(temperature) AS avg_temperature,
+            MIN(temperature) AS min_temperature,
+            MAX(temperature) AS max_temperature,
+            COUNT(*) AS sample_count
+          FROM temperature_logs 
+          WHERE device_id = :deviceId 
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+          GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H')
+          ORDER BY bucket ASC;
+        `;
+        break;
+
+      case 'week':
+        query = `
+          SELECT 
+            DATE(created_at) AS bucket,
+            AVG(temperature) AS temperature,
+            AVG(temperature) AS avg_temperature,
+            MIN(temperature) AS min_temperature,
+            MAX(temperature) AS max_temperature,
+            COUNT(*) AS sample_count
+          FROM temperature_logs 
+          WHERE device_id = :deviceId 
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+          GROUP BY DATE(created_at)
+          ORDER BY bucket ASC;
+        `;
+        break;
+
+      case 'month':
+        query = `
+          SELECT 
+            TIMESTAMPDIFF(WEEK, DATE_SUB(NOW(), INTERVAL 30 DAY), created_at) AS week_bucket,
+            MIN(created_at) AS bucket,
+            AVG(temperature) AS temperature,
+            AVG(temperature) AS avg_temperature,
+            MIN(temperature) AS min_temperature,
+            MAX(temperature) AS max_temperature,
+            COUNT(*) AS sample_count
+          FROM temperature_logs 
+          WHERE device_id = :deviceId 
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+          GROUP BY week_bucket
+          ORDER BY week_bucket ASC;
+        `;
+        break;
+    }
+
+    const rawResults = await this.temperatureLogRepository.query(
+      query.replace(/:deviceId/g, '?'),
+      [deviceId]
+    );
+
+    // Formatear para compatibilidad con Flutter (TelemetryLog.fromJson)
+    return rawResults.map(r => ({
+      ...r,
+      temperature: Number(Number(r.temperature).toFixed(2)),
+      avg_temperature: Number(Number(r.avg_temperature).toFixed(2)),
+      min_temperature: Number(Number(r.min_temperature).toFixed(2)),
+      max_temperature: Number(Number(r.max_temperature).toFixed(2)),
+      sample_count: Number(r.sample_count),
+      created_at: r.bucket, // Para Flutter
+    }));
   }
 
   async getLastTempForUserDevices(userId: number) {
