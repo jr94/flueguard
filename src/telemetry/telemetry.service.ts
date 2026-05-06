@@ -150,7 +150,7 @@ export class TelemetryService {
 
           if (prediction.canPredict && (prediction.alertLevel === 2 || prediction.alertLevel === 3)) {
             const predLevelStr = String(prediction.alertLevel);
-            
+
             // Si la temperatura actual ya genera alerta normal 3, o si genera normal 2 y la predicción es 2, no predecimos
             const skipPredictive = (finalLevel === '3') || (finalLevel === '2' && predLevelStr === '2');
 
@@ -258,8 +258,8 @@ export class TelemetryService {
             COUNT(*) AS sample_count
           FROM temperature_logs 
           WHERE device_id = ? 
-          AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-          GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H')
+            AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+          GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')
           ORDER BY bucket ASC;
         `;
         break;
