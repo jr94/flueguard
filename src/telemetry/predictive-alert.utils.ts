@@ -200,7 +200,7 @@ export function calculatePredictiveCurveAlert(
   threshold3: number,
   horizonMinutes = 10,
 ): PredictiveResult {
-  const MIN_TEMP_TO_PREDICT = 180;
+  const MIN_TEMP_TO_PREDICT = 200;
 
   if (!points || points.length === 0) {
     return {
@@ -248,7 +248,7 @@ export function calculatePredictiveCurveAlert(
       predictedMax: 0,
       predictedMaxMinute: 0,
       alertLevel: 0,
-      reason: 'Predicción desactivada porque la temperatura actual es menor a 180°C.',
+      reason: 'Predicción desactivada porque la temperatura actual es menor a 200°C.',
     };
   }
 
