@@ -6,6 +6,8 @@ import { TemperatureLog } from '../telemetry/entities/temperature-log.entity';
 import { Alert } from '../alerts/entities/alert.entity';
 import { DeviceFirmwareUpdate } from '../device-firmware-updates/entities/device-firmware-update.entity';
 import { DevicePushToken } from '../push-tokens/entities/device-push-token.entity';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+
 @Injectable()
 export class MaintenanceService {
   constructor(
@@ -19,6 +21,7 @@ export class MaintenanceService {
     private readonly firmwareUpdateRepository: Repository<DeviceFirmwareUpdate>,
     @InjectRepository(DevicePushToken)
     private readonly pushTokenRepository: Repository<DevicePushToken>,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async runCleanup() {
@@ -90,6 +93,13 @@ export class MaintenanceService {
       .where('is_active = :isActive', { isActive: false })
       .execute();
 
+    // 6. Google Play daily subscription revalidation
+    let google_play_revalidation: any = null;
+    const shouldRunGooglePlay = await this.subscriptionsService.shouldRunGooglePlayDailyRevalidation();
+    if (shouldRunGooglePlay) {
+      google_play_revalidation = await this.subscriptionsService.revalidateGooglePlaySubscriptionsDaily();
+    }
+
     return {
       success: true,
       message: 'Maintenance completed',
@@ -100,6 +110,7 @@ export class MaintenanceService {
       alerts_critical_deleted: deleteCriticalAlerts.affected || 0,
       firmware_updates_deleted: deleteFirmwareUpdates.affected || 0,
       inactive_push_tokens_deleted: deleteInactiveTokens.affected || 0,
+      google_play_revalidation,
       executed_at: now.toISOString(),
     };
   }

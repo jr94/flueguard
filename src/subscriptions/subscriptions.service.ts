@@ -762,4 +762,279 @@ export class SubscriptionsService {
       status: status,
     };
   }
+
+  async shouldRunGooglePlayDailyRevalidation(): Promise<boolean> {
+    const now = new Date();
+    
+    // Check if hour is between 03:00 and 03:30 in America/Santiago
+    // To do this simply without complex tz libraries, we can format the date to Santiago timezone
+    const santiagoTimeStr = now.toLocaleString('en-US', { timeZone: 'America/Santiago', hour12: false });
+    const santiagoDate = new Date(santiagoTimeStr); // This is approximate depending on environment, better use Intl
+    
+    // Better way using Intl
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Santiago',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const hourStr = parts.find(p => p.type === 'hour')?.value;
+    const minStr = parts.find(p => p.type === 'minute')?.value;
+    
+    const hour = parseInt(hourStr || '0', 10);
+    const minute = parseInt(minStr || '0', 10);
+
+    if (hour !== 3 || minute >= 30) {
+      return false; // Not the time window (03:00 - 03:29)
+    }
+
+    // Determine start of the day in UTC that roughly corresponds to today in Santiago
+    // For simplicity, let's just check the last 24 hours to prevent duplicate runs
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 3600000);
+
+    const alreadyRan = await this.eventRepository.findOne({
+      where: {
+        provider: 'google_play',
+        event_type: 'google_play_daily_revalidation_finished',
+      },
+      order: { created_at: 'DESC' }
+    });
+
+    if (alreadyRan && alreadyRan.created_at > twentyFourHoursAgo) {
+      return false;
+    }
+
+    return true;
+  }
+
+  async revalidateGooglePlaySubscriptionsDaily(): Promise<{ checked: number; updated: number; errors: number; skipped: number; }> {
+    console.log("Starting Google Play daily subscription revalidation");
+    const result = { checked: 0, updated: 0, errors: 0, skipped: 0 };
+    
+    try {
+      const subscriptionsToRevalidate = await this.deviceSubscriptionRepository.createQueryBuilder('ds')
+        .where('ds.provider = :provider', { provider: 'google_play' })
+        .andWhere('ds.provider_purchase_token IS NOT NULL')
+        .andWhere('(ds.status IN (:...statuses) OR ds.cancel_at_period_end = true OR ds.current_period_end >= NOW())', {
+          statuses: ['active', 'trialing', 'past_due'],
+        })
+        .getMany();
+
+      console.log(`Found ${subscriptionsToRevalidate.length} Google Play subscriptions to revalidate`);
+
+      for (const subscription of subscriptionsToRevalidate) {
+        result.checked++;
+        const token = subscription.provider_purchase_token;
+        if (!token) continue;
+        const partialToken = `${token.substring(0, 6)}...${token.substring(token.length - 6)}`;
+        
+        try {
+          const googleData = await this.getGooglePlaySubscription(token);
+          
+          let lineItem = googleData.lineItems?.find((item: any) => item.productId === subscription.provider_product_id);
+          if (!lineItem && googleData.lineItems?.length > 0) {
+            lineItem = googleData.lineItems[0];
+          }
+
+          const expiryTimeDate = lineItem?.expiryTime ? new Date(lineItem.expiryTime) : null;
+          const startTimeDate = googleData.startTime ? new Date(googleData.startTime) : null;
+          const now = new Date();
+
+          let status = subscription.status;
+          let current_period_end = subscription.current_period_end;
+          let cancel_at_period_end = subscription.cancel_at_period_end;
+          let canceled_at = subscription.canceled_at;
+
+          // Reglas de mapeo
+          switch (googleData.subscriptionState) {
+            case 'SUBSCRIPTION_STATE_ACTIVE':
+              status = 'active';
+              cancel_at_period_end = false;
+              canceled_at = null;
+              if (expiryTimeDate) current_period_end = expiryTimeDate;
+              break;
+            case 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD':
+              status = 'active';
+              cancel_at_period_end = false;
+              if (expiryTimeDate) current_period_end = expiryTimeDate;
+              break;
+            case 'SUBSCRIPTION_STATE_ON_HOLD':
+              status = 'past_due';
+              cancel_at_period_end = false;
+              if (expiryTimeDate) current_period_end = expiryTimeDate;
+              break;
+            case 'SUBSCRIPTION_STATE_PAUSED':
+              status = 'past_due';
+              cancel_at_period_end = false;
+              break;
+            case 'SUBSCRIPTION_STATE_CANCELED':
+              if (expiryTimeDate && expiryTimeDate > now) {
+                status = 'active';
+                cancel_at_period_end = true;
+                canceled_at = canceled_at || now;
+                current_period_end = expiryTimeDate;
+              } else {
+                status = 'canceled';
+                cancel_at_period_end = false;
+                canceled_at = canceled_at || now;
+                current_period_end = expiryTimeDate || now;
+              }
+              break;
+            case 'SUBSCRIPTION_STATE_EXPIRED':
+              status = 'expired';
+              cancel_at_period_end = false;
+              canceled_at = canceled_at || now;
+              current_period_end = expiryTimeDate || now;
+              break;
+            case 'SUBSCRIPTION_STATE_PENDING':
+              status = 'past_due'; // o mantener
+              cancel_at_period_end = false;
+              break;
+            default:
+              // SUBSCRIPTION_STATE_UNSPECIFIED u otros
+              break;
+          }
+
+          const previousStatus = subscription.status;
+          const previousPeriodEnd = subscription.current_period_end;
+          const previousCancelAtPeriodEnd = subscription.cancel_at_period_end;
+          const previousCanceledAt = subscription.canceled_at;
+          const previousProviderSubscriptionId = subscription.provider_subscription_id;
+
+          const changedStatus = previousStatus !== status;
+          const changedPeriodEnd = previousPeriodEnd?.getTime() !== current_period_end?.getTime();
+          const changedCancelAtPeriodEnd = previousCancelAtPeriodEnd !== cancel_at_period_end;
+          const changedCanceledAt = previousCanceledAt?.getTime() !== canceled_at?.getTime();
+          const changedProviderSubscriptionId = previousProviderSubscriptionId !== googleData.latestOrderId && googleData.latestOrderId;
+
+          const problematicStates = ['SUBSCRIPTION_STATE_ON_HOLD', 'SUBSCRIPTION_STATE_PAUSED', 'SUBSCRIPTION_STATE_EXPIRED', 'SUBSCRIPTION_STATE_CANCELED', 'SUBSCRIPTION_STATE_PENDING', 'SUBSCRIPTION_STATE_UNSPECIFIED'];
+          const hasProblematicState = problematicStates.includes(googleData.subscriptionState || '');
+
+          const changedAny = changedStatus || changedPeriodEnd || changedCancelAtPeriodEnd || changedCanceledAt || changedProviderSubscriptionId;
+
+          console.log(`- Sub ${subscription.id} | Device ${subscription.device_id} | State: ${googleData.subscriptionState} | Mapped: ${status} | Changed: ${changedAny}`);
+
+          if (changedAny) {
+            subscription.status = status;
+            if (lineItem?.productId) subscription.provider_product_id = lineItem.productId;
+            if (googleData.latestOrderId) subscription.provider_subscription_id = googleData.latestOrderId;
+            if (startTimeDate) subscription.current_period_start = startTimeDate;
+            subscription.current_period_end = current_period_end;
+            subscription.cancel_at_period_end = cancel_at_period_end;
+            subscription.canceled_at = canceled_at;
+            subscription.updated_at = now;
+
+            await this.deviceSubscriptionRepository.save(subscription);
+            result.updated++;
+            
+            const changedFields: string[] = [];
+            if (changedStatus) changedFields.push('status');
+            if (changedPeriodEnd) changedFields.push('current_period_end');
+            if (changedCancelAtPeriodEnd) changedFields.push('cancel_at_period_end');
+            if (changedCanceledAt) changedFields.push('canceled_at');
+            if (changedProviderSubscriptionId) changedFields.push('provider_subscription_id');
+
+            const event = this.eventRepository.create({
+              device_subscription_id: subscription.id,
+              device_id: subscription.device_id,
+              user_id: subscription.user_id,
+              plan_id: subscription.plan_id,
+              provider: 'google_play',
+              event_type: 'google_play_daily_revalidation',
+              provider_event_id: googleData.latestOrderId || subscription.provider_subscription_id,
+              raw_payload: {
+                source: "daily_cron",
+                subscriptionId: subscription.id,
+                deviceId: subscription.device_id,
+                previousStatus,
+                newStatus: status,
+                previousPeriodEnd,
+                newPeriodEnd: current_period_end,
+                previousCancelAtPeriodEnd,
+                newCancelAtPeriodEnd: cancel_at_period_end,
+                subscriptionState: googleData.subscriptionState,
+                latestOrderId: googleData.latestOrderId,
+                productId: lineItem?.productId,
+                expiryTime: lineItem?.expiryTime,
+                changedFields
+              },
+            });
+            await this.eventRepository.save(event);
+          } else if (hasProblematicState) {
+            // Guardar evento aunque no cambie nada si es estado problemático
+            const unhandledEvent = this.eventRepository.create({
+              device_subscription_id: subscription.id,
+              device_id: subscription.device_id,
+              user_id: subscription.user_id,
+              plan_id: subscription.plan_id,
+              provider: 'google_play',
+              event_type: 'google_play_daily_revalidation_unhandled_state',
+              provider_event_id: googleData.latestOrderId || subscription.provider_subscription_id,
+              raw_payload: {
+                source: "daily_cron",
+                subscriptionId: subscription.id,
+                deviceId: subscription.device_id,
+                subscriptionState: googleData.subscriptionState,
+                latestOrderId: googleData.latestOrderId,
+              },
+            });
+            await this.eventRepository.save(unhandledEvent);
+            result.skipped++;
+          } else {
+            result.skipped++;
+          }
+
+        } catch (subError) {
+          console.error(`Error revalidating subscription ${subscription.id} (token: ${partialToken}):`, subError.message);
+          result.errors++;
+          
+          const errEvent = this.eventRepository.create({
+            device_subscription_id: subscription.id,
+            device_id: subscription.device_id,
+            user_id: subscription.user_id,
+            plan_id: subscription.plan_id,
+            provider: 'google_play',
+            event_type: 'google_play_daily_revalidation_error',
+            raw_payload: {
+              source: "daily_cron",
+              subscriptionId: subscription.id,
+              deviceId: subscription.device_id,
+              error: subError.message,
+              executedAt: new Date().toISOString(),
+            },
+          });
+          await this.eventRepository.save(errEvent);
+        }
+      }
+
+      // Final event summary
+      const finishEvent = this.eventRepository.create({
+        provider: 'google_play',
+        event_type: 'google_play_daily_revalidation_finished',
+        raw_payload: {
+          ...result,
+          executedAt: new Date().toISOString()
+        },
+      });
+      await this.eventRepository.save(finishEvent);
+
+    } catch (error) {
+      console.error('Fatal error during Google Play daily subscription revalidation:', error.message);
+      
+      const finishErrorEvent = this.eventRepository.create({
+        provider: 'google_play',
+        event_type: 'google_play_daily_revalidation_failed',
+        raw_payload: {
+          error: error.message,
+          executedAt: new Date().toISOString()
+        },
+      });
+      await this.eventRepository.save(finishErrorEvent);
+    }
+    
+    console.log("Google Play daily subscription revalidation finished", result);
+    return result;
+  }
 }

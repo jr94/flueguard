@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MaintenanceService } from './maintenance.service';
 import { MaintenanceController } from './maintenance.controller';
@@ -9,7 +10,10 @@ import { DeviceFirmwareUpdate } from '../device-firmware-updates/entities/device
 import { DevicePushToken } from '../push-tokens/entities/device-push-token.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Device, TemperatureLog, Alert, DeviceFirmwareUpdate, DevicePushToken])],
+  imports: [
+    TypeOrmModule.forFeature([Device, TemperatureLog, Alert, DeviceFirmwareUpdate, DevicePushToken]),
+    SubscriptionsModule,
+  ],
   controllers: [MaintenanceController],
   providers: [MaintenanceService],
 })

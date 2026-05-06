@@ -32,6 +32,17 @@ export class SubscriptionsController {
     });
   }
 
+  @Post('google-play/revalidate')
+  @UseGuards(JwtAuthGuard)
+  async revalidateGooglePlaySubscriptions() {
+    // TODO: restrict to admin
+    const result = await this.subscriptionsService.revalidateGooglePlaySubscriptionsDaily();
+    return {
+      success: true,
+      ...result,
+    };
+  }
+
   @Get('plans')
   async getActivePlans() {
     return this.subscriptionsService.getActivePlans();
