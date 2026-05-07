@@ -7,6 +7,7 @@ import { Alert } from '../alerts/entities/alert.entity';
 import { DeviceFirmwareUpdate } from '../device-firmware-updates/entities/device-firmware-update.entity';
 import { DevicePushToken } from '../push-tokens/entities/device-push-token.entity';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 @Injectable()
 export class MaintenanceService {
@@ -22,6 +23,7 @@ export class MaintenanceService {
     @InjectRepository(DevicePushToken)
     private readonly pushTokenRepository: Repository<DevicePushToken>,
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async runCleanup() {
@@ -98,6 +100,9 @@ export class MaintenanceService {
     if (shouldRunGooglePlay) {
       google_play_revalidation = await this.subscriptionsService.revalidateGooglePlaySubscriptionsDaily();
     }
+
+    // 7. Metrics: generate weekly/monthly reports
+    await this.metricsService.runScheduledReports();
 
     return {
       success: true,

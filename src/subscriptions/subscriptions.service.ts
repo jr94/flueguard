@@ -95,6 +95,18 @@ export class SubscriptionsService {
     return device;
   }
 
+  async getActiveSubscriptionsDeviceIds(): Promise<number[]> {
+    const subscriptions = await this.deviceSubscriptionRepository.createQueryBuilder('ds')
+      .select('DISTINCT ds.device_id', 'device_id')
+      .innerJoin('ds.plan', 'sp')
+      .where('ds.status IN (:...statuses)', { statuses: ['active', 'trialing'] })
+      .andWhere('ds.current_period_end > NOW()')
+      .andWhere('sp.is_active = 1')
+      .getRawMany();
+
+    return subscriptions.map(s => Number(s.device_id));
+  }
+
   async getActiveSubscriptionsForDevices(deviceIds: number[]): Promise<Map<number, any>> {
     const map = new Map<number, any>();
     if (!deviceIds || deviceIds.length === 0) return map;

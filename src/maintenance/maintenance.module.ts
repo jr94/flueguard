@@ -9,10 +9,13 @@ import { Alert } from '../alerts/entities/alert.entity';
 import { DeviceFirmwareUpdate } from '../device-firmware-updates/entities/device-firmware-update.entity';
 import { DevicePushToken } from '../push-tokens/entities/device-push-token.entity';
 
+import { MetricsModule } from '../metrics/metrics.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([Device, TemperatureLog, Alert, DeviceFirmwareUpdate, DevicePushToken]),
     SubscriptionsModule,
+    MetricsModule,
   ],
   controllers: [MaintenanceController],
   providers: [MaintenanceService],

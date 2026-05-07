@@ -1,4 +1,5 @@
 import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { DeviceDailyMetric } from './entities/device-daily-metric.entity';
@@ -464,51 +465,204 @@ export class MetricsService {
     try {
       const summary = await this.getSummary(deviceId, 0, 'custom', periodStart.toISOString().split('T')[0], periodEnd.toISOString().split('T')[0]);
       
-      const report = this.reportRepository.create({
-        device_id: deviceId,
-        report_type: 'weekly',
-        period_start: periodStart,
-        period_end: periodEnd,
-        total_usage_minutes: summary.total_usage_minutes,
-        max_temperature: summary.max_temperature,
-        max_temperature_at: summary.max_temperature_at,
-        avg_temperature: summary.avg_temperature,
-        total_sessions: summary.total_sessions,
-        total_alerts: summary.total_alerts,
-        total_critical_alerts: summary.total_critical_alerts,
-        safe_minutes: summary.safe_minutes,
-        warning_minutes: summary.warning_minutes,
-        critical_minutes: summary.critical_minutes,
-        low_minutes: summary.low_minutes,
-        efficiency_score: summary.efficiency_score,
-        risk_score: summary.risk_score,
+      const periodStartStr = periodStart.toISOString().split('T')[0];
+      const periodEndStr = periodEnd.toISOString().split('T')[0];
+
+      // Upsert logic: check if report already exists for this period and device
+      let report = await this.reportRepository.findOne({
+        where: {
+          device_id: deviceId,
+          report_type: 'weekly',
+          period_start: periodStartStr as any,
+          period_end: periodEndStr as any,
+        }
       });
 
-      // Recommendations
-      let recommendation = 'El uso de la estufa fue estable y dentro de rangos seguros la mayor parte del tiempo.';
-      let summaryText = 'Buen desempeño general.';
-
-      if (summary.total_usage_minutes === 0) {
-        recommendation = 'No se detectó uso relevante de la estufa durante este periodo.';
-        summaryText = 'Sin actividad.';
-      } else if (summary.total_critical_alerts > 0 || summary.critical_minutes > 0) {
-        recommendation = 'Se detectaron periodos en temperatura crítica. Revisa la entrada de aire y evita agregar más leña cuando la temperatura suba demasiado.';
-        summaryText = 'Se detectaron riesgos críticos.';
-        if (summary.total_critical_alerts > 5) {
-          recommendation += ' Hubo alertas críticas frecuentes. Se recomienda revisar el uso de la estufa y mantener objetos combustibles alejados.';
-        }
-      } else if (summary.efficiency_score < 60) {
-        recommendation = 'La eficiencia de quemado es baja. Intenta mantener la temperatura en la zona segura (verde) para ahorrar leña y contaminar menos.';
-        summaryText = 'Baja eficiencia.';
+      if (!report) {
+        report = this.reportRepository.create({
+          device_id: deviceId,
+          report_type: 'weekly',
+          period_start: periodStart,
+          period_end: periodEnd,
+        });
       }
 
+      report.total_usage_minutes = this.sanitizeNumber(summary.total_usage_minutes);
+      report.max_temperature = this.sanitizeNumber(summary.max_temperature);
+      report.max_temperature_at = summary.max_temperature_at;
+      report.avg_temperature = this.sanitizeNumber(summary.avg_temperature);
+      report.total_sessions = this.sanitizeNumber(summary.total_sessions);
+      report.total_alerts = this.sanitizeNumber(summary.total_alerts);
+      report.total_critical_alerts = this.sanitizeNumber(summary.total_critical_alerts);
+      report.safe_minutes = this.sanitizeNumber(summary.safe_minutes);
+      report.warning_minutes = this.sanitizeNumber(summary.warning_minutes);
+      report.critical_minutes = this.sanitizeNumber(summary.critical_minutes);
+      report.low_minutes = this.sanitizeNumber(summary.low_minutes);
+      report.efficiency_score = this.sanitizeNumber(summary.efficiency_score);
+      report.risk_score = this.sanitizeNumber(summary.risk_score);
+
+      const { recommendation, summaryText } = this.generateReportInsights(summary);
       report.recommendation = recommendation;
       report.summary = summaryText;
 
-      await this.reportRepository.save(report);
+      await this.reportRepository.save(this.sanitizeMetricPayload(report));
+      this.logger.log(`[Reports] Reporte generado para device ${deviceId} (weekly)`);
       return report;
     } catch (error) {
-      this.logger.error(`Error generating weekly report: ${error.message}`);
+      this.logger.error(`Error generating weekly report for device ${deviceId}: ${error.message}`);
+    }
+  }
+
+  async generateMonthlyReport(deviceId: number, periodStart: Date, periodEnd: Date) {
+    try {
+      const summary = await this.getSummary(deviceId, 0, 'custom', periodStart.toISOString().split('T')[0], periodEnd.toISOString().split('T')[0]);
+      
+      const periodStartStr = periodStart.toISOString().split('T')[0];
+      const periodEndStr = periodEnd.toISOString().split('T')[0];
+
+      // Upsert logic
+      let report = await this.reportRepository.findOne({
+        where: {
+          device_id: deviceId,
+          report_type: 'monthly',
+          period_start: periodStartStr as any,
+          period_end: periodEndStr as any,
+        }
+      });
+
+      if (!report) {
+        report = this.reportRepository.create({
+          device_id: deviceId,
+          report_type: 'monthly',
+          period_start: periodStart,
+          period_end: periodEnd,
+        });
+      }
+
+      report.total_usage_minutes = this.sanitizeNumber(summary.total_usage_minutes);
+      report.max_temperature = this.sanitizeNumber(summary.max_temperature);
+      report.max_temperature_at = summary.max_temperature_at;
+      report.avg_temperature = this.sanitizeNumber(summary.avg_temperature);
+      report.total_sessions = this.sanitizeNumber(summary.total_sessions);
+      report.total_alerts = this.sanitizeNumber(summary.total_alerts);
+      report.total_critical_alerts = this.sanitizeNumber(summary.total_critical_alerts);
+      report.safe_minutes = this.sanitizeNumber(summary.safe_minutes);
+      report.warning_minutes = this.sanitizeNumber(summary.warning_minutes);
+      report.critical_minutes = this.sanitizeNumber(summary.critical_minutes);
+      report.low_minutes = this.sanitizeNumber(summary.low_minutes);
+      report.efficiency_score = this.sanitizeNumber(summary.efficiency_score);
+      report.risk_score = this.sanitizeNumber(summary.risk_score);
+
+      const { recommendation, summaryText } = this.generateReportInsights(summary);
+      report.recommendation = recommendation;
+      report.summary = summaryText;
+
+      await this.reportRepository.save(this.sanitizeMetricPayload(report));
+      this.logger.log(`[Reports] Reporte generado para device ${deviceId} (monthly)`);
+      return report;
+    } catch (error) {
+      this.logger.error(`Error generating monthly report for device ${deviceId}: ${error.message}`);
+    }
+  }
+
+  @Cron('0 0 6 * * 1', { timeZone: 'America/Santiago' }) // Mondays 06:00 AM
+  async handleWeeklyReportsCron() {
+    this.logger.log('[Reports] Generando reportes semanales PRO');
+    await this.generateReportsForAllProDevices('weekly');
+  }
+
+  @Cron('0 30 6 1 * *', { timeZone: 'America/Santiago' }) // Day 1 06:30 AM
+  async handleMonthlyReportsCron() {
+    this.logger.log('[Reports] Generando reportes mensuales PRO');
+    await this.generateReportsForAllProDevices('monthly');
+  }
+
+  async generateReportsForAllProDevices(type: 'weekly' | 'monthly') {
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+
+    if (type === 'weekly') {
+      // Previous week: Monday to Sunday
+      start = new Date(now);
+      start.setDate(now.getDate() - 7 - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+      start.setHours(0, 0, 0, 0);
+
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+    } else {
+      // Previous month
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    const activeSubDeviceIds = await this.subscriptionsService.getActiveSubscriptionsDeviceIds();
+    
+    for (const deviceId of activeSubDeviceIds) {
+      try {
+        const hasFeature = await this.subscriptionsService.deviceHasFeature(deviceId, 'metrics.reports_and_recommendations');
+        // Check if plan code is 'pro' or similar if strictly required, but usually feature check is enough
+        // The requirement said "dispositivos con plan FlueGuard Pro"
+        if (hasFeature.has_feature && hasFeature.plan_code === 'pro') {
+          if (type === 'weekly') await this.generateWeeklyReport(deviceId, start, end);
+          else await this.generateMonthlyReport(deviceId, start, end);
+        }
+      } catch (e) {
+        this.logger.error(`Failed to generate ${type} report for device ${deviceId}: ${e.message}`);
+      }
+    }
+  }
+
+  async runScheduledReports() {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const dayOfMonth = now.getDate();
+
+    if (dayOfWeek === 1) await this.generateReportsForAllProDevices('weekly');
+    if (dayOfMonth === 1) await this.generateReportsForAllProDevices('monthly');
+  }
+
+  private generateReportInsights(summary: any) {
+    let recommendation = 'El uso de la estufa fue estable y dentro de rangos seguros la mayor parte del tiempo.';
+    let summaryText = 'Buen desempeño general.';
+
+    if (summary.total_usage_minutes === 0) {
+      recommendation = 'No se detectó uso relevante de la estufa durante este periodo.';
+      summaryText = 'Sin actividad.';
+    } else if (summary.total_critical_alerts > 0 || summary.critical_minutes > 0) {
+      recommendation = 'Se detectaron periodos en temperatura crítica. Revisa la entrada de aire y evita agregar más leña cuando la temperatura suba demasiado.';
+      summaryText = 'Se detectaron riesgos críticos.';
+      if (summary.total_critical_alerts > 5) {
+        recommendation += ' Hubo alertas críticas frecuentes. Se recomienda revisar el uso de la estufa y mantener objetos combustibles alejados.';
+      }
+    } else if (summary.efficiency_score < 60) {
+      recommendation = 'La eficiencia de quemado es baja. Intenta mantener la temperatura en la zona segura (verde) para ahorrar leña y contaminar menos.';
+      summaryText = 'Baja eficiencia.';
+    }
+
+    return { recommendation, summaryText };
+  }
+
+  async generateManualReport(deviceId: number, userId: number, type: 'weekly' | 'monthly') {
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+
+    if (type === 'weekly') {
+      start = new Date(now);
+      start.setDate(now.getDate() - 7 - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      return this.generateWeeklyReport(deviceId, start, end);
+    } else {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+      end.setHours(23, 59, 59, 999);
+      return this.generateMonthlyReport(deviceId, start, end);
     }
   }
 

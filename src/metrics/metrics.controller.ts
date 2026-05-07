@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
 import { MetricsService } from './metrics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetMetricsRangeDto } from './dto/get-metrics-range.dto';
@@ -73,5 +73,14 @@ export class MetricsController {
     @Req() req: any,
   ) {
     return this.metricsService.getReports(deviceId, req.user.id, query.type);
+  }
+
+  @Post('device/:deviceId/reports/generate')
+  async generateReport(
+    @Param('deviceId', ParseIntPipe) deviceId: number,
+    @Query() query: GetReportsRangeDto,
+    @Req() req: any,
+  ) {
+    return this.metricsService.generateManualReport(deviceId, req.user.id, query.type);
   }
 }
