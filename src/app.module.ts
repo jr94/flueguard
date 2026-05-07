@@ -23,6 +23,7 @@ import { AccountDeletionModule } from './account-deletion/account-deletion.modul
 import { PortalModule } from './portal/portal.module';
 import { SupportModule } from './support/support.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     PortalModule,
     SupportModule,
     SubscriptionsModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

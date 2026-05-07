@@ -9,6 +9,7 @@ import { DeviceSettingsService } from '../device-settings/device-settings.servic
 import { AlertsService } from '../alerts/alerts.service';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 @Injectable()
 export class TelemetryService {
@@ -23,6 +24,7 @@ export class TelemetryService {
     private readonly alertsService: AlertsService,
     private readonly pushNotificationsService: PushNotificationsService,
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly metricsService: MetricsService,
   ) { }
 
   async processTelemetry(createTelemetryDto: CreateTelemetryDto) {
@@ -43,6 +45,14 @@ export class TelemetryService {
 
     // 3. Update device last connection and status
     await this.devicesService.updateLastConnection(device.id);
+
+    // 3.1. Process metrics in background (don't block telemetry flow)
+    this.metricsService.processTelemetryForMetrics(device.id, temperature, log.created_at)
+      .catch(e => console.error('[Metrics] Error processing telemetry metrics:', e));
+
+    // 3.2. Confirm predictions if needed
+    this.metricsService.confirmPredictionIfNeeded(device.id, temperature, log.created_at)
+      .catch(e => console.error('[Metrics] Error confirming predictions:', e));
 
     // 4. Calcular el nivel de alerta basándonos en los ajustes de umbral
     try {
@@ -127,6 +137,10 @@ export class TelemetryService {
           // 6. Enviar notificación push de forma independiente
           this.pushNotificationsService.sendAlertNotification(device.id, newAlert, serial_number)
             .catch((e) => console.error('Error en ejecución background de push notification:', e));
+
+          // 6.1. Actualizar métricas de alertas
+          this.metricsService.updateMetricsFromAlert(device.id, Number(finalLevel), newAlert.created_at)
+            .catch(e => console.error('[Metrics] Error updating metrics from alert:', e));
         }
 
         // 7. Lógica Predictiva
@@ -172,6 +186,18 @@ export class TelemetryService {
 
                   this.pushNotificationsService.sendAlertNotification(device.id, newPredictiveAlert, serial_number)
                     .catch((e) => console.error('Error en ejecución background de push notification predictiva:', e));
+
+                  // Guardar métrica de predicción
+                  this.metricsService.savePredictionMetric({
+                    device_id: device.id,
+                    predicted_at: new Date(),
+                    current_temperature: temperature,
+                    predicted_temperature: prediction.predictedMax,
+                    target_threshold: prediction.alertLevel === 3 ? t3 : t2,
+                    predicted_minutes_to_threshold: prediction.minutesToThreshold,
+                    slope: prediction.slope,
+                    alert_id: newPredictiveAlert.id,
+                  }).catch(e => console.error('[Metrics] Error saving prediction metric:', e));
                 }
               }
             }
