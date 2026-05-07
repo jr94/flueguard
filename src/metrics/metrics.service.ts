@@ -217,14 +217,22 @@ export class MetricsService {
 
   async processTelemetryForMetrics(deviceId: number, temperature: number, createdAt: Date) {
     try {
+      const safeTemperature = this.sanitizeNumber(temperature, null);
+      if (safeTemperature === null) {
+        this.logger.warn(`[MetricsService] Invalid temperature for device ${deviceId}: ${temperature}`);
+        return;
+      }
+
+      const safeCreatedAt = (createdAt && !isNaN(createdAt.getTime())) ? createdAt : new Date();
+
       const settings = await this.deviceSettingsRepository.findOne({ where: { device_id: deviceId } });
       if (!settings) return;
 
-      const t1 = settings.threshold_1 || 100;
-      const t2 = settings.threshold_2 || 200;
-      const t3 = settings.threshold_3 || 300;
+      const t1 = this.sanitizeNumber(settings.threshold_1, 100);
+      const t2 = this.sanitizeNumber(settings.threshold_2, 200);
+      const t3 = this.sanitizeNumber(settings.threshold_3, 300);
 
-      const dateStr = createdAt.toISOString().split('T')[0];
+      const dateStr = safeCreatedAt.toISOString().split('T')[0];
 
       // 1. Update Daily Metrics
       let daily = await this.dailyMetricRepository.findOne({ where: { device_id: deviceId, metric_date: dateStr } });
@@ -232,124 +240,119 @@ export class MetricsService {
         daily = this.dailyMetricRepository.create({
           device_id: deviceId,
           metric_date: dateStr,
-          min_temperature: temperature,
-          max_temperature: temperature,
-          max_temperature_at: createdAt,
-          avg_temperature: temperature,
+          min_temperature: safeTemperature,
+          max_temperature: safeTemperature,
+          max_temperature_at: safeCreatedAt,
+          avg_temperature: safeTemperature,
           threshold_1_snapshot: t1,
           threshold_2_snapshot: t2,
           threshold_3_snapshot: t3,
         });
       } else {
-        // Update avg temperature (simple incremental avg)
-        // Note: For better accuracy we'd need count of logs today, but we can approximate or use a running avg
-        // Let's assume we have ~1 log per minute or so. 
-        // For a more precise avg, we'd need the count of samples. 
-        // We'll use a weight of 0.05 for new values or just use the current avg logic
-        daily.avg_temperature = (Number(daily.avg_temperature) * 0.95) + (Number(temperature) * 0.05);
+        const currentAvg = this.sanitizeNumber(daily.avg_temperature);
+        daily.avg_temperature = (currentAvg * 0.95) + (safeTemperature * 0.05);
         
-        if (temperature > daily.max_temperature) {
-          daily.max_temperature = temperature;
-          daily.max_temperature_at = createdAt;
+        if (safeTemperature > this.sanitizeNumber(daily.max_temperature)) {
+          daily.max_temperature = safeTemperature;
+          daily.max_temperature_at = safeCreatedAt;
         }
-        if (temperature < daily.min_temperature || daily.min_temperature === 0) {
-          daily.min_temperature = temperature;
+        if (safeTemperature < this.sanitizeNumber(daily.min_temperature) || this.sanitizeNumber(daily.min_temperature) === 0) {
+          daily.min_temperature = safeTemperature;
         }
       }
 
-      // 2. Zone updates (estimate 1 minute per telemetry if frequency is high, or use diff from last log)
-      // Since we don't know the exact interval, we'll increment minutes based on a heuristic (e.g. 1 min)
-      // or we could calculate the diff with the previous log.
+      // 2. Zone updates
       const lastLog = await this.temperatureLogRepository.findOne({
-        where: { device_id: deviceId, created_at: LessThanOrEqual(createdAt) },
+        where: { device_id: deviceId, created_at: LessThanOrEqual(safeCreatedAt) },
         order: { created_at: 'DESC' },
-        skip: 1 // the one just saved
+        skip: 1 
       });
 
       let minutesDiff = 1; 
       if (lastLog) {
-        const diffMs = createdAt.getTime() - new Date(lastLog.created_at).getTime();
-        minutesDiff = Math.min(Math.floor(diffMs / 60000), 5); // Max 5 mins to avoid gaps jumping too much
+        const diffMs = safeCreatedAt.getTime() - new Date(lastLog.created_at).getTime();
+        minutesDiff = Math.min(Math.floor(this.safeDivide(diffMs, 60000)), 5); 
         if (minutesDiff < 1) minutesDiff = 1;
       }
+      minutesDiff = this.sanitizeNumber(minutesDiff, 1);
 
-      const zone = this.getTemperatureZone(temperature, t1, t2, t3);
-      if (zone === 'safe') daily.safe_minutes += minutesDiff;
-      else if (zone === 'warning') daily.warning_minutes += minutesDiff;
-      else if (zone === 'critical') daily.critical_minutes += minutesDiff;
-      else if (zone === 'low') daily.low_minutes += minutesDiff;
+      const zone = this.getTemperatureZone(safeTemperature, t1, t2, t3);
+      if (zone === 'safe') daily.safe_minutes = this.sanitizeNumber(daily.safe_minutes) + minutesDiff;
+      else if (zone === 'warning') daily.warning_minutes = this.sanitizeNumber(daily.warning_minutes) + minutesDiff;
+      else if (zone === 'critical') daily.critical_minutes = this.sanitizeNumber(daily.critical_minutes) + minutesDiff;
+      else if (zone === 'low') daily.low_minutes = this.sanitizeNumber(daily.low_minutes) + minutesDiff;
 
-      if (temperature >= 80) {
-        daily.usage_minutes += minutesDiff;
+      if (safeTemperature >= 80) {
+        daily.usage_minutes = this.sanitizeNumber(daily.usage_minutes) + minutesDiff;
       }
 
       daily.efficiency_score = this.calculateEfficiencyScore(daily.safe_minutes, daily.warning_minutes, daily.critical_minutes, daily.low_minutes);
       daily.risk_score = this.calculateRiskScore(daily.max_temperature, daily.critical_minutes, daily.alerts_level_3, t3);
 
-      await this.dailyMetricRepository.save(daily);
+      this.logIfContainsInvalidNumber('device_daily_metrics', daily);
+      await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
 
       // 3. Session Management
       let activeSession = await this.sessionRepository.findOne({
         where: { device_id: deviceId, status: 'active' },
       });
 
-      if (temperature >= 80) {
+      if (safeTemperature >= 80) {
         if (!activeSession) {
-          // Create new session
           activeSession = this.sessionRepository.create({
             device_id: deviceId,
-            started_at: createdAt,
+            started_at: safeCreatedAt,
             status: 'active',
-            start_temperature: temperature,
-            max_temperature: temperature,
-            max_temperature_at: createdAt,
-            avg_temperature: temperature,
+            start_temperature: safeTemperature,
+            max_temperature: safeTemperature,
+            max_temperature_at: safeCreatedAt,
+            avg_temperature: safeTemperature,
           });
-          daily.sessions_count += 1;
-          await this.dailyMetricRepository.save(daily);
+          daily.sessions_count = this.sanitizeNumber(daily.sessions_count) + 1;
+          await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
         } else {
-          // Update active session
-          activeSession.duration_minutes += minutesDiff;
-          activeSession.avg_temperature = (Number(activeSession.avg_temperature) * 0.95) + (Number(temperature) * 0.05);
-          if (temperature > activeSession.max_temperature) {
-            activeSession.max_temperature = temperature;
-            activeSession.max_temperature_at = createdAt;
+          activeSession.duration_minutes = this.sanitizeNumber(activeSession.duration_minutes) + minutesDiff;
+          const sessionAvg = this.sanitizeNumber(activeSession.avg_temperature);
+          activeSession.avg_temperature = (sessionAvg * 0.95) + (safeTemperature * 0.05);
+          
+          if (safeTemperature > this.sanitizeNumber(activeSession.max_temperature)) {
+            activeSession.max_temperature = safeTemperature;
+            activeSession.max_temperature_at = safeCreatedAt;
           }
           
-          if (zone === 'safe') activeSession.safe_minutes += minutesDiff;
-          else if (zone === 'warning') activeSession.warning_minutes += minutesDiff;
-          else if (zone === 'critical') activeSession.critical_minutes += minutesDiff;
-          else if (zone === 'low') activeSession.low_minutes += minutesDiff;
+          if (zone === 'safe') activeSession.safe_minutes = this.sanitizeNumber(activeSession.safe_minutes) + minutesDiff;
+          else if (zone === 'warning') activeSession.warning_minutes = this.sanitizeNumber(activeSession.warning_minutes) + minutesDiff;
+          else if (zone === 'critical') activeSession.critical_minutes = this.sanitizeNumber(activeSession.critical_minutes) + minutesDiff;
+          else if (zone === 'low') activeSession.low_minutes = this.sanitizeNumber(activeSession.low_minutes) + minutesDiff;
 
           activeSession.efficiency_score = this.calculateEfficiencyScore(activeSession.safe_minutes, activeSession.warning_minutes, activeSession.critical_minutes, activeSession.low_minutes);
           activeSession.risk_score = this.calculateRiskScore(activeSession.max_temperature, activeSession.critical_minutes, activeSession.alerts_level_3, t3);
         }
-        await this.sessionRepository.save(activeSession);
+        this.logIfContainsInvalidNumber('device_usage_sessions', activeSession);
+        await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
       } else if (activeSession) {
-        // Temperature < 80, check if we should close session
-        // "If temperature < 60°C during more than 20 minutes, close session"
-        // We'll check the last logs
         const recentLogs = await this.temperatureLogRepository.find({
-          where: { device_id: deviceId, created_at: MoreThanOrEqual(new Date(createdAt.getTime() - 20 * 60000)) },
+          where: { device_id: deviceId, created_at: MoreThanOrEqual(new Date(safeCreatedAt.getTime() - 20 * 60000)) },
           order: { created_at: 'DESC' },
         });
 
-        const allBelow60 = recentLogs.every(l => Number(l.temperature) < 60);
-        const longEnough = recentLogs.length > 0 && (createdAt.getTime() - new Date(recentLogs[recentLogs.length - 1].created_at).getTime()) >= 15 * 60000;
+        const allBelow60 = recentLogs.length > 0 && recentLogs.every(l => Number(l.temperature) < 60);
+        const firstRecentLogAt = recentLogs.length > 0 ? new Date(recentLogs[recentLogs.length - 1].created_at).getTime() : safeCreatedAt.getTime();
+        const longEnough = recentLogs.length > 0 && (safeCreatedAt.getTime() - firstRecentLogAt) >= 15 * 60000;
 
-        if (temperature < 60 && allBelow60 && longEnough) {
+        if (safeTemperature < 60 && allBelow60 && longEnough) {
           activeSession.status = 'closed';
-          activeSession.ended_at = createdAt;
-          activeSession.end_temperature = temperature;
-          await this.sessionRepository.save(activeSession);
+          activeSession.ended_at = safeCreatedAt;
+          activeSession.end_temperature = safeTemperature;
+          await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
         } else {
-          // Still active but below usage threshold, maybe cooling down
-          activeSession.duration_minutes += minutesDiff;
-          if (zone === 'low') activeSession.low_minutes += minutesDiff;
-          await this.sessionRepository.save(activeSession);
+          activeSession.duration_minutes = this.sanitizeNumber(activeSession.duration_minutes) + minutesDiff;
+          if (zone === 'low') activeSession.low_minutes = this.sanitizeNumber(activeSession.low_minutes) + minutesDiff;
+          await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
         }
       }
 
+      this.logger.log(`[MetricsService] Metrics processed successfully for device ${deviceId}`);
     } catch (error) {
       this.logger.error(`Error processing telemetry for metrics: ${error.message}`, error.stack);
     }
@@ -361,11 +364,11 @@ export class MetricsService {
       let daily = await this.dailyMetricRepository.findOne({ where: { device_id: deviceId, metric_date: dateStr } });
       
       if (daily) {
-        daily.alerts_total += 1;
-        if (alertLevel === 1) daily.alerts_level_1 += 1;
-        if (alertLevel === 2) daily.alerts_level_2 += 1;
-        if (alertLevel === 3) daily.alerts_level_3 += 1;
-        await this.dailyMetricRepository.save(daily);
+        daily.alerts_total = this.sanitizeNumber(daily.alerts_total) + 1;
+        if (alertLevel === 1) daily.alerts_level_1 = this.sanitizeNumber(daily.alerts_level_1) + 1;
+        if (alertLevel === 2) daily.alerts_level_2 = this.sanitizeNumber(daily.alerts_level_2) + 1;
+        if (alertLevel === 3) daily.alerts_level_3 = this.sanitizeNumber(daily.alerts_level_3) + 1;
+        await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
       }
 
       let activeSession = await this.sessionRepository.findOne({
@@ -373,11 +376,11 @@ export class MetricsService {
       });
 
       if (activeSession) {
-        activeSession.alerts_total += 1;
-        if (alertLevel === 1) activeSession.alerts_level_1 += 1;
-        if (alertLevel === 2) activeSession.alerts_level_2 += 1;
-        if (alertLevel === 3) activeSession.alerts_level_3 += 1;
-        await this.sessionRepository.save(activeSession);
+        activeSession.alerts_total = this.sanitizeNumber(activeSession.alerts_total) + 1;
+        if (alertLevel === 1) activeSession.alerts_level_1 = this.sanitizeNumber(activeSession.alerts_level_1) + 1;
+        if (alertLevel === 2) activeSession.alerts_level_2 = this.sanitizeNumber(activeSession.alerts_level_2) + 1;
+        if (alertLevel === 3) activeSession.alerts_level_3 = this.sanitizeNumber(activeSession.alerts_level_3) + 1;
+        await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
       }
     } catch (error) {
       this.logger.error(`Error updating metrics from alert: ${error.message}`);
@@ -389,21 +392,21 @@ export class MetricsService {
       const prediction = this.predictionRepository.create({
         device_id: data.device_id,
         predicted_at: data.predicted_at || new Date(),
-        current_temperature: data.current_temperature,
-        predicted_temperature: data.predicted_temperature,
-        target_threshold: data.target_threshold,
-        predicted_minutes_to_threshold: data.predicted_minutes_to_threshold,
-        slope: data.slope,
+        current_temperature: this.sanitizeNumber(data.current_temperature),
+        predicted_temperature: this.sanitizeNumber(data.predicted_temperature),
+        target_threshold: this.sanitizeNumber(data.target_threshold),
+        predicted_minutes_to_threshold: this.sanitizeNumber(data.predicted_minutes_to_threshold),
+        slope: this.sanitizeNumber(data.slope),
         alert_id: data.alert_id,
       });
-      await this.predictionRepository.save(prediction);
+      await this.predictionRepository.save(this.sanitizeMetricPayload(prediction));
 
       // Update daily counter
       const dateStr = new Date().toISOString().split('T')[0];
       let daily = await this.dailyMetricRepository.findOne({ where: { device_id: data.device_id, metric_date: dateStr } });
       if (daily) {
-        daily.predictions_total += 1;
-        await this.dailyMetricRepository.save(daily);
+        daily.predictions_total = this.sanitizeNumber(daily.predictions_total) + 1;
+        await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
       }
     } catch (error) {
       this.logger.error(`Error saving prediction metric: ${error.message}`);
@@ -429,23 +432,27 @@ export class MetricsService {
         if (temperature >= pred.target_threshold && createdAt <= limitTime) {
           pred.was_confirmed = 1;
           pred.confirmed_at = createdAt;
-          await this.predictionRepository.save(pred);
+          await this.predictionRepository.save(this.sanitizeMetricPayload(pred));
 
           // Update daily counter
           const dateStr = pred.predicted_at.toISOString().split('T')[0];
           let daily = await this.dailyMetricRepository.findOne({ where: { device_id: deviceId, metric_date: dateStr } });
-          if (daily) daily.predictions_confirmed += 1;
-          await this.dailyMetricRepository.save(daily);
+          if (daily) {
+            daily.predictions_confirmed = this.sanitizeNumber(daily.predictions_confirmed) + 1;
+            await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+          }
 
         } else if (createdAt > limitTime) {
           pred.was_false_positive = 1;
-          await this.predictionRepository.save(pred);
+          await this.predictionRepository.save(this.sanitizeMetricPayload(pred));
 
           // Update daily counter
           const dateStr = pred.predicted_at.toISOString().split('T')[0];
           let daily = await this.dailyMetricRepository.findOne({ where: { device_id: deviceId, metric_date: dateStr } });
-          if (daily) daily.predictions_false_positive += 1;
-          await this.dailyMetricRepository.save(daily);
+          if (daily) {
+            daily.predictions_false_positive = this.sanitizeNumber(daily.predictions_false_positive) + 1;
+            await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+          }
         }
       }
     } catch (error) {
@@ -530,21 +537,84 @@ export class MetricsService {
     return 'critical';
   }
 
-  private calculateEfficiencyScore(safe: number, warning: number, critical: number, low: number): number {
+  private calculateEfficiencyScore(safeMinutes: any, warningMinutes: any, criticalMinutes: any, lowMinutes: any): number {
+    const safe = this.sanitizeNumber(safeMinutes);
+    const warning = this.sanitizeNumber(warningMinutes);
+    const critical = this.sanitizeNumber(criticalMinutes);
+    const low = this.sanitizeNumber(lowMinutes);
+
     let score = 100;
     score -= critical * 2;
     score -= warning * 0.5;
     score -= low * 0.1;
-    return Math.max(0, Math.min(100, score));
+
+    return this.clampScore(score);
   }
 
-  private calculateRiskScore(maxTemp: number, criticalMins: number, alertsLvl3: number, t3: number): number {
+  private calculateRiskScore(maxTemperature: any, criticalMinutes: any, alertsLevel3: any, threshold3?: any): number {
+    const maxTemp = this.sanitizeNumber(maxTemperature);
+    const critical = this.sanitizeNumber(criticalMinutes);
+    const alerts = this.sanitizeNumber(alertsLevel3);
+    const t3 = this.sanitizeNullableNumber(threshold3);
+
     let score = 0;
-    score += criticalMins * 1.5;
-    score += alertsLvl3 * 10;
-    if (maxTemp >= t3) score += 20;
-    if (maxTemp >= t3 + 50) score += 40;
-    return Math.max(0, Math.min(100, score));
+    score += critical * 1.5;
+    score += alerts * 10;
+
+    if (t3 !== null && maxTemp >= t3) score += 20;
+    if (t3 !== null && maxTemp >= t3 + 50) score += 40;
+
+    return this.clampScore(score);
+  }
+
+  private sanitizeNumber(value: any, fallback = 0): number {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  }
+
+  private sanitizeNullableNumber(value: any): number | null {
+    if (value === null || value === undefined) return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  }
+
+  private safeDivide(numerator: any, denominator: any, fallback = 0): number {
+    const n = Number(numerator);
+    const d = Number(denominator);
+    if (!Number.isFinite(n) || !Number.isFinite(d) || d === 0) {
+      return fallback;
+    }
+    return n / d;
+  }
+
+  private clampScore(value: any): number {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return 0;
+    return Math.max(0, Math.min(100, num));
+  }
+
+  private sanitizeMetricPayload<T extends Record<string, any>>(payload: T): T {
+    const cleaned = { ...payload };
+
+    for (const key of Object.keys(cleaned)) {
+      const value = cleaned[key];
+
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        cleaned[key] = null;
+      }
+    }
+
+    return cleaned;
+  }
+
+  private logIfContainsInvalidNumber(context: string, payload: Record<string, any>) {
+    const invalidKeys = Object.entries(payload)
+      .filter(([_, value]) => typeof value === 'number' && !Number.isFinite(value))
+      .map(([key]) => key);
+
+    if (invalidKeys.length > 0) {
+      this.logger.error(`[MetricsService] Invalid numeric values in ${context}: ${invalidKeys.join(', ')}`, JSON.stringify(payload));
+    }
   }
 
   private formatMinutes(minutes: number): string {
