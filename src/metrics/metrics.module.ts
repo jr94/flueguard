@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MetricsService } from './metrics.service';
 import { MetricsController } from './metrics.controller';
@@ -24,7 +24,7 @@ import { MaintenanceModule } from '../maintenance/maintenance.module';
     ]),
     SubscriptionsModule,
     DeviceSettingsModule,
-    MaintenanceModule,
+    forwardRef(() => MaintenanceModule),
   ],
   controllers: [MetricsController],
   providers: [MetricsService],
