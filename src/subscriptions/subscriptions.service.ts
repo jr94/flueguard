@@ -490,60 +490,73 @@ export class SubscriptionsService {
       : 'MISSING';
     
     console.log(`[Verify] Received payload:`, JSON.stringify({ ...dto, purchase_token: '***', purchaseToken: '***', providerPurchaseToken: '***' }));
-    console.log(`[Verify] Normalized: deviceId=${payload.deviceId}, productId=${payload.providerProductId}, token=${maskedToken}, orderId=${payload.providerOrderId}`);
+    console.log(`[Verify] Normalized: deviceId=${payload.deviceId}, productId=${payload.providerProductId}, token=${maskedToken}`);
 
-    // 3. Validaciones obligatorias después de normalizar
-    if (!payload.deviceId) {
-      throw new BadRequestException('deviceId es obligatorio');
-    }
-    if (!payload.providerProductId) {
-      throw new BadRequestException('providerProductId es obligatorio');
-    }
-    if (!payload.providerPurchaseToken) {
-      throw new BadRequestException('providerPurchaseToken es obligatorio');
-    }
+    // 3. Validaciones obligatorias
+    if (!payload.deviceId) throw new BadRequestException('deviceId es obligatorio');
+    if (!payload.providerProductId) throw new BadRequestException('providerProductId es obligatorio');
+    if (!payload.providerPurchaseToken) throw new BadRequestException('providerPurchaseToken es obligatorio');
 
     // 4. Validar dispositivo
     const device = await this.deviceRepository.findOne({ where: { id: payload.deviceId } });
-    if (!device) {
-      throw new NotFoundException(`Dispositivo con ID ${payload.deviceId} no encontrado`);
-    }
+    if (!device) throw new NotFoundException(`Dispositivo con ID ${payload.deviceId} no encontrado`);
 
-    // Si el userId viene de JWT lo usamos, si no, validamos acceso
     await this.validateUserDeviceAccess(userId, payload.deviceId);
 
-    // 5. Detectar plan desde providerProductId
-    let planCode: string | null = null;
+    // 5. Detectar plan nuevo desde providerProductId
+    let newPlanCode: string | null = null;
     const prodId = payload.providerProductId;
 
     if (prodId.startsWith('flueguard_plus_device_') || prodId === 'flueguard_plus_monthly') {
-      planCode = 'plus';
+      newPlanCode = 'plus';
     } else if (prodId.startsWith('flueguard_pro_device_') || prodId === 'flueguard_pro_monthly') {
-      planCode = 'pro';
+      newPlanCode = 'pro';
     } else if (prodId === 'flueguard_business_monthly') {
-      planCode = 'business';
+      newPlanCode = 'business';
     }
 
-    if (!planCode) {
-      throw new BadRequestException('Producto de Google Play no reconocido');
-    }
+    if (!newPlanCode) throw new BadRequestException('Producto de Google Play no reconocido');
 
-    // 6. Buscar plan en subscription_plans
-    const plan = await this.planRepository.findOne({ where: { code: planCode, is_active: true } });
-    if (!plan) {
-      throw new BadRequestException('Plan no configurado en base de datos');
-    }
+    const newPlan = await this.planRepository.findOne({ where: { code: newPlanCode, is_active: true } });
+    if (!newPlan) throw new BadRequestException('Plan no configurado en base de datos');
 
-    // 7. Validar que el dispositivo no tenga otra suscripción activa
+    const PLAN_HIERARCHY: { [key: string]: number } = { 'basic': 0, 'plus': 1, 'pro': 2, 'business': 3 };
+    const newPlanLevel = PLAN_HIERARCHY[newPlanCode] || 0;
+
+    // 7. Buscar suscripción activa actual en el mismo dispositivo
     const activeOnDevice = await this.deviceSubscriptionRepository.findOne({
       where: { 
         device_id: payload.deviceId, 
         status: In(['active', 'trialing', 'past_due']) 
-      }
+      },
+      relations: ['plan']
     });
 
-    if (activeOnDevice && activeOnDevice.provider_purchase_token !== payload.providerPurchaseToken) {
-      throw new ConflictException('Este dispositivo ya tiene una suscripción activa');
+    if (activeOnDevice) {
+      const currentPlanCode = activeOnDevice.plan?.code || 'basic';
+      const currentPlanLevel = PLAN_HIERARCHY[currentPlanCode] || 0;
+
+      console.log(`[Verify] Device ${payload.deviceId} has active plan: ${currentPlanCode} (Level ${currentPlanLevel}). New plan: ${newPlanCode} (Level ${newPlanLevel})`);
+
+      // Caso A: Mismo purchaseToken (Idempotencia)
+      if (activeOnDevice.provider_purchase_token === payload.providerPurchaseToken) {
+        console.log(`[Verify] Same purchase token. Updating existing record.`);
+      } else {
+        // Caso B: Token distinto (Compra nueva o cambio de plan)
+        if (newPlanLevel > currentPlanLevel) {
+          // UPGRADE: Permitir y cerrar la anterior
+          console.log(`[Verify] UPGRADE DETECTED. Closing old subscription ID ${activeOnDevice.id}`);
+          activeOnDevice.status = 'canceled';
+          activeOnDevice.cancel_at_period_end = false;
+          activeOnDevice.canceled_at = new Date();
+          activeOnDevice.updated_at = new Date();
+          await this.deviceSubscriptionRepository.save(activeOnDevice);
+        } else if (newPlanLevel === currentPlanLevel) {
+          throw new ConflictException('Este dispositivo ya tiene una suscripción activa para este plan');
+        } else {
+          throw new ConflictException('No puedes cambiar a un plan inferior mientras el plan actual sigue activo');
+        }
+      }
     }
 
     // 8. Validar que el slot no esté usado por el mismo usuario en otro dispositivo
@@ -557,19 +570,9 @@ export class SubscriptionsService {
     });
 
     if (activeWithProduct && activeWithProduct.device_id !== payload.deviceId) {
-      // Si el token es el mismo, es idempotencia (restauración o re-activación en mismo slot)
       if (activeWithProduct.provider_purchase_token !== payload.providerPurchaseToken) {
         throw new ConflictException('Este cupo de Google Play ya está asociado a otro dispositivo');
       }
-    }
-
-    // Check if token is used by another device (global check)
-    const existingWithToken = await this.deviceSubscriptionRepository.findOne({
-      where: { provider: 'google_play', provider_purchase_token: payload.providerPurchaseToken }
-    });
-
-    if (existingWithToken && existingWithToken.device_id !== payload.deviceId) {
-      throw new ConflictException('Este token de suscripción ya está vinculado a otro dispositivo.');
     }
 
     // Call Google Play API
@@ -578,53 +581,31 @@ export class SubscriptionsService {
     console.log(`[Google API] state=${googleData.subscriptionState}, latestOrder=${googleData.latestOrderId}`);
 
     const activeStates = ['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'];
-    
     if (!activeStates.includes(googleData.subscriptionState || '')) {
-      const event = this.eventRepository.create({
-        device_id: payload.deviceId,
-        user_id: userId,
-        plan_id: plan.id,
-        provider: 'google_play',
-        event_type: 'google_play_verification_rejected',
-        raw_payload: {
-          product_id: payload.providerProductId,
-          subscriptionState: googleData.subscriptionState,
-          latestOrderId: googleData.latestOrderId,
-        },
-      });
-      await this.eventRepository.save(event);
-
       throw new BadRequestException(`La suscripción de Google Play no está activa (Estado: ${googleData.subscriptionState})`);
     }
 
-    // Validar product_id en lineItems
     const lineItem = googleData.lineItems?.find(item => item.productId === payload.providerProductId) || googleData.lineItems?.[0];
     if (!lineItem || lineItem.productId !== payload.providerProductId) {
       throw new BadRequestException('El productId de Google Play no coincide con el token de compra');
     }
 
-    if (!lineItem.expiryTime) {
-      throw new BadRequestException('No se encontró la fecha de expiración en Google Play');
-    }
-
-    const expiryTime = new Date(lineItem.expiryTime);
+    const expiryTime = new Date(lineItem.expiryTime!);
     const startTime = googleData.startTime ? new Date(googleData.startTime) : new Date();
     const latestOrderId = googleData.latestOrderId || payload.providerOrderId || payload.providerSubscriptionId || null;
 
-    let subscription = await this.deviceSubscriptionRepository.createQueryBuilder('ds')
-      .where('ds.device_id = :deviceId', { deviceId: payload.deviceId })
-      .andWhere('ds.status IN (:...statuses)', { statuses: ['active', 'trialing', 'past_due'] })
-      .getOne();
+    // Buscar si ya existe la suscripción con este token específico (re-verificación)
+    let subscription = await this.deviceSubscriptionRepository.findOne({
+      where: { provider_purchase_token: payload.providerPurchaseToken }
+    });
 
-    if (subscription && subscription.provider_purchase_token === payload.providerPurchaseToken) {
-      // 9. Actualizar suscripción existente
-      subscription.plan_id = plan.id;
+    if (subscription) {
+      // Actualizar existente (Idempotente)
+      subscription.plan_id = newPlan.id;
       subscription.user_id = userId;
       subscription.status = 'active';
-      subscription.provider = 'google_play';
       subscription.provider_product_id = payload.providerProductId;
       subscription.provider_subscription_id = latestOrderId;
-      subscription.provider_purchase_token = payload.providerPurchaseToken;
       subscription.provider_base_plan_id = payload.providerBasePlanId || subscription.provider_base_plan_id;
       subscription.provider_order_id = payload.providerOrderId || subscription.provider_order_id || latestOrderId;
       subscription.current_period_start = startTime;
@@ -633,13 +614,13 @@ export class SubscriptionsService {
       subscription.canceled_at = null;
       subscription.updated_at = new Date();
       await this.deviceSubscriptionRepository.save(subscription);
-      console.log(`[Verify] Updated existing subscription for device ${payload.deviceId}`);
+      console.log(`[Verify] Updated subscription ID ${subscription.id} (Idempotent)`);
     } else {
-      // 9. Crear nueva suscripción activa
+      // Crear nueva suscripción (Upgrade o Nueva)
       subscription = this.deviceSubscriptionRepository.create({
         device_id: payload.deviceId,
         user_id: userId,
-        plan_id: plan.id,
+        plan_id: newPlan.id,
         status: 'active',
         provider: 'google_play',
         provider_product_id: payload.providerProductId,
@@ -654,23 +635,18 @@ export class SubscriptionsService {
         canceled_at: null,
       });
       subscription = await this.deviceSubscriptionRepository.save(subscription);
-      console.log(`[Verify] Created new subscription for device ${payload.deviceId}`);
+      console.log(`[Verify] Created new subscription ID ${subscription.id} for plan ${newPlanCode}`);
     }
 
     const event = this.eventRepository.create({
       device_subscription_id: subscription.id,
       device_id: payload.deviceId,
       user_id: userId,
-      plan_id: plan.id,
+      plan_id: newPlan.id,
       provider: 'google_play',
       provider_event_id: latestOrderId,
       event_type: 'google_play_subscription_verified',
-      raw_payload: {
-        product_id: payload.providerProductId,
-        subscriptionState: googleData.subscriptionState,
-        latestOrderId: googleData.latestOrderId,
-        expiryTime: lineItem.expiryTime,
-      },
+      raw_payload: { product_id: payload.providerProductId, latestOrderId, expiryTime: lineItem.expiryTime },
     });
     await this.eventRepository.save(event);
 
