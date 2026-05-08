@@ -10,6 +10,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { DeviceSettingsModule } from '../device-settings/device-settings.module';
 import { DeviceSetting } from '../device-settings/entities/device-setting.entity';
 import { TemperatureLog } from '../telemetry/entities/temperature-log.entity';
+import { MaintenanceModule } from '../maintenance/maintenance.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TemperatureLog } from '../telemetry/entities/temperature-log.entity';
     ]),
     SubscriptionsModule,
     DeviceSettingsModule,
+    MaintenanceModule,
   ],
   controllers: [MetricsController],
   providers: [MetricsService],

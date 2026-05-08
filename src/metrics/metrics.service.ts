@@ -10,6 +10,7 @@ import { DeviceReport } from './entities/device-report.entity';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { DeviceSetting } from '../device-settings/entities/device-setting.entity';
 import { TemperatureLog } from '../telemetry/entities/temperature-log.entity';
+import { MaintenanceService } from '../maintenance/maintenance.service';
 
 @Injectable()
 export class MetricsService {
@@ -29,6 +30,7 @@ export class MetricsService {
     @InjectRepository(TemperatureLog)
     private readonly temperatureLogRepository: Repository<TemperatureLog>,
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly maintenanceService: MaintenanceService,
   ) {}
 
   private readonly defaultTimezone = 'America/Santiago';
@@ -465,6 +467,14 @@ export class MetricsService {
           activeSession.status = 'closed';
           activeSession.ended_at = safeCreatedAt;
           activeSession.end_temperature = safeTemperature;
+          
+          // Add usage to maintenance counter
+          if (!activeSession.maintenance_counted) {
+            const durationSeconds = activeSession.duration_minutes * 60;
+            await this.maintenanceService.addUsageSeconds(deviceId, durationSeconds);
+            activeSession.maintenance_counted = true;
+          }
+          
           await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
         } else {
           activeSession.duration_minutes = this.sanitizeNumber(activeSession.duration_minutes) + minutesDiff;

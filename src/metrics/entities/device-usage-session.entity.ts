@@ -70,6 +70,9 @@ export class DeviceUsageSession {
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status: 'active' | 'closed';
 
+  @Column({ type: 'tinyint', default: 0 })
+  maintenance_counted: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

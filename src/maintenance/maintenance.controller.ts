@@ -1,18 +1,28 @@
-import { Controller, Post, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { MaintenanceService } from './maintenance.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-// Protegemos el endpoint con un token genérico embebido en lugar de la estrategia JWT
 @Controller('maintenance')
+@UseGuards(JwtAuthGuard)
 export class MaintenanceController {
   constructor(private readonly maintenanceService: MaintenanceService) {}
 
-  @Post('run-cleanup')
-  runCleanup(@Headers('authorization') authHeader: string) {
-    const expectedToken = 'token-clean-123456789';
-    // Permitir el token tanto enviándolo directamente o como Bearer token
-    if (!authHeader || (authHeader !== expectedToken && authHeader !== `Bearer ${expectedToken}`)) {
-      throw new UnauthorizedException('Invalid or missing generic token');
-    }
-    return this.maintenanceService.runCleanup();
+  @Get('device/:deviceId')
+  async getStatus(@Param('deviceId', ParseIntPipe) deviceId: number, @Req() req: any) {
+    return this.maintenanceService.getStatus(deviceId, req.user.id);
+  }
+
+  @Post('device/:deviceId/reset')
+  async reset(@Param('deviceId', ParseIntPipe) deviceId: number, @Req() req: any) {
+    return this.maintenanceService.resetMaintenance(deviceId, req.user.id);
+  }
+
+  @Put('device/:deviceId/threshold')
+  async updateThreshold(
+    @Param('deviceId', ParseIntPipe) deviceId: number,
+    @Body('threshold_hours', ParseIntPipe) thresholdHours: number,
+    @Req() req: any,
+  ) {
+    return this.maintenanceService.updateThreshold(deviceId, thresholdHours, req.user.id);
   }
 }
