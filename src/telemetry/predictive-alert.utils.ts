@@ -13,6 +13,7 @@ export type PredictiveResult = {
   minutesToThreshold?: number;
   notificationMessage?: string;
   reason: string;
+  slope?: number;
 };
 
 export function calculateLinearRegressionSlopeCPerMinute(points: TemperaturePoint[]): number | null {
@@ -348,6 +349,7 @@ export function calculatePredictiveCurveAlert(
       minutesToThreshold: Number(minutesToThreshold.toFixed(2)),
       notificationMessage: `La T° podría superar los ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
       reason: `Tendencia acelerada: posible superación de ${targetThreshold}°C en ${Math.ceil(minutesToThreshold)} min.`,
+      slope: Number(slope.toFixed(4)),
     };
   }
 

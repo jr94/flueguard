@@ -29,7 +29,7 @@ export class DeviceReport {
   max_temperature: number;
 
   @Column({ type: 'timestamp', nullable: true })
-  max_temperature_at: Date;
+  max_temperature_at: Date | null;
 
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   avg_temperature: number;

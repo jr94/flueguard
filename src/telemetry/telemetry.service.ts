@@ -319,11 +319,13 @@ export class TelemetryService {
       else bucketLocal = local.startOf('week');
 
       const key = bucketLocal.toISO();
+      if (!key) continue;
+      
       const temp = Number(log.temperature);
 
       if (!buckets.has(key)) {
         buckets.set(key, {
-          bucket: bucketLocal.toUTC().toISO(), // Return UTC as requested
+          bucket: bucketLocal.toUTC().toISO()!,
           local_bucket: key,
           temperature_sum: temp,
           min_temperature: temp,
@@ -332,10 +334,12 @@ export class TelemetryService {
         });
       } else {
         const b = buckets.get(key);
-        b.temperature_sum += temp;
-        b.sample_count += 1;
-        if (temp < b.min_temperature) b.min_temperature = temp;
-        if (temp > b.max_temperature) b.max_temperature = temp;
+        if (b) {
+          b.temperature_sum += temp;
+          b.sample_count += 1;
+          if (temp < b.min_temperature) b.min_temperature = temp;
+          if (temp > b.max_temperature) b.max_temperature = temp;
+        }
       }
     }
 

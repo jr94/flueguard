@@ -60,14 +60,14 @@ export class MetricsService {
     return DateTime
       .fromJSDate(date, { zone: 'utc' })
       .setZone(timezone)
-      .toISODate();
+      .toISODate() as string;
   }
 
   private getTodayLocalDate(timezone: string): string {
     return DateTime
       .now()
       .setZone(timezone)
-      .toISODate();
+      .toISODate() as string;
   }
 
   private getLocalDateRangeForRange(
@@ -79,21 +79,21 @@ export class MetricsService {
     const now = DateTime.now().setZone(timezone);
 
     if (range === 'today') {
-      const today = now.toISODate();
+      const today = now.toISODate()!;
       return { startDate: today, endDate: today };
     }
 
     if (range === '7d') {
       return {
-        startDate: now.minus({ days: 6 }).toISODate(),
-        endDate: now.toISODate(),
+        startDate: now.minus({ days: 6 }).toISODate()!,
+        endDate: now.toISODate()!,
       };
     }
 
     if (range === '30d') {
       return {
-        startDate: now.minus({ days: 29 }).toISODate(),
-        endDate: now.toISODate(),
+        startDate: now.minus({ days: 29 }).toISODate()!,
+        endDate: now.toISODate()!,
       };
     }
 
@@ -126,7 +126,7 @@ export class MetricsService {
   private getLocalWeekKey(date: Date, timezone: string): string {
     const local = DateTime.fromJSDate(date, { zone: 'utc' }).setZone(timezone);
     const weekStart = local.startOf('week');
-    return weekStart.toISODate();
+    return weekStart.toISODate()!;
   }
 
   // --- API Methods ---
@@ -174,7 +174,7 @@ export class MetricsService {
     };
   }
 
-  async getSummary(deviceId: number, userId: number, range: '7d' | '30d' | 'custom', startDate?: string, endDate?: string) {
+  async getSummary(deviceId: number, userId: number, range: 'today' | '7d' | '30d' | 'custom', startDate?: string, endDate?: string) {
     await this.assertDeviceMetricAccess(deviceId, userId, 'metrics.historical_max_temperature');
 
     const timezone = await this.getDeviceTimezone(deviceId);
@@ -281,7 +281,7 @@ export class MetricsService {
       alerts_total: d.alerts_total,
       alerts_level_3: d.alerts_level_3,
       risk_score: d.risk_score,
-      timezone: (await this.getDeviceTimezone(deviceId)),
+      timezone,
     }));
   }
 
@@ -333,7 +333,7 @@ export class MetricsService {
 
   async processTelemetryForMetrics(deviceId: number, temperature: number, createdAt: Date) {
     try {
-      const safeTemperature = this.sanitizeNumber(temperature, null);
+      const safeTemperature = this.sanitizeNumber(temperature, undefined);
       if (safeTemperature === null) {
         this.logger.warn(`[MetricsService] Invalid temperature for device ${deviceId}: ${temperature}`);
         return;
@@ -381,11 +381,13 @@ export class MetricsService {
       }
 
       // 2. Zone updates
-      const lastLog = await this.temperatureLogRepository.findOne({
+      const lastLogs = await this.temperatureLogRepository.find({
         where: { device_id: deviceId, created_at: LessThanOrEqual(safeCreatedAt) },
         order: { created_at: 'DESC' },
+        take: 1,
         skip: 1 
       });
+      const lastLog = lastLogs[0];
 
       let minutesDiff = 1; 
       if (lastLog) {
@@ -738,13 +740,13 @@ export class MetricsService {
             const currentWeekStart = now.startOf('week');
             const previousWeekStart = currentWeekStart.minus({ weeks: 1 });
             const previousWeekEnd = currentWeekStart.minus({ days: 1 });
-            startStr = previousWeekStart.toISODate();
-            endStr = previousWeekEnd.toISODate();
+            startStr = previousWeekStart.toISODate()!;
+            endStr = previousWeekEnd.toISODate()!;
             await this.generateWeeklyReport(deviceId, startStr as any, endStr as any);
           } else {
             const previousMonth = now.minus({ months: 1 });
-            startStr = previousMonth.startOf('month').toISODate();
-            endStr = previousMonth.endOf('month').toISODate();
+            startStr = previousMonth.startOf('month').toISODate()!;
+            endStr = previousMonth.endOf('month').toISODate()!;
             await this.generateMonthlyReport(deviceId, startStr as any, endStr as any);
           }
         }
@@ -794,13 +796,13 @@ export class MetricsService {
       const currentWeekStart = now.startOf('week');
       const previousWeekStart = currentWeekStart.minus({ weeks: 1 });
       const previousWeekEnd = currentWeekStart.minus({ days: 1 });
-      startStr = previousWeekStart.toISODate();
-      endStr = previousWeekEnd.toISODate();
+      startStr = previousWeekStart.toISODate()!;
+      endStr = previousWeekEnd.toISODate()!;
       return this.generateWeeklyReport(deviceId, startStr as any, endStr as any);
     } else {
       const previousMonth = now.minus({ months: 1 });
-      startStr = previousMonth.startOf('month').toISODate();
-      endStr = previousMonth.endOf('month').toISODate();
+      startStr = previousMonth.startOf('month').toISODate()!;
+      endStr = previousMonth.endOf('month').toISODate()!;
       return this.generateMonthlyReport(deviceId, startStr as any, endStr as any);
     }
   }
@@ -1013,7 +1015,7 @@ export class MetricsService {
   }
 
   private sanitizeMetricPayload<T extends Record<string, any>>(payload: T): T {
-    const cleaned = { ...payload };
+    const cleaned = { ...payload } as any;
 
     for (const key of Object.keys(cleaned)) {
       const value = cleaned[key];
