@@ -125,8 +125,20 @@ export class TelemetryService {
           }
         }
 
-        // 5. Si de la comparación sacamos un nivel, generamos la alerta
-        if (finalLevel) {
+        // 5. Aplicar limitación de frecuencia para alertas Nivel 2 reales (máximo cada 3 minutos)
+        let isRateLimited = false;
+        if (finalLevel === '2') {
+          const hasRecent = await this.alertsService.hasRecentAlert(device.id, '2', 3, 'NORMAL_LEVEL_2');
+          if (hasRecent) {
+            console.log(`[ALERTS] Nivel 2 real omitida para device ${device.id}: ya fue notificada hace menos de 3 minutos.`);
+            isRateLimited = true;
+          } else {
+            console.log(`[ALERTS] Nivel 2 real enviada para device ${device.id}: no existía alerta reciente.`);
+          }
+        }
+
+        // 6. Si de la comparación sacamos un nivel y no está limitado, generamos la alerta
+        if (finalLevel && !isRateLimited) {
           const newAlert = await this.alertsService.create({
             device_id: device.id,
             temperature,
@@ -135,11 +147,11 @@ export class TelemetryService {
             message,
           });
 
-          // 6. Enviar notificación push de forma independiente
+          // 6.1. Enviar notificación push de forma independiente
           this.pushNotificationsService.sendAlertNotification(device.id, newAlert, serial_number)
             .catch((e) => console.error('Error en ejecución background de push notification:', e));
 
-          // 6.1. Actualizar métricas de alertas
+          // 6.2. Actualizar métricas de alertas
           this.metricsService.updateMetricsFromAlert(device.id, Number(finalLevel), newAlert.created_at)
             .catch(e => console.error('[Metrics] Error updating metrics from alert:', e));
         }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Alert } from './entities/alert.entity';
 import { CreateAlertDto } from './dto/create-alert.dto';
 import { Device } from '../devices/entities/device.entity';
@@ -59,6 +59,28 @@ export class AlertsService {
 
     if (!alert) return false;
     return new Date(alert.created_at) >= pastDate;
+  }
+
+  async hasRecentAlert(deviceId: number, alertLevel: string, minutes: number, alertType?: string): Promise<boolean> {
+    const pastDate = new Date();
+    pastDate.setMinutes(pastDate.getMinutes() - minutes);
+
+    const where: any = {
+      device_id: deviceId,
+      alert_level: alertLevel,
+      created_at: MoreThanOrEqual(pastDate),
+    };
+
+    if (alertType) {
+      where.alert_type = alertType;
+    }
+
+    const alert = await this.alertRepository.findOne({
+      where,
+      order: { created_at: 'DESC' },
+    });
+
+    return !!alert;
   }
 
   async markAsRead(id: number): Promise<Alert> {
