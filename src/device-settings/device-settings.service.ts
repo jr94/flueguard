@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -102,15 +102,15 @@ export class DeviceSettingsService {
     };
   }
 
-  async update(deviceId: number, updateDto: UpdateDeviceSettingDto): Promise<any> {
-    const { device_name, region_id, comuna_id, direccion, timezone, ...settingsDto } = updateDto;
-
-    if (timezone) {
-      const test = DateTime.now().setZone(timezone);
-      if (!test.isValid) {
-        throw new BadRequestException('Zona horaria inválida.');
-      }
+  async update(deviceId: number, updateDto: UpdateDeviceSettingDto, userId: number): Promise<any> {
+    const link = await this.devicesService.getUserDeviceLink(deviceId, userId);
+    if (!link || (!link.owner && !link.edit)) {
+      throw new ForbiddenException('No tienes permisos para modificar la configuración de este equipo.');
     }
+
+    const { device_name, region_id, comuna_id, direccion, timezone: rawTimezone, ...settingsDto } = updateDto;
+
+    const timezone = this.validateTimezone(rawTimezone);
 
     const deviceUpdatePayload: Partial<Device> = {};
 
@@ -166,5 +166,25 @@ export class DeviceSettingsService {
       direccion: updatedDevice.direccion,
       updated_at: updatedDevice.updated_at,
     };
+  }
+
+  private validateTimezone(timezone?: string): string | undefined {
+    if (timezone === undefined || timezone === null) {
+      return undefined;
+    }
+
+    const cleanTimezone = timezone.trim();
+
+    if (!cleanTimezone) {
+      throw new BadRequestException('Zona horaria inválida.');
+    }
+
+    const test = DateTime.now().setZone(cleanTimezone);
+
+    if (!test.isValid) {
+      throw new BadRequestException('Zona horaria inválida.');
+    }
+
+    return cleanTimezone;
   }
 }

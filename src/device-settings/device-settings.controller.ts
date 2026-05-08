@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { DeviceSettingsService } from './device-settings.service';
 import { UpdateDeviceSettingDto } from './dto/update-device-setting.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -36,7 +36,9 @@ export class DeviceSettingsController {
   update(
     @Param('deviceId', ParseIntPipe) deviceId: number,
     @Body() updateDeviceSettingDto: UpdateDeviceSettingDto,
+    @Req() req: any,
   ) {
-    return this.deviceSettingsService.update(deviceId, updateDeviceSettingDto);
+    const userId = req.user.id;
+    return this.deviceSettingsService.update(deviceId, updateDeviceSettingDto, userId);
   }
 }
