@@ -186,7 +186,7 @@ export function shouldCreatePredictiveAlert({
   }
 
   const predictedTemperature = currentTemperature + slopeCPerMinute * predictionWindowMinutes;
-  const minutesToThreshold = (threshold - currentTemperature) / slopeCPerMinute + 2;
+  const minutesToThreshold = (threshold - currentTemperature) / slopeCPerMinute;
 
   return (
     predictedTemperature >= threshold &&
@@ -333,7 +333,7 @@ export function calculatePredictiveCurveAlert(
   }
 
   if (alertLevel > 0 && targetThreshold !== undefined) {
-    const minutesToThreshold = (targetThreshold - currentTemperature) / slope + 2;
+    const minutesToThreshold = (targetThreshold - currentTemperature) / slope;
 
     console.log(
       `[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${targetThreshold} slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)} minutesToThreshold=${minutesToThreshold.toFixed(2)} diffTempTrend=${diffTempTrend}`,
