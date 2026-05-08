@@ -83,4 +83,14 @@ export class MetricsController {
   ) {
     return this.metricsService.generateManualReport(deviceId, req.user.id, query.type);
   }
+
+  @Post('device/:deviceId/recalculate')
+  async recalculate(
+    @Param('deviceId', ParseIntPipe) deviceId: number,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Req() req: any,
+  ) {
+    return this.metricsService.recalculateDailyMetrics(deviceId, req.user.id, startDate, endDate);
+  }
 }

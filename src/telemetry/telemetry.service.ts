@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { DateTime } from 'luxon';
 import { calculatePredictiveCurveAlert } from './predictive-alert.utils';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
@@ -274,102 +275,81 @@ export class TelemetryService {
   }
 
   private async executeHistoryQuery(deviceId: number, view: string) {
-    let query = '';
+    const timezone = await this.metricsService.getDeviceTimezone(deviceId);
+    const nowLocal = DateTime.now().setZone(timezone);
+
+    let startUtc: Date;
+    let grouping: 'hour' | 'day' | 'week';
 
     switch (view) {
       case 'hour':
         return this.getDeviceTelemetry(deviceId, 1);
-
       case 'day':
-        query = `
-          SELECT 
-            DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') AS bucket,
-            AVG(temperature) AS temperature,
-            AVG(temperature) AS avg_temperature,
-            MIN(temperature) AS min_temperature,
-            MAX(temperature) AS max_temperature,
-            COUNT(*) AS sample_count
-          FROM temperature_logs 
-          WHERE device_id = ? 
-            AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-          GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')
-          ORDER BY bucket ASC;
-        `;
+        startUtc = nowLocal.minus({ hours: 24 }).toUTC().toJSDate();
+        grouping = 'hour';
         break;
-
       case 'week':
-        query = `
-          SELECT 
-            DATE(created_at) AS bucket,
-            AVG(temperature) AS temperature,
-            AVG(temperature) AS avg_temperature,
-            MIN(temperature) AS min_temperature,
-            MAX(temperature) AS max_temperature,
-            COUNT(*) AS sample_count
-          FROM temperature_logs 
-          WHERE device_id = ? 
-          AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-          GROUP BY DATE(created_at)
-          ORDER BY bucket ASC;
-        `;
+        startUtc = nowLocal.minus({ days: 7 }).toUTC().toJSDate();
+        grouping = 'day';
         break;
-
       case 'month':
-        query = `
-          SELECT 
-            TIMESTAMPDIFF(WEEK, DATE_SUB(NOW(), INTERVAL 30 DAY), created_at) AS week_bucket,
-            MIN(created_at) AS bucket,
-            AVG(temperature) AS temperature,
-            AVG(temperature) AS avg_temperature,
-            MIN(temperature) AS min_temperature,
-            MAX(temperature) AS max_temperature,
-            COUNT(*) AS sample_count
-          FROM temperature_logs 
-          WHERE device_id = ? 
-          AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-          GROUP BY week_bucket
-          ORDER BY week_bucket ASC;
-        `;
+        startUtc = nowLocal.minus({ days: 30 }).toUTC().toJSDate();
+        grouping = 'week';
         break;
+      default:
+        throw new ForbiddenException('Vista de historial no válida.');
     }
 
-    try {
-      const rawResults = await this.temperatureLogRepository.manager.query(query, [deviceId]);
+    const logs = await this.temperatureLogRepository.find({
+      where: {
+        device_id: deviceId,
+        created_at: MoreThanOrEqual(startUtc),
+      },
+      order: { created_at: 'ASC' },
+    });
 
-      const results = Array.isArray(rawResults)
-        ? rawResults.filter((r) => {
-          const temperature = r.temperature;
-          const sampleCount = Number(r.sample_count ?? 0);
+    const buckets = new Map<string, any>();
 
-          return temperature !== null &&
-            temperature !== undefined &&
-            Number.isFinite(Number(temperature)) &&
-            sampleCount > 0;
-        })
-        : [];
+    for (const log of logs) {
+      const local = DateTime.fromJSDate(log.created_at, { zone: 'utc' }).setZone(timezone);
+      let bucketLocal: DateTime;
 
-      // No rellenar huecos.
-      // Si una hora/día/semana no tiene datos, no se retorna punto.
-      // Esto evita caídas falsas a 0°C en el gráfico.
-      return results.map((r) => ({
-        ...r,
-        temperature: Number(Number(r.temperature).toFixed(2)),
-        avg_temperature: r.avg_temperature !== null && r.avg_temperature !== undefined
-          ? Number(Number(r.avg_temperature).toFixed(2))
-          : null,
-        min_temperature: r.min_temperature !== null && r.min_temperature !== undefined
-          ? Number(Number(r.min_temperature).toFixed(2))
-          : null,
-        max_temperature: r.max_temperature !== null && r.max_temperature !== undefined
-          ? Number(Number(r.max_temperature).toFixed(2))
-          : null,
-        sample_count: Number(r.sample_count ?? 0),
-        created_at: r.bucket,
-      }));
-    } catch (error) {
-      console.error(`[Telemetry] Error executing history query for view ${view}:`, error);
-      throw error;
+      if (grouping === 'hour') bucketLocal = local.startOf('hour');
+      else if (grouping === 'day') bucketLocal = local.startOf('day');
+      else bucketLocal = local.startOf('week');
+
+      const key = bucketLocal.toISO();
+      const temp = Number(log.temperature);
+
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          bucket: bucketLocal.toUTC().toISO(), // Return UTC as requested
+          local_bucket: key,
+          temperature_sum: temp,
+          min_temperature: temp,
+          max_temperature: temp,
+          sample_count: 1,
+        });
+      } else {
+        const b = buckets.get(key);
+        b.temperature_sum += temp;
+        b.sample_count += 1;
+        if (temp < b.min_temperature) b.min_temperature = temp;
+        if (temp > b.max_temperature) b.max_temperature = temp;
+      }
     }
+
+    const results = Array.from(buckets.values()).map(b => ({
+      created_at: b.bucket,
+      temperature: Number((b.temperature_sum / b.sample_count).toFixed(2)),
+      avg_temperature: Number((b.temperature_sum / b.sample_count).toFixed(2)),
+      min_temperature: Number(b.min_temperature.toFixed(2)),
+      max_temperature: Number(b.max_temperature.toFixed(2)),
+      sample_count: b.sample_count,
+      timezone,
+    }));
+
+    return results;
   }
 
   async getLastTempForUserDevices(userId: number) {

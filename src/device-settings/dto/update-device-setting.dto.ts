@@ -46,4 +46,9 @@ export class UpdateDeviceSettingDto {
   @IsOptional()
   @IsBoolean()
   sound_alarm_temp_low?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  timezone?: string;
 }

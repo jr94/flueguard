@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { DateTime } from 'luxon';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DeviceSetting } from './entities/device-setting.entity';
@@ -102,7 +103,14 @@ export class DeviceSettingsService {
   }
 
   async update(deviceId: number, updateDto: UpdateDeviceSettingDto): Promise<any> {
-    const { device_name, region_id, comuna_id, direccion, ...settingsDto } = updateDto;
+    const { device_name, region_id, comuna_id, direccion, timezone, ...settingsDto } = updateDto;
+
+    if (timezone) {
+      const test = DateTime.now().setZone(timezone);
+      if (!test.isValid) {
+        throw new BadRequestException('Zona horaria inválida.');
+      }
+    }
 
     const deviceUpdatePayload: Partial<Device> = {};
 
@@ -131,6 +139,7 @@ export class DeviceSettingsService {
     if (setting) {
       // 2. Si existe: actualizar los campos
       Object.assign(setting, settingsDto);
+      if (timezone) setting.timezone = timezone;
       setting = await this.deviceSettingRepository.save(setting);
     } else {
       // 3. Si NO existe: crear un nuevo registro
@@ -140,6 +149,7 @@ export class DeviceSettingsService {
       setting = this.deviceSettingRepository.create({
         device_id: deviceId,
         ...settingsDto,
+        timezone: timezone || 'America/Santiago',
       });
 
       // 4. Guardar usando TypeORM repository.save()
