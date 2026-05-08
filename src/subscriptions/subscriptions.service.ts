@@ -141,12 +141,23 @@ export class SubscriptionsService {
     // The order is DESC, so the first one we encounter for a device is the most recent
     for (const sub of subscriptions) {
       if (!map.has(sub.device_id)) {
+        const productInfo = this.getGooglePlayProductDisplayName(sub.provider_product_id || '');
+        const manageUrl = sub.provider === 'google_play' && sub.provider_product_id 
+          ? this.buildGooglePlayManageSubscriptionUrl(sub.provider_product_id) 
+          : null;
+
         map.set(sub.device_id, {
           is_active: true,
           status: sub.status,
           plan_code: sub.plan.code,
           plan_name: sub.plan.name,
           current_period_end: sub.current_period_end,
+          provider: sub.provider,
+          provider_product_id: sub.provider_product_id,
+          provider_base_plan_id: sub.provider_base_plan_id,
+          provider_product_display_name: productInfo.displayName,
+          provider_product_slot: productInfo.slotNumber,
+          manage_subscription_url: manageUrl,
         });
       }
     }
@@ -179,6 +190,12 @@ export class SubscriptionsService {
         current_period_end: null,
         cancel_at_period_end: false,
         features: {},
+        provider: null,
+        provider_product_id: null,
+        provider_base_plan_id: null,
+        provider_product_display_name: null,
+        provider_product_slot: null,
+        manage_subscription_url: null,
       };
     }
 
@@ -188,6 +205,11 @@ export class SubscriptionsService {
         featuresObj[f.feature_code] = this.parseFeatureValue(f.feature_value);
       });
     }
+
+    const productInfo = this.getGooglePlayProductDisplayName(subscription.provider_product_id || '');
+    const manageUrl = subscription.provider === 'google_play' && subscription.provider_product_id 
+      ? this.buildGooglePlayManageSubscriptionUrl(subscription.provider_product_id) 
+      : null;
 
     return {
       device_id: deviceId,
@@ -202,6 +224,12 @@ export class SubscriptionsService {
       current_period_end: subscription.current_period_end,
       cancel_at_period_end: subscription.cancel_at_period_end,
       features: featuresObj,
+      provider: subscription.provider,
+      provider_product_id: subscription.provider_product_id,
+      provider_base_plan_id: subscription.provider_base_plan_id,
+      provider_product_display_name: productInfo.displayName,
+      provider_product_slot: productInfo.slotNumber,
+      manage_subscription_url: manageUrl,
     };
   }
 
@@ -577,6 +605,8 @@ export class SubscriptionsService {
       subscription.provider_product_id = dto.product_id;
       subscription.provider_subscription_id = latestOrderId;
       subscription.provider_purchase_token = dto.purchase_token;
+      subscription.provider_base_plan_id = dto.base_plan_id || subscription.provider_base_plan_id;
+      subscription.provider_order_id = dto.order_id || subscription.provider_order_id || latestOrderId;
       subscription.current_period_start = startTime;
       subscription.current_period_end = expiryTime;
       subscription.cancel_at_period_end = false;
@@ -593,6 +623,8 @@ export class SubscriptionsService {
         provider_product_id: dto.product_id,
         provider_subscription_id: latestOrderId,
         provider_purchase_token: dto.purchase_token,
+        provider_base_plan_id: dto.base_plan_id || null,
+        provider_order_id: dto.order_id || latestOrderId,
         started_at: startTime,
         current_period_start: startTime,
         current_period_end: expiryTime,
@@ -1183,5 +1215,43 @@ export class SubscriptionsService {
 
     const featureValue = status.features[featureCode];
     return this.isFeatureEnabled(featureValue);
+  }
+
+  private buildGooglePlayManageSubscriptionUrl(providerProductId: string): string {
+    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'cl.flueguard.app';
+    return `https://play.google.com/store/account/subscriptions?sku=${providerProductId}&package=${packageName}`;
+  }
+
+  private getGooglePlayProductDisplayName(providerProductId: string): {
+    planCode: string;
+    slotNumber: number | null;
+    displayName: string | null;
+  } {
+    if (!providerProductId) {
+      return { planCode: 'basic', slotNumber: null, displayName: 'Básico' };
+    }
+
+    // Match flueguard_plus_device_1, flueguard_pro_device_2, etc.
+    const match = providerProductId.match(/flueguard_(plus|pro)_device_(\d+)/);
+    if (match) {
+      const planCode = match[1];
+      const slotNumber = parseInt(match[2], 10);
+      const planName = planCode === 'plus' ? 'Plus' : 'Pro';
+      return {
+        planCode,
+        slotNumber,
+        displayName: `FlueGuard ${planName} ${slotNumber}`,
+      };
+    }
+
+    // Fallback for old product IDs
+    if (providerProductId === 'flueguard_plus_monthly') {
+      return { planCode: 'plus', slotNumber: null, displayName: 'FlueGuard Plus' };
+    }
+    if (providerProductId === 'flueguard_pro_monthly') {
+      return { planCode: 'pro', slotNumber: null, displayName: 'FlueGuard Pro' };
+    }
+
+    return { planCode: 'premium', slotNumber: null, displayName: providerProductId };
   }
 }

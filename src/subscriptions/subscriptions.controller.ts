@@ -80,9 +80,16 @@ export class SubscriptionsController {
     return {
       deviceId: status.device_id,
       hasActiveSubscription: status.is_active,
-      planName: status.plan?.code || (status.is_active ? 'premium' : 'basic'),
+      planCode: status.plan?.code || (status.is_active ? status.plan?.code : 'basic'),
+      planName: status.plan?.name || (status.is_active ? status.plan?.name : 'Básico'),
       status: status.status === 'inactive' ? 'none' : status.status,
       currentPeriodEnd: status.current_period_end,
+      provider: status.provider,
+      providerProductId: status.provider_product_id,
+      providerBasePlanId: status.provider_base_plan_id,
+      providerProductDisplayName: status.provider_product_display_name,
+      providerProductSlot: status.provider_product_slot,
+      manageSubscriptionUrl: status.manage_subscription_url,
     };
   }
 

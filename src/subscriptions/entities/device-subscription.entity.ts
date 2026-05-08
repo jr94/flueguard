@@ -30,6 +30,12 @@ export class DeviceSubscription {
   @Column({ type: 'varchar', length: 255, nullable: true })
   provider_subscription_id: string | null;
 
+  @Column({ name: 'provider_base_plan_id', type: 'varchar', length: 100, nullable: true })
+  provider_base_plan_id: string | null;
+
+  @Column({ name: 'provider_order_id', type: 'varchar', length: 255, nullable: true })
+  provider_order_id: string | null;
+
   @Column({ type: 'text', nullable: true })
   provider_purchase_token: string | null;
 

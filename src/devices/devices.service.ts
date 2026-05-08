@@ -77,8 +77,16 @@ export class DevicesService {
         user_id: userId,
         premium: {
           hasActiveSubscription: premiumStatus?.is_active || false,
-          planName: premiumStatus?.plan_code || 'basic',
+          planCode: premiumStatus?.plan_code || 'basic',
+          planName: premiumStatus?.plan_name || 'Básico',
           status: premiumStatus?.status || 'none',
+          provider: premiumStatus?.provider || null,
+          providerProductId: premiumStatus?.provider_product_id || null,
+          providerBasePlanId: premiumStatus?.provider_base_plan_id || null,
+          providerProductDisplayName: premiumStatus?.provider_product_display_name || null,
+          providerProductSlot: premiumStatus?.provider_product_slot || null,
+          manageSubscriptionUrl: premiumStatus?.manage_subscription_url || null,
+          currentPeriodEnd: premiumStatus?.current_period_end || null,
         },
       };
     });

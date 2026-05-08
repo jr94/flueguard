@@ -16,4 +16,12 @@ export class GooglePlayVerifyDto {
   @IsOptional()
   @IsString()
   purchase_id?: string;
+
+  @IsOptional()
+  @IsString()
+  base_plan_id?: string;
+
+  @IsOptional()
+  @IsString()
+  order_id?: string;
 }
