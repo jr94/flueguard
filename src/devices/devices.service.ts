@@ -74,14 +74,12 @@ export class DevicesService {
       const premiumStatus = premiumMap.get(device.id);
       return {
         ...device,
-        user_id: userId, // Assuming you need user_id as requested
-        premium: premiumStatus || {
-          is_active: false,
-          status: 'inactive',
-          plan_code: null,
-          plan_name: null,
-          current_period_end: null,
-        }
+        user_id: userId,
+        premium: {
+          hasActiveSubscription: premiumStatus?.is_active || false,
+          planName: premiumStatus?.plan_code || 'basic',
+          status: premiumStatus?.status || 'none',
+        },
       };
     });
   }

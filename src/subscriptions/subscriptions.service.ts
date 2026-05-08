@@ -28,6 +28,23 @@ const GOOGLE_PLAY_NOTIFICATION_TYPES: { [key: number]: string } = {
   20: 'SUBSCRIPTION_PENDING_PURCHASE_CANCELED',
 };
 
+const GOOGLE_PLAY_PRODUCTS = {
+  plus: [
+    'flueguard_plus_device_1',
+    'flueguard_plus_device_2',
+    'flueguard_plus_device_3',
+    'flueguard_plus_device_4',
+    'flueguard_plus_device_5',
+  ],
+  pro: [
+    'flueguard_pro_device_1',
+    'flueguard_pro_device_2',
+    'flueguard_pro_device_3',
+    'flueguard_pro_device_4',
+    'flueguard_pro_device_5',
+  ],
+};
+
 @Injectable()
 export class SubscriptionsService {
   constructor(
@@ -156,7 +173,7 @@ export class SubscriptionsService {
       return {
         device_id: deviceId,
         is_active: false,
-        status: 'inactive',
+        status: 'none',
         plan: null,
         current_period_start: null,
         current_period_end: null,
@@ -355,6 +372,48 @@ export class SubscriptionsService {
     };
   }
 
+  async getNextAvailableGooglePlayProduct(userId: number, planCode: string): Promise<any> {
+    if (planCode !== 'plus' && planCode !== 'pro') {
+      throw new BadRequestException('Invalid plan code for Google Play slots. Only "plus" and "pro" are supported.');
+    }
+
+    const possibleProducts = GOOGLE_PLAY_PRODUCTS[planCode as 'plus' | 'pro'];
+    
+    // Find active or on-hold subscriptions for this user and plan
+    const activeSubscriptions = await this.deviceSubscriptionRepository.find({
+      where: {
+        user_id: userId,
+        status: In(['active', 'trialing', 'past_due']),
+        provider: 'google_play',
+      }
+    });
+
+    // Check which provider_product_ids are already occupied
+    const occupiedProducts = activeSubscriptions
+      .map(s => s.provider_product_id)
+      .filter(id => id !== null) as string[];
+
+    // Find the first available product ID
+    const nextProduct = possibleProducts.find(p => !occupiedProducts.includes(p));
+
+    if (!nextProduct) {
+      return {
+        userId,
+        plan: planCode,
+        providerProductId: null,
+        available: false,
+        message: 'No hay cupos disponibles para este plan',
+      };
+    }
+
+    return {
+      userId,
+      plan: planCode,
+      providerProductId: nextProduct,
+      available: true,
+    };
+  }
+
   private async getGooglePlaySubscription(token: string) {
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME;
     const clientEmail = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL;
@@ -397,13 +456,17 @@ export class SubscriptionsService {
   async verifyGooglePlayPurchase(userId: number, dto: GooglePlayVerifyDto): Promise<any> {
     await this.validateUserDeviceAccess(userId, dto.device_id);
 
-    const productToPlanMap: { [key: string]: string } = {
-      flueguard_plus_monthly: 'plus',
-      flueguard_pro_monthly: 'pro',
-      flueguard_business_monthly: 'business',
-    };
+    let planCode: string | null = null;
+    
+    // Determine plan from product_id prefix or full match
+    if (dto.product_id.startsWith('flueguard_plus_device_') || dto.product_id === 'flueguard_plus_monthly') {
+      planCode = 'plus';
+    } else if (dto.product_id.startsWith('flueguard_pro_device_') || dto.product_id === 'flueguard_pro_monthly') {
+      planCode = 'pro';
+    } else if (dto.product_id === 'flueguard_business_monthly') {
+      planCode = 'business';
+    }
 
-    const planCode = productToPlanMap[dto.product_id];
     if (!planCode) {
       throw new BadRequestException('Invalid Google Play product_id');
     }
@@ -413,13 +476,51 @@ export class SubscriptionsService {
       throw new NotFoundException('Subscription plan not found');
     }
 
+    // 9. Validar que el deviceId no tenga otra suscripción activa (que no sea esta misma si es re-verificación)
+    const activeOnDevice = await this.deviceSubscriptionRepository.findOne({
+      where: { 
+        device_id: dto.device_id, 
+        status: In(['active', 'trialing', 'past_due']) 
+      }
+    });
+
+    if (activeOnDevice && activeOnDevice.provider_purchase_token !== dto.purchase_token) {
+      throw new ConflictException('Este dispositivo ya tiene una suscripción activa diferente.');
+    }
+
+    // 10. Validar que ese userId no tenga otra suscripción activa usando el mismo providerProductId
+    const activeWithProduct = await this.deviceSubscriptionRepository.findOne({
+      where: {
+        user_id: userId,
+        provider_product_id: dto.product_id,
+        status: In(['active', 'trialing', 'past_due']),
+        provider: 'google_play'
+      }
+    });
+
+    if (activeWithProduct && activeWithProduct.device_id !== dto.device_id) {
+      throw new ConflictException(`Ya tienes el cupo ${dto.product_id} activo en otro dispositivo.`);
+    }
+
+    // 11. Validar que el providerProductId corresponda al plan seleccionado
+    if (dto.product_id.startsWith('flueguard_plus_device_') && planCode !== 'plus') {
+      throw new BadRequestException('El productId no corresponde al plan seleccionado (Plus).');
+    }
+    if (dto.product_id.startsWith('flueguard_pro_device_') && planCode !== 'pro') {
+      throw new BadRequestException('El productId no corresponde al plan seleccionado (Pro).');
+    }
+
     // Check if token is used by another device
     const existingWithToken = await this.deviceSubscriptionRepository.findOne({
       where: { provider: 'google_play', provider_purchase_token: dto.purchase_token }
     });
 
     if (existingWithToken && existingWithToken.device_id !== dto.device_id) {
-      throw new ConflictException('This Google Play subscription is already linked to another device');
+      // Si el token ya existe en otro dispositivo, pero es una suscripción de Google,
+      // Google a veces devuelve el mismo token si el usuario "compra" el mismo producto de nuevo
+      // o si es una restauración. Pero para FlueGuard, cada dispositivo DEBE tener su propia suscripción.
+      // Si el usuario ya tiene este token en otro dispositivo, no permitimos duplicarlo.
+      throw new ConflictException('This Google Play subscription is already linked to another device. Each device requires its own subscription.');
     }
 
     const googleData = await this.getGooglePlaySubscription(dto.purchase_token);
@@ -462,15 +563,17 @@ export class SubscriptionsService {
     const startTime = googleData.startTime ? new Date(googleData.startTime) : new Date();
     const latestOrderId = googleData.latestOrderId || dto.purchase_id || null;
 
-    let subscription = await this.deviceSubscriptionRepository.findOne({
-      where: { device_id: dto.device_id, provider: 'google_play' },
-      order: { created_at: 'DESC' }
-    });
+    let subscription = await this.deviceSubscriptionRepository.createQueryBuilder('ds')
+      .where('ds.device_id = :deviceId', { deviceId: dto.device_id })
+      .andWhere('ds.status IN (:...statuses)', { statuses: ['active', 'trialing'] })
+      .getOne();
 
     if (subscription) {
+      // Si ya existe una suscripción activa, la actualizamos (podría ser de otro provider o el mismo)
       subscription.plan_id = plan.id;
       subscription.user_id = userId;
       subscription.status = 'active';
+      subscription.provider = 'google_play';
       subscription.provider_product_id = dto.product_id;
       subscription.provider_subscription_id = latestOrderId;
       subscription.provider_purchase_token = dto.purchase_token;

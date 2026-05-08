@@ -59,6 +59,34 @@ export class SubscriptionsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('user/:userId/next-product')
+  async getNextAvailableGooglePlayProduct(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Query('plan') plan: string,
+  ) {
+    return this.subscriptionsService.getNextAvailableGooglePlayProduct(userId, plan);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('device/:deviceId/status')
+  async getDeviceSubscriptionStatusV2(
+    @Param('deviceId', ParseIntPipe) deviceId: number,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id;
+    const status = await this.subscriptionsService.getDeviceSubscriptionStatus(deviceId, userId);
+    
+    // Format response as requested by the user
+    return {
+      deviceId: status.device_id,
+      hasActiveSubscription: status.is_active,
+      planName: status.plan?.code || (status.is_active ? 'premium' : 'basic'),
+      status: status.status === 'inactive' ? 'none' : status.status,
+      currentPeriodEnd: status.current_period_end,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('device/:deviceId/features')
   async getDeviceFeatures(
     @Param('deviceId', ParseIntPipe) deviceId: number,
