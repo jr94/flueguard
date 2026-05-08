@@ -13,14 +13,17 @@ export class PushNotificationsService {
 
   async sendAlertNotification(deviceId: number, alert: any, serialNumber: string = ''): Promise<void> {
     try {
-      // 1. Obtener tokens activos para todos los usuarios asociados al dispositivo
+      // 1. Obtener tokens activos para todos los usuarios asociados al dispositivo, incluyendo dirección
       const activeTokens = await this.pushTokenRepository.query(
-        `SELECT pt.id, pt.fcm_token, d.device_name, pt.user_id, ud.notifications_enabled
+        `SELECT pt.id, pt.fcm_token, d.device_name, pt.user_id, ud.notifications_enabled,
+                d.direccion, c.comuna as comuna_name, r.region as region_name
         FROM user_devices ud
         INNER JOIN device_push_tokens pt
           ON pt.user_id = ud.user_id
         INNER JOIN devices d
           ON d.id = ud.device_id
+        LEFT JOIN comunas c ON c.id = d.comuna_id
+        LEFT JOIN regiones r ON r.id = d.region_id
         WHERE ud.device_id = ?
           AND pt.is_active = 1`,
         [deviceId]
@@ -31,7 +34,16 @@ export class PushNotificationsService {
         return; // Si no hay tokens activos para los usuarios de este dispositivo, salimos
       }
 
-      const deviceName = activeTokens[0].device_name || 'Dispositivo';
+      const firstRecord = activeTokens[0];
+      const deviceName = firstRecord.device_name || 'Dispositivo';
+      
+      // Construir dirección legible
+      const addressParts: string[] = [];
+      if (firstRecord.direccion) addressParts.push(firstRecord.direccion);
+      if (firstRecord.comuna_name) addressParts.push(firstRecord.comuna_name);
+      if (firstRecord.region_name) addressParts.push(firstRecord.region_name);
+      const deviceAddress = addressParts.join(', ');
+
       const title = `${deviceName}`;
       const body = `${alert.message || 'Alerta de temperatura: se requiere revisión de la estufa.'}`;
 
@@ -55,8 +67,17 @@ export class PushNotificationsService {
           channel_key: channelKey,
           sound_key: soundKey,
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
+          device_address: deviceAddress || '',
         },
       };
+
+      console.log('[FCM PAYLOAD]', {
+        device_id: String(deviceId),
+        device_name: String(deviceName || 'Dispositivo'),
+        alert_level: level,
+        temperature: String(alert.temperature ?? ''),
+        device_address: deviceAddress || '',
+      });
 
       // 2. Iterate and send notification
       let tokensEnviados = 0;
