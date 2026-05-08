@@ -64,6 +64,7 @@ export class DevicesService {
       .createQueryBuilder('device')
       .innerJoin('user_devices', 'ud', 'ud.device_id = device.id')
       .where('ud.user_id = :userId', { userId })
+      .orderBy('device.id', 'ASC')
       .getMany();
 
     const deviceIds = devices.map(d => d.id);
