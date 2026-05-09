@@ -274,28 +274,48 @@ export class MetricsService {
         device_id: deviceId,
         metric_date: Between(start, end),
       },
-      order: { 
-        max_temperature: 'DESC', 
-        alerts_level_2: 'DESC', 
-        warning_minutes: 'DESC', 
-        critical_minutes: 'DESC', 
-        risk_score: 'DESC' 
-      },
-      take: 10,
     });
 
-    return days.map(d => ({
-      date: d.metric_date,
-      max_temperature: d.max_temperature,
-      max_temperature_at: d.max_temperature_at,
-      critical_minutes: d.critical_minutes,
-      warning_minutes: d.warning_minutes,
-      alerts_total: d.alerts_total,
-      alerts_level_2: d.alerts_level_2,
-      alerts_level_3: d.alerts_level_3,
-      risk_score: d.risk_score,
-      timezone,
-    }));
+    const rankedDays = days.map(d => {
+      const over_temperature_minutes = this.sanitizeNumber(d.warning_minutes) + this.sanitizeNumber(d.critical_minutes);
+      
+      const risk_ranking_score = this.calculateRiskRankingScore({
+        maxTemperature: d.max_temperature,
+        threshold2: d.threshold_2_snapshot || 220,
+        threshold3: d.threshold_3_snapshot || 330,
+        alertsLevel2: d.alerts_level_2,
+        alertsLevel3: d.alerts_level_3,
+        warningMinutes: d.warning_minutes,
+        criticalMinutes: d.critical_minutes,
+      });
+
+      this.logger.log(`[MetricsService] risk ranking day calculated device=${deviceId} date=${d.metric_date} maxTemp=${d.max_temperature} alerts2=${d.alerts_level_2} overTempMin=${over_temperature_minutes} alerts3=${d.alerts_level_3} score=${risk_ranking_score}`);
+
+      return {
+        date: d.metric_date,
+        max_temperature: d.max_temperature,
+        max_temperature_at: d.max_temperature_at,
+        critical_minutes: d.critical_minutes,
+        warning_minutes: d.warning_minutes,
+        over_temperature_minutes,
+        alerts_total: d.alerts_total,
+        alerts_level_2: d.alerts_level_2,
+        alerts_level_3: d.alerts_level_3,
+        risk_score: risk_ranking_score,
+        timezone,
+      };
+    });
+
+    // Sorting
+    rankedDays.sort((a, b) =>
+      b.risk_score - a.risk_score ||
+      b.over_temperature_minutes - a.over_temperature_minutes ||
+      b.max_temperature - a.max_temperature ||
+      b.alerts_level_2 - a.alerts_level_2 ||
+      b.alerts_level_3 - a.alerts_level_3
+    );
+
+    return rankedDays.slice(0, 10);
   }
 
   async getPredictionStats(deviceId: number, userId: number, range: string) {
@@ -1127,6 +1147,45 @@ export class MetricsService {
     } else if (maint >= 60) {
       score += 10;
     }
+
+    return Math.round(this.clampScore(score));
+  }
+
+  private calculateRiskRankingScore(params: {
+    maxTemperature: number;
+    threshold2: number;
+    threshold3: number;
+    alertsLevel2: number;
+    alertsLevel3: number;
+    warningMinutes: number;
+    criticalMinutes: number;
+  }): number {
+    const maxTemp = this.sanitizeNumber(params.maxTemperature);
+    const t2 = this.sanitizeNumber(params.threshold2, 220);
+    const t3 = this.sanitizeNumber(params.threshold3, 330);
+    const alerts2 = this.sanitizeNumber(params.alertsLevel2);
+    const alerts3 = this.sanitizeNumber(params.alertsLevel3);
+    const warning = this.sanitizeNumber(params.warningMinutes);
+    const critical = this.sanitizeNumber(params.criticalMinutes);
+
+    const overTemperatureMinutes = warning + critical;
+
+    let score = 0;
+
+    // Temperatura máxima
+    if (maxTemp >= t2) score += 20;
+    if (maxTemp >= t2 + 30) score += 15;
+    if (maxTemp >= t2 + 60) score += 15;
+    if (maxTemp >= t3) score += 10;
+
+    // Advertencias nivel 2: efecto medio
+    score += Math.min(alerts2 * 8, 25);
+
+    // Tiempo sobre nivel 2: efecto mayor
+    score += Math.min(overTemperatureMinutes * 1.4, 45);
+
+    // Alertas críticas: efecto casi nulo
+    score += Math.min(alerts3 * 2, 5);
 
     return Math.round(this.clampScore(score));
   }
