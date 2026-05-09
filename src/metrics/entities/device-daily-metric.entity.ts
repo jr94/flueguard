@@ -47,6 +47,9 @@ export class DeviceDailyMetric {
   low_minutes: number;
 
   @Column({ type: 'int', default: 0 })
+  off_minutes: number;
+
+  @Column({ type: 'int', default: 0 })
   alerts_total: number;
 
   @Column({ type: 'int', default: 0 })

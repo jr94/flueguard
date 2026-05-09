@@ -55,6 +55,9 @@ export class DeviceReport {
   @Column({ type: 'int', default: 0 })
   low_minutes: number;
 
+  @Column({ type: 'int', default: 0 })
+  off_minutes: number;
+
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   efficiency_score: number;
 

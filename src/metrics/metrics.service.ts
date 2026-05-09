@@ -15,6 +15,7 @@ import { MaintenanceService } from '../maintenance/maintenance.service';
 @Injectable()
 export class MetricsService {
   private readonly logger = new Logger(MetricsService.name);
+  private readonly STOVE_ON_TEMP = 60;
 
   constructor(
     @InjectRepository(DeviceDailyMetric)
@@ -161,6 +162,7 @@ export class MetricsService {
         warning_minutes: 0,
         critical_minutes: 0,
         low_minutes: 0,
+        off_minutes: 0,
         efficiency_score: 0,
         risk_score: 0,
         sessions_count: 0,
@@ -194,6 +196,7 @@ export class MetricsService {
       .addSelect('SUM(m.warning_minutes)', 'warning_minutes')
       .addSelect('SUM(m.critical_minutes)', 'critical_minutes')
       .addSelect('SUM(m.low_minutes)', 'low_minutes')
+      .addSelect('SUM(m.off_minutes)', 'off_minutes')
       .addSelect('AVG(m.efficiency_score)', 'efficiency_score')
       .addSelect('AVG(m.risk_score)', 'risk_score')
       .where('m.device_id = :deviceId', { deviceId })
@@ -223,6 +226,7 @@ export class MetricsService {
       warning_minutes: Number(result.warning_minutes || 0),
       critical_minutes: Number(result.critical_minutes || 0),
       low_minutes: Number(result.low_minutes || 0),
+      off_minutes: Number(result.off_minutes || 0),
       efficiency_score: Number(Number(result.efficiency_score || 0).toFixed(2)),
       risk_score: Number(Number(result.risk_score || 0).toFixed(2)),
       timezone,
@@ -270,7 +274,13 @@ export class MetricsService {
         device_id: deviceId,
         metric_date: Between(start, end),
       },
-      order: { risk_score: 'DESC', critical_minutes: 'DESC' },
+      order: { 
+        max_temperature: 'DESC', 
+        alerts_level_2: 'DESC', 
+        warning_minutes: 'DESC', 
+        critical_minutes: 'DESC', 
+        risk_score: 'DESC' 
+      },
       take: 10,
     });
 
@@ -281,6 +291,7 @@ export class MetricsService {
       critical_minutes: d.critical_minutes,
       warning_minutes: d.warning_minutes,
       alerts_total: d.alerts_total,
+      alerts_level_2: d.alerts_level_2,
       alerts_level_3: d.alerts_level_3,
       risk_score: d.risk_score,
       timezone,
@@ -400,17 +411,34 @@ export class MetricsService {
       minutesDiff = this.sanitizeNumber(minutesDiff, 1);
 
       const zone = this.getTemperatureZone(safeTemperature, t1, t2, t3);
+      this.logger.log(`[MetricsService] zone=${zone} temp=${safeTemperature} device=${deviceId} minutes=${minutesDiff}`);
+
       if (zone === 'safe') daily.safe_minutes = this.sanitizeNumber(daily.safe_minutes) + minutesDiff;
       else if (zone === 'warning') daily.warning_minutes = this.sanitizeNumber(daily.warning_minutes) + minutesDiff;
       else if (zone === 'critical') daily.critical_minutes = this.sanitizeNumber(daily.critical_minutes) + minutesDiff;
       else if (zone === 'low') daily.low_minutes = this.sanitizeNumber(daily.low_minutes) + minutesDiff;
+      else if (zone === 'off') daily.off_minutes = this.sanitizeNumber(daily.off_minutes) + minutesDiff;
 
-      if (safeTemperature >= 80) {
+      if (safeTemperature >= this.STOVE_ON_TEMP) {
         daily.usage_minutes = this.sanitizeNumber(daily.usage_minutes) + minutesDiff;
       }
 
+      const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
+      const maintenancePercent = maintenanceStatus?.percentage ?? 0;
+
       daily.efficiency_score = this.calculateEfficiencyScore(daily.safe_minutes, daily.warning_minutes, daily.critical_minutes, daily.low_minutes);
-      daily.risk_score = this.calculateRiskScore(daily.max_temperature, daily.critical_minutes, daily.alerts_level_3, t3);
+      daily.risk_score = this.calculateRiskScore(
+        daily.max_temperature, 
+        daily.warning_minutes, 
+        daily.critical_minutes, 
+        daily.alerts_level_2, 
+        daily.alerts_level_3, 
+        t2, 
+        t3, 
+        maintenancePercent
+      );
+
+      this.logger.log(`[MetricsService] risk recalculated device=${deviceId} risk=${daily.risk_score} maintenance=${maintenancePercent}%`);
 
       this.logIfContainsInvalidNumber('device_daily_metrics', daily);
       await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
@@ -420,7 +448,7 @@ export class MetricsService {
         where: { device_id: deviceId, status: 'active' },
       });
 
-      if (safeTemperature >= 80) {
+      if (safeTemperature >= this.STOVE_ON_TEMP) {
         if (!activeSession) {
           activeSession = this.sessionRepository.create({
             device_id: deviceId,
@@ -447,9 +475,19 @@ export class MetricsService {
           else if (zone === 'warning') activeSession.warning_minutes = this.sanitizeNumber(activeSession.warning_minutes) + minutesDiff;
           else if (zone === 'critical') activeSession.critical_minutes = this.sanitizeNumber(activeSession.critical_minutes) + minutesDiff;
           else if (zone === 'low') activeSession.low_minutes = this.sanitizeNumber(activeSession.low_minutes) + minutesDiff;
+          else if (zone === 'off') activeSession.off_minutes = this.sanitizeNumber(activeSession.off_minutes) + minutesDiff;
 
           activeSession.efficiency_score = this.calculateEfficiencyScore(activeSession.safe_minutes, activeSession.warning_minutes, activeSession.critical_minutes, activeSession.low_minutes);
-          activeSession.risk_score = this.calculateRiskScore(activeSession.max_temperature, activeSession.critical_minutes, activeSession.alerts_level_3, t3);
+          activeSession.risk_score = this.calculateRiskScore(
+            activeSession.max_temperature, 
+            activeSession.warning_minutes, 
+            activeSession.critical_minutes, 
+            activeSession.alerts_level_2, 
+            activeSession.alerts_level_3, 
+            t2, 
+            t3, 
+            maintenancePercent
+          );
         }
         this.logIfContainsInvalidNumber('device_usage_sessions', activeSession);
         await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
@@ -459,11 +497,11 @@ export class MetricsService {
           order: { created_at: 'DESC' },
         });
 
-        const allBelow60 = recentLogs.length > 0 && recentLogs.every(l => Number(l.temperature) < 60);
+        const allBelow60 = recentLogs.length > 0 && recentLogs.every(l => Number(l.temperature) < this.STOVE_ON_TEMP);
         const firstRecentLogAt = recentLogs.length > 0 ? new Date(recentLogs[recentLogs.length - 1].created_at).getTime() : safeCreatedAt.getTime();
         const longEnough = recentLogs.length > 0 && (safeCreatedAt.getTime() - firstRecentLogAt) >= 15 * 60000;
 
-        if (safeTemperature < 60 && allBelow60 && longEnough) {
+        if (safeTemperature < this.STOVE_ON_TEMP && allBelow60 && longEnough) {
           activeSession.status = 'closed';
           activeSession.ended_at = safeCreatedAt;
           activeSession.end_temperature = safeTemperature;
@@ -479,6 +517,7 @@ export class MetricsService {
         } else {
           activeSession.duration_minutes = this.sanitizeNumber(activeSession.duration_minutes) + minutesDiff;
           if (zone === 'low') activeSession.low_minutes = this.sanitizeNumber(activeSession.low_minutes) + minutesDiff;
+          else if (zone === 'off') activeSession.off_minutes = this.sanitizeNumber(activeSession.off_minutes) + minutesDiff;
           await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
         }
       }
@@ -500,6 +539,25 @@ export class MetricsService {
         if (alertLevel === 1) daily.alerts_level_1 = this.sanitizeNumber(daily.alerts_level_1) + 1;
         if (alertLevel === 2) daily.alerts_level_2 = this.sanitizeNumber(daily.alerts_level_2) + 1;
         if (alertLevel === 3) daily.alerts_level_3 = this.sanitizeNumber(daily.alerts_level_3) + 1;
+
+        // Recalculate risk
+        const settings = await this.deviceSettingsRepository.findOne({ where: { device_id: deviceId } });
+        const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
+        const maintenancePercent = maintenanceStatus?.percentage ?? 0;
+        const t2 = settings ? Number(settings.threshold_2) : 220;
+        const t3 = settings ? Number(settings.threshold_3) : 330;
+
+        daily.risk_score = this.calculateRiskScore(
+          daily.max_temperature,
+          daily.warning_minutes,
+          daily.critical_minutes,
+          daily.alerts_level_2,
+          daily.alerts_level_3,
+          t2,
+          t3,
+          maintenancePercent
+        );
+
         await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
       }
 
@@ -512,6 +570,25 @@ export class MetricsService {
         if (alertLevel === 1) activeSession.alerts_level_1 = this.sanitizeNumber(activeSession.alerts_level_1) + 1;
         if (alertLevel === 2) activeSession.alerts_level_2 = this.sanitizeNumber(activeSession.alerts_level_2) + 1;
         if (alertLevel === 3) activeSession.alerts_level_3 = this.sanitizeNumber(activeSession.alerts_level_3) + 1;
+
+        // Recalculate session risk
+        const settings = await this.deviceSettingsRepository.findOne({ where: { device_id: deviceId } });
+        const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
+        const maintenancePercent = maintenanceStatus?.percentage ?? 0;
+        const t2 = settings ? Number(settings.threshold_2) : 220;
+        const t3 = settings ? Number(settings.threshold_3) : 330;
+
+        activeSession.risk_score = this.calculateRiskScore(
+          activeSession.max_temperature,
+          activeSession.warning_minutes,
+          activeSession.critical_minutes,
+          activeSession.alerts_level_2,
+          activeSession.alerts_level_3,
+          t2,
+          t3,
+          maintenancePercent
+        );
+
         await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
       }
     } catch (error) {
@@ -633,6 +710,7 @@ export class MetricsService {
       report.warning_minutes = this.sanitizeNumber(summary.warning_minutes);
       report.critical_minutes = this.sanitizeNumber(summary.critical_minutes);
       report.low_minutes = this.sanitizeNumber(summary.low_minutes);
+      report.off_minutes = this.sanitizeNumber(summary.off_minutes);
       report.efficiency_score = this.sanitizeNumber(summary.efficiency_score);
       report.risk_score = this.sanitizeNumber(summary.risk_score);
 
@@ -686,6 +764,7 @@ export class MetricsService {
       report.warning_minutes = this.sanitizeNumber(summary.warning_minutes);
       report.critical_minutes = this.sanitizeNumber(summary.critical_minutes);
       report.low_minutes = this.sanitizeNumber(summary.low_minutes);
+      report.off_minutes = this.sanitizeNumber(summary.off_minutes);
       report.efficiency_score = this.sanitizeNumber(summary.efficiency_score);
       report.risk_score = this.sanitizeNumber(summary.risk_score);
 
@@ -861,6 +940,7 @@ export class MetricsService {
         daily.warning_minutes = 0;
         daily.critical_minutes = 0;
         daily.low_minutes = 0;
+        daily.off_minutes = 0;
         daily.alerts_total = 0;
         daily.alerts_level_1 = 0;
         daily.alerts_level_2 = 0;
@@ -897,22 +977,24 @@ export class MetricsService {
           }
 
           // usage
-          if (temp >= 80) {
-            let diff = 1;
-            if (i > 0) {
-              const prev = logs[i - 1];
-              const diffMs = new Date(log.created_at).getTime() - new Date(prev.created_at).getTime();
-              diff = Math.min(Math.floor(diffMs / 60000), 5);
-              if (diff < 1) diff = 1;
-            }
-            daily.usage_minutes += diff;
-            
-            const zone = this.getTemperatureZone(temp, t1, t2, t3);
-            if (zone === 'safe') daily.safe_minutes += diff;
-            else if (zone === 'warning') daily.warning_minutes += diff;
-            else if (zone === 'critical') daily.critical_minutes += diff;
-            else if (zone === 'low') daily.low_minutes += diff;
+          let diff = 1;
+          if (i > 0) {
+            const prev = logs[i - 1];
+            const diffMs = new Date(log.created_at).getTime() - new Date(prev.created_at).getTime();
+            diff = Math.min(Math.floor(diffMs / 60000), 5);
+            if (diff < 1) diff = 1;
           }
+
+          if (temp >= this.STOVE_ON_TEMP) {
+            daily.usage_minutes += diff;
+          }
+          
+          const zone = this.getTemperatureZone(temp, t1, t2, t3);
+          if (zone === 'safe') daily.safe_minutes += diff;
+          else if (zone === 'warning') daily.warning_minutes += diff;
+          else if (zone === 'critical') daily.critical_minutes += diff;
+          else if (zone === 'low') daily.low_minutes += diff;
+          else if (zone === 'off') daily.off_minutes += diff;
         }
 
         daily.avg_temperature = Number((sumTemp / logs.length).toFixed(2));
@@ -937,8 +1019,20 @@ export class MetricsService {
         // const alerts = await this.alertsRepository.find(...) 
         // But MetricsService doesn't have AlertsRepository injected.
         
+        const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
+        const maintenancePercent = maintenanceStatus?.percentage ?? 0;
+
         daily.efficiency_score = this.calculateEfficiencyScore(daily.safe_minutes, daily.warning_minutes, daily.critical_minutes, daily.low_minutes);
-        daily.risk_score = this.calculateRiskScore(daily.max_temperature, daily.critical_minutes, daily.alerts_level_3, t3);
+        daily.risk_score = this.calculateRiskScore(
+          daily.max_temperature, 
+          daily.warning_minutes, 
+          daily.critical_minutes, 
+          daily.alerts_level_2, 
+          daily.alerts_level_3, 
+          t2, 
+          t3, 
+          maintenancePercent
+        );
 
         await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
       }
@@ -961,7 +1055,8 @@ export class MetricsService {
     }
   }
 
-  private getTemperatureZone(temp: number, t1: number, t2: number, t3: number): 'low' | 'safe' | 'warning' | 'critical' {
+  private getTemperatureZone(temp: number, t1: number, t2: number, t3: number): 'off' | 'low' | 'safe' | 'warning' | 'critical' {
+    if (temp < this.STOVE_ON_TEMP) return 'off';
     if (temp < t1) return 'low';
     if (temp < t2) return 'safe';
     if (temp < t3) return 'warning';
@@ -974,28 +1069,66 @@ export class MetricsService {
     const critical = this.sanitizeNumber(criticalMinutes);
     const low = this.sanitizeNumber(lowMinutes);
 
-    let score = 100;
-    score -= critical * 2;
-    score -= warning * 0.5;
-    score -= low * 0.1;
+    const totalOn = safe + warning + critical + low;
+    if (totalOn <= 0) return 0;
 
-    return this.clampScore(score);
+    const lowRatio = low / totalOn;
+    const warningRatio = warning / totalOn;
+    const criticalRatio = critical / totalOn;
+
+    let score = 100;
+    score -= lowRatio * 35;
+    score -= warningRatio * 25;
+    score -= criticalRatio * 60;
+
+    return Math.round(this.clampScore(score));
   }
 
-  private calculateRiskScore(maxTemperature: any, criticalMinutes: any, alertsLevel3: any, threshold3?: any): number {
+  private calculateRiskScore(
+    maxTemperature: any,
+    warningMinutes: any,
+    criticalMinutes: any,
+    alertsLevel2: any,
+    alertsLevel3: any,
+    threshold2: any,
+    threshold3: any,
+    maintenancePercent = 0,
+  ): number {
     const maxTemp = this.sanitizeNumber(maxTemperature);
+    const warning = this.sanitizeNumber(warningMinutes);
     const critical = this.sanitizeNumber(criticalMinutes);
-    const alerts = this.sanitizeNumber(alertsLevel3);
-    const t3 = this.sanitizeNullableNumber(threshold3);
+    const level2 = this.sanitizeNumber(alertsLevel2);
+    const level3 = this.sanitizeNumber(alertsLevel3);
+    const t2 = this.sanitizeNumber(threshold2, 220);
+    const t3 = this.sanitizeNumber(threshold3, 330);
+    const maint = this.sanitizeNumber(maintenancePercent);
 
     let score = 0;
+
+    // tiempo sobre nivel 2
+    score += warning * 0.8;
     score += critical * 1.5;
-    score += alerts * 10;
 
-    if (t3 !== null && maxTemp >= t3) score += 20;
-    if (t3 !== null && maxTemp >= t3 + 50) score += 40;
+    // alertas
+    score += level2 * 8;
+    score += level3 * 18;
 
-    return this.clampScore(score);
+    // temperatura máxima
+    if (maxTemp >= t2) score += 15;
+    if (maxTemp >= t2 + 30) score += 10;
+    if (maxTemp >= t3) score += 25;
+    if (maxTemp >= t3 + 50) score += 20;
+
+    // mantención
+    if (maint >= 100) {
+      score = Math.max(score, 75);
+    } else if (maint >= 80) {
+      score += 20;
+    } else if (maint >= 60) {
+      score += 10;
+    }
+
+    return Math.round(this.clampScore(score));
   }
 
   private sanitizeNumber(value: any, fallback = 0): number {
