@@ -2,7 +2,7 @@ import { Injectable, ForbiddenException, Logger, BadRequestException } from '@ne
 import { DateTime } from 'luxon';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, Between, MoreThanOrEqual, LessThanOrEqual, LessThan, MoreThan } from 'typeorm';
 import { DeviceDailyMetric } from './entities/device-daily-metric.entity';
 import { DeviceUsageSession } from './entities/device-usage-session.entity';
 import { DevicePredictionMetric } from './entities/device-prediction-metric.entity';
@@ -413,7 +413,7 @@ export class MetricsService {
         }
       }
 
-      // 2. Zone updates
+      // 2. Zone updates & Gap handling
       const lastLogs = await this.temperatureLogRepository.find({
         where: { device_id: deviceId, created_at: LessThanOrEqual(safeCreatedAt) },
         order: { created_at: 'DESC' },
@@ -422,12 +422,22 @@ export class MetricsService {
       });
       const lastLog = lastLogs[0];
 
-      let minutesDiff = 1; 
+      let minutesDiff = 1;
+      let gapMinutes = 0;
+
       if (lastLog) {
         const diffMs = safeCreatedAt.getTime() - new Date(lastLog.created_at).getTime();
-        minutesDiff = Math.min(Math.floor(this.safeDivide(diffMs, 60000)), 5); 
-        if (minutesDiff < 1) minutesDiff = 1;
+        gapMinutes = Math.floor(this.safeDivide(diffMs, 60000));
+        
+        if (gapMinutes > 60) {
+          await this.splitGapAndAddOffMinutes(deviceId, new Date(lastLog.created_at), safeCreatedAt, timezone, daily);
+          minutesDiff = 0; // Evitar doble conteo: el gap ya cubre el tiempo hasta este registro
+        } else {
+          minutesDiff = Math.min(gapMinutes, 5);
+          if (minutesDiff < 1) minutesDiff = 1;
+        }
       }
+      const skipZoneClassification = gapMinutes > 60;
       minutesDiff = this.sanitizeNumber(minutesDiff, 1);
 
       const zone = this.getTemperatureZone(safeTemperature, t1, t2, t3);
@@ -467,6 +477,21 @@ export class MetricsService {
       let activeSession = await this.sessionRepository.findOne({
         where: { device_id: deviceId, status: 'active' },
       });
+
+      // New Rule: Close session if gap > 60 min
+      if (skipZoneClassification && activeSession) {
+        this.logger.log(`[SESSIONS] Sesión cerrada por gap > 60 min. device=${deviceId} endAt=${lastLog.created_at}`);
+        activeSession.status = 'closed';
+        activeSession.ended_at = new Date(lastLog.created_at);
+        
+        if (!activeSession.maintenance_counted) {
+          const durationSeconds = activeSession.duration_minutes * 60;
+          await this.maintenanceService.addUsageSeconds(deviceId, durationSeconds);
+          activeSession.maintenance_counted = true;
+        }
+        await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+        activeSession = null; // Mark as null so the logic below can potentially start a new one
+      }
 
       if (safeTemperature >= this.STOVE_ON_TEMP) {
         if (!activeSession) {
@@ -996,13 +1021,36 @@ export class MetricsService {
             minTemp = temp;
           }
 
-          // usage
+          // usage & gap handling
           let diff = 1;
-          if (i > 0) {
-            const prev = logs[i - 1];
-            const diffMs = new Date(log.created_at).getTime() - new Date(prev.created_at).getTime();
-            diff = Math.min(Math.floor(diffMs / 60000), 5);
-            if (diff < 1) diff = 1;
+
+          // Buscar log previo (incluso si es de otro día) para el primer log del día
+          const prevLog = i > 0 ? logs[i - 1] : await this.temperatureLogRepository.findOne({
+            where: { device_id: deviceId, created_at: LessThan(log.created_at) },
+            order: { created_at: 'DESC' }
+          });
+
+          if (prevLog) {
+            const diffMs = new Date(log.created_at).getTime() - new Date(prevLog.created_at).getTime();
+            const gap = Math.floor(diffMs / 60000);
+            
+            if (gap > 60) {
+              const dayStart = current.startOf('day');
+              const logAt = DateTime.fromJSDate(new Date(log.created_at)).setZone(timezone);
+              const prevAt = DateTime.fromJSDate(new Date(prevLog.created_at)).setZone(timezone);
+              
+              // Solo sumar la parte del gap que corresponde a HOY
+              const gapStart = prevAt > dayStart ? prevAt : dayStart;
+              const gapInToday = Math.floor(logAt.diff(gapStart, 'minutes').minutes);
+              
+              if (gapInToday > 0) {
+                daily.off_minutes += gapInToday;
+              }
+              diff = 0;
+            } else {
+              diff = Math.min(gap, 5);
+              if (diff < 1) diff = 1;
+            }
           }
 
           if (temp >= this.STOVE_ON_TEMP) {
@@ -1053,6 +1101,26 @@ export class MetricsService {
           t3, 
           maintenancePercent
         );
+
+        // Manejar gap al final del día si el siguiente log está muy lejos
+        const lastLogOfToday = logs[logs.length - 1];
+        const nextLog = await this.temperatureLogRepository.findOne({
+          where: { device_id: deviceId, created_at: MoreThan(lastLogOfToday.created_at) },
+          order: { created_at: 'ASC' }
+        });
+
+        if (nextLog) {
+          const diffMs = new Date(nextLog.created_at).getTime() - new Date(lastLogOfToday.created_at).getTime();
+          const totalGap = Math.floor(diffMs / 60000);
+          if (totalGap > 60) {
+            const dayEnd = current.endOf('day');
+            const lastAt = DateTime.fromJSDate(new Date(lastLogOfToday.created_at)).setZone(timezone);
+            const gapInToday = Math.floor(dayEnd.diff(lastAt, 'minutes').minutes);
+            if (gapInToday > 0) {
+              daily.off_minutes += gapInToday;
+            }
+          }
+        }
 
         await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
       }
@@ -1238,6 +1306,65 @@ export class MetricsService {
     if (invalidKeys.length > 0) {
       this.logger.error(`[MetricsService] Invalid numeric values in ${context}: ${invalidKeys.join(', ')}`, JSON.stringify(payload));
     }
+  }
+
+  private async splitGapAndAddOffMinutes(deviceId: number, lastLogAt: Date, currentLogAt: Date, timezone: string, currentDaily: DeviceDailyMetric) {
+    const lastLocal = DateTime.fromJSDate(lastLogAt).setZone(timezone);
+    const currentLocal = DateTime.fromJSDate(currentLogAt).setZone(timezone);
+    const gapMinutes = Math.floor(currentLocal.diff(lastLocal, 'minutes').minutes);
+
+    if (gapMinutes <= 60) return;
+
+    this.logger.log(`[METRICS] Gap detectado (> 60 min). device=${deviceId} totalMinutes=${gapMinutes}`);
+
+    if (lastLocal.toISODate() === currentLocal.toISODate()) {
+      // Caso simple: mismo día
+      currentDaily.off_minutes = this.sanitizeNumber(currentDaily.off_minutes) + gapMinutes;
+    } else {
+      // Caso complejo: cruza medianoche
+      let temp = lastLocal;
+      while (temp.toISODate() !== currentLocal.toISODate()) {
+        const dayStr = temp.toISODate()!;
+        const endOfDay = temp.endOf('day');
+        // Minutos desde temp hasta el fin de SU día
+        const mins = Math.floor(endOfDay.diff(temp, 'minutes').minutes);
+        
+        if (dayStr === currentDaily.metric_date) {
+           currentDaily.off_minutes = this.sanitizeNumber(currentDaily.off_minutes) + mins;
+        } else {
+           await this.addOffMinutesToDay(deviceId, dayStr, mins, timezone);
+        }
+        
+        temp = temp.plus({ days: 1 }).startOf('day');
+      }
+      // Minutos remanentes en el día actual
+      const remainingMins = Math.floor(currentLocal.diff(temp, 'minutes').minutes);
+      currentDaily.off_minutes = this.sanitizeNumber(currentDaily.off_minutes) + remainingMins;
+    }
+  }
+
+  private async addOffMinutesToDay(deviceId: number, dayStr: string, minutes: number, timezone: string) {
+    if (minutes <= 0) return;
+    let daily = await this.dailyMetricRepository.findOne({ where: { device_id: deviceId, metric_date: dayStr } });
+    if (!daily) {
+      const settings = await this.deviceSettingsRepository.findOne({ where: { device_id: deviceId } });
+      if (!settings) return;
+      
+      daily = this.dailyMetricRepository.create({
+        device_id: deviceId,
+        metric_date: dayStr,
+        threshold_1_snapshot: settings.threshold_1,
+        threshold_2_snapshot: settings.threshold_2,
+        threshold_3_snapshot: settings.threshold_3,
+      });
+    }
+    
+    daily.off_minutes = this.sanitizeNumber(daily.off_minutes) + minutes;
+    
+    // Recalcular scores básicos si el día ya tenía datos o si acabamos de crearlo
+    daily.efficiency_score = this.calculateEfficiencyScore(daily.safe_minutes, daily.warning_minutes, daily.critical_minutes, daily.low_minutes);
+    
+    await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
   }
 
   private formatMinutes(minutes: number): string {
