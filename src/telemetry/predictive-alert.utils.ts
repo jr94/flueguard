@@ -195,9 +195,9 @@ export function calculatePredictiveCurveAlert(
   points: TemperaturePoint[],
   threshold2: number,
   threshold3: number,
-  horizonMinutes = 5,
+  horizonMinutes = 7,
 ): PredictiveResult {
-  const MIN_TEMP_TO_PREDICT = 200;
+  const MIN_TEMP_TO_PREDICT = 180;
 
   if (!points || points.length === 0) {
     return {
