@@ -96,7 +96,7 @@ export class SystemMaintenanceService {
       .createQueryBuilder()
       .delete()
       .from(Alert)
-      .where('alert_type = :type', { type: 'maintenance' })
+      .where('alert_type IN (:...types)', { types: ['maintenance', 'maintenance_preventive', 'maintenance_urgent'] })
       .andWhere('created_at < :date', { date: oneYearAgo })
       .execute();
 

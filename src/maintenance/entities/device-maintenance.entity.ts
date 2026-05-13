@@ -23,6 +23,12 @@ export class DeviceMaintenance {
   last_notified_at: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
+  last_preventive_notified_at: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  last_urgent_notified_at: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
   last_reset_at: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })

@@ -44,7 +44,7 @@ export class PushNotificationsService {
       if (firstRecord.region_name) addressParts.push(firstRecord.region_name);
       const deviceAddress = addressParts.join(', ');
 
-      const title = `${deviceName}`;
+      const title = alert.title || `${deviceName}`;
       const body = `${alert.message || 'Alerta de temperatura: se requiere revisión de la estufa.'}`;
 
       const level = String(alert.alert_level || '1');
@@ -63,6 +63,7 @@ export class PushNotificationsService {
           serial_number: String(serialNumber || ''),
           device_name: String(deviceName || 'Dispositivo'),
           alert_level: level,
+          alert_type: String(alert.type || alert.alert_type || ''),
           temperature: String(alert.temperature ?? ''),
           channel_key: channelKey,
           sound_key: soundKey,
