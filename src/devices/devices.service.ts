@@ -3,6 +3,7 @@ import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Device } from './entities/device.entity';
 import { UserDevice } from './entities/user-device.entity';
+import { DeviceSetting } from '../device-settings/entities/device-setting.entity';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ShareDeviceDto } from './dto/share-device.dto';
 import { UpdateShareDeviceDto } from './dto/update-share-device.dto';
@@ -16,6 +17,8 @@ export class DevicesService {
     private readonly deviceRepository: Repository<Device>,
     @InjectRepository(UserDevice)
     private readonly userDeviceRepository: Repository<UserDevice>,
+    @InjectRepository(DeviceSetting)
+    private readonly deviceSettingRepository: Repository<DeviceSetting>,
     private readonly usersService: UsersService,
     private readonly subscriptionsService: SubscriptionsService,
     @InjectDataSource()
@@ -24,39 +27,66 @@ export class DevicesService {
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
     const { serial_number, user_id, device_name, FW_VERSION } = createDeviceDto;
-    
-    let device = await this.deviceRepository.findOne({ where: { serial_number } });
-    if (device) {
-      device.device_name = device_name;
-      if (FW_VERSION) {
-        device.firmware_version = FW_VERSION;
+
+    return await this.dataSource.transaction(async (manager) => {
+      // 1. Buscar o crear el dispositivo
+      let device = await manager.findOne(Device, { where: { serial_number } });
+      
+      if (device) {
+        device.device_name = device_name;
+        if (FW_VERSION) {
+          device.firmware_version = FW_VERSION;
+        }
+        device = await manager.save(Device, device);
+      } else {
+        device = manager.create(Device, {
+          serial_number,
+          device_name,
+          status: 'offline',
+          firmware_version: FW_VERSION,
+        });
+        device = await manager.save(Device, device);
+        console.log(`[DevicesService] Device created id=${device.id} serial=${device.serial_number}`);
       }
-      device = await this.deviceRepository.save(device);
-    } else {
-      device = this.deviceRepository.create({
-        serial_number,
-        device_name,
-        status: 'offline',
-        firmware_version: FW_VERSION,
-      });
-      device = await this.deviceRepository.save(device);
-    }
 
-    const existingLink = await this.userDeviceRepository.findOne({
-      where: { user_id, device_id: device.id }
+      // 2. Vincular con el usuario
+      const existingLink = await manager.findOne(UserDevice, {
+        where: { user_id, device_id: device.id }
+      });
+
+      if (!existingLink) {
+        const link = manager.create(UserDevice, {
+          user_id,
+          device_id: device.id,
+          owner: true,
+          edit: true,
+        });
+        await manager.save(UserDevice, link);
+      }
+
+      // 3. Crear settings por defecto si no existen
+      const existingSettings = await manager.findOne(DeviceSetting, {
+        where: { device_id: device.id }
+      });
+
+      if (!existingSettings) {
+        const defaultSettings = manager.create(DeviceSetting, {
+          device_id: device.id,
+          type_device: 0,
+          threshold_1: 90.00,
+          threshold_2: 230.00,
+          threshold_3: 350.00,
+          notifications_enabled: true,
+          sound_alarm_enabled: true,
+          sound_alarm_temp_low: false, // Mapea a la columna alarm_low_temp
+          timezone: 'America/Santiago',
+        });
+        await manager.save(DeviceSetting, defaultSettings);
+        console.log(`[DevicesService] Default settings created for device id=${device.id}`);
+      }
+
+      return device;
     });
-
-    if (!existingLink) {
-      const link = this.userDeviceRepository.create({
-        user_id,
-        device_id: device.id,
-        owner: true,
-        edit: true,
-      });
-      await this.userDeviceRepository.save(link);
-    }
-
-    return device;
   }
 
   async findByUserId(userId: number): Promise<any[]> {

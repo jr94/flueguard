@@ -8,10 +8,11 @@ import { UsersModule } from '../users/users.module';
 
 import { UserDevicesController } from './user-devices.controller';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { DeviceSetting } from '../device-settings/entities/device-setting.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Device, UserDevice]),
+    TypeOrmModule.forFeature([Device, UserDevice, DeviceSetting]),
     UsersModule,
     SubscriptionsModule,
   ],
