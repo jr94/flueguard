@@ -397,6 +397,22 @@ export class MetricsService {
         daily = this.dailyMetricRepository.create({
           device_id: deviceId,
           metric_date: dateStr,
+          usage_minutes: 0,
+          safe_minutes: 0,
+          warning_minutes: 0,
+          critical_minutes: 0,
+          low_minutes: 0,
+          off_minutes: 0,
+          efficient_minutes: 0,
+          sessions_count: 0,
+          alerts_total: 0,
+          alerts_level_1: 0,
+          alerts_level_2: 0,
+          alerts_level_3: 0,
+          predictions_total: 0,
+          predictions_confirmed: 0,
+          predictions_false_positive: 0,
+          logs_count: 0,
           min_temperature: safeTemperature,
           max_temperature: safeTemperature,
           max_temperature_at: safeCreatedAt,
@@ -404,6 +420,8 @@ export class MetricsService {
           threshold_1_snapshot: t1,
           threshold_2_snapshot: t2,
           threshold_3_snapshot: t3,
+          efficiency_score: 0,
+          risk_score: 0,
         });
       } else {
         const currentAvg = this.sanitizeNumber(daily.avg_temperature);
@@ -499,7 +517,7 @@ export class MetricsService {
       this.logger.log(`[MetricsService] risk recalculated device=${deviceId} risk=${daily.risk_score} maintenance=${maintenancePercent}%`);
 
       this.logIfContainsInvalidNumber('device_daily_metrics', daily);
-      await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+      await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
 
       // 3. Session Management
       let activeSession = await this.sessionRepository.findOne({
@@ -517,7 +535,7 @@ export class MetricsService {
           await this.maintenanceService.addUsageSeconds(deviceId, durationSeconds);
           activeSession.maintenance_counted = true;
         }
-        await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+        await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
         activeSession = null; // Mark as null so the logic below can potentially start a new one
       }
 
@@ -533,7 +551,7 @@ export class MetricsService {
             avg_temperature: safeTemperature,
           });
           daily.sessions_count = this.sanitizeNumber(daily.sessions_count) + 1;
-          await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+          await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
         } else {
           const sessionAvg = this.sanitizeNumber(activeSession.avg_temperature);
           activeSession.avg_temperature = (sessionAvg * 0.95) + (safeTemperature * 0.05);
@@ -568,7 +586,7 @@ export class MetricsService {
           );
         }
         this.logIfContainsInvalidNumber('device_usage_sessions', activeSession);
-        await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+        await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
       } else if (activeSession) {
         const recentLogs = await this.temperatureLogRepository.find({
           where: { device_id: deviceId, created_at: MoreThanOrEqual(new Date(safeCreatedAt.getTime() - 20 * 60000)) },
@@ -591,11 +609,11 @@ export class MetricsService {
             activeSession.maintenance_counted = true;
           }
 
-          await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+          await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
         } else {
           if (zone === 'low') activeSession.low_minutes = this.sanitizeNumber(activeSession.low_minutes) + minutesDiff;
           else if (zone === 'off') activeSession.off_minutes = this.sanitizeNumber(activeSession.off_minutes) + minutesDiff;
-          await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+          await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
         }
       }
 
@@ -635,7 +653,7 @@ export class MetricsService {
           maintenancePercent
         );
 
-        await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+        await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
       }
 
       let activeSession = await this.sessionRepository.findOne({
@@ -666,7 +684,7 @@ export class MetricsService {
           maintenancePercent
         );
 
-        await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+        await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
       }
     } catch (error) {
       this.logger.error(`Error updating metrics from alert: ${error.message}`);
@@ -685,7 +703,7 @@ export class MetricsService {
         slope: this.sanitizeNumber(data.slope),
         alert_id: data.alert_id,
       });
-      await this.predictionRepository.save(this.sanitizeMetricPayload(prediction));
+      await this.predictionRepository.save(this.normalizeMetricsPayload(prediction));
 
       // Update daily counter
       const timezone = await this.getDeviceTimezone(data.device_id);
@@ -693,7 +711,7 @@ export class MetricsService {
       let daily = await this.dailyMetricRepository.findOne({ where: { device_id: data.device_id, metric_date: dateStr } });
       if (daily) {
         daily.predictions_total = this.sanitizeNumber(daily.predictions_total) + 1;
-        await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+        await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
       }
     } catch (error) {
       this.logger.error(`Error saving prediction metric: ${error.message}`);
@@ -719,7 +737,7 @@ export class MetricsService {
         if (temperature >= pred.target_threshold && createdAt <= limitTime) {
           pred.was_confirmed = 1;
           pred.confirmed_at = createdAt;
-          await this.predictionRepository.save(this.sanitizeMetricPayload(pred));
+          await this.predictionRepository.save(this.normalizeMetricsPayload(pred));
 
           // Update daily counter
           const timezone = await this.getDeviceTimezone(deviceId);
@@ -727,12 +745,12 @@ export class MetricsService {
           let daily = await this.dailyMetricRepository.findOne({ where: { device_id: deviceId, metric_date: dateStr } });
           if (daily) {
             daily.predictions_confirmed = this.sanitizeNumber(daily.predictions_confirmed) + 1;
-            await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+            await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
           }
 
         } else if (createdAt > limitTime) {
           pred.was_false_positive = 1;
-          await this.predictionRepository.save(this.sanitizeMetricPayload(pred));
+          await this.predictionRepository.save(this.normalizeMetricsPayload(pred));
 
           // Update daily counter
           const timezone = await this.getDeviceTimezone(deviceId);
@@ -740,7 +758,7 @@ export class MetricsService {
           let daily = await this.dailyMetricRepository.findOne({ where: { device_id: deviceId, metric_date: dateStr } });
           if (daily) {
             daily.predictions_false_positive = this.sanitizeNumber(daily.predictions_false_positive) + 1;
-            await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+            await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
           }
         }
       }
@@ -796,7 +814,7 @@ export class MetricsService {
       report.recommendation = recommendation;
       report.summary = summaryText;
 
-      await this.reportRepository.save(this.sanitizeMetricPayload(report));
+      await this.reportRepository.save(this.normalizeMetricsPayload(report));
       this.logger.log(`[Reports] Reporte generado para device ${deviceId} (weekly)`);
       return report;
     } catch (error) {
@@ -851,7 +869,7 @@ export class MetricsService {
       report.recommendation = recommendation;
       report.summary = summaryText;
 
-      await this.reportRepository.save(this.sanitizeMetricPayload(report));
+      await this.reportRepository.save(this.normalizeMetricsPayload(report));
       this.logger.log(`[Reports] Reporte generado para device ${deviceId} (monthly)`);
       return report;
     } catch (error) {
@@ -1041,12 +1059,28 @@ export class MetricsService {
       if (!currentDaily || currentDaily.metric_date !== logDate) {
         if (currentDaily) {
           currentDaily.efficiency_score = this.calculateEfficiencyScore(currentDaily.efficient_minutes, currentDaily.usage_minutes);
-          await this.dailyMetricRepository.save(this.sanitizeMetricPayload(currentDaily));
+          await this.dailyMetricRepository.save(this.normalizeMetricsPayload(currentDaily));
         }
         daysRecalculatedSet.add(logDate);
         currentDaily = this.dailyMetricRepository.create({
           device_id: deviceId,
           metric_date: logDate,
+          usage_minutes: 0,
+          safe_minutes: 0,
+          warning_minutes: 0,
+          critical_minutes: 0,
+          low_minutes: 0,
+          off_minutes: 0,
+          efficient_minutes: 0,
+          sessions_count: 0,
+          alerts_total: 0,
+          alerts_level_1: 0,
+          alerts_level_2: 0,
+          alerts_level_3: 0,
+          predictions_total: 0,
+          predictions_confirmed: 0,
+          predictions_false_positive: 0,
+          logs_count: 0,
           threshold_1_snapshot: t1,
           threshold_2_snapshot: t2,
           threshold_3_snapshot: t3,
@@ -1054,6 +1088,8 @@ export class MetricsService {
           max_temperature: temp,
           max_temperature_at: log.created_at,
           avg_temperature: temp,
+          efficiency_score: 0,
+          risk_score: 0,
         });
       }
 
@@ -1118,7 +1154,7 @@ export class MetricsService {
       if (activeSession && Math.floor(elapsed) > 60) {
         activeSession.status = 'closed';
         activeSession.ended_at = prevLog ? new Date(prevLog.created_at) : log.created_at;
-        await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+        await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
         activeSession = null;
       }
 
@@ -1131,6 +1167,18 @@ export class MetricsService {
             status: 'active',
             duration_minutes: 0,
             efficient_minutes: 0,
+            safe_minutes: 0,
+            warning_minutes: 0,
+            critical_minutes: 0,
+            low_minutes: 0,
+            off_minutes: 0,
+            alerts_level_2: 0,
+            alerts_level_3: 0,
+            efficiency_score: 0,
+            risk_score: 0,
+            max_temperature: temp,
+            max_temperature_at: log.created_at,
+            avg_temperature: temp,
           });
           sessionsRebuilt++;
         }
@@ -1161,12 +1209,12 @@ export class MetricsService {
 
     if (currentDaily) {
       currentDaily.efficiency_score = this.calculateEfficiencyScore(currentDaily.efficient_minutes, currentDaily.usage_minutes);
-      await this.dailyMetricRepository.save(this.sanitizeMetricPayload(currentDaily));
+      await this.dailyMetricRepository.save(this.normalizeMetricsPayload(currentDaily));
     }
     if (activeSession) {
       activeSession.status = 'closed';
       activeSession.ended_at = logs[logs.length - 1].created_at;
-      await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+      await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
     }
 
     const finalEfficiencyScore = totalUsage > 0 ? (totalEfficient / totalUsage) * 100 : 0;
@@ -1367,14 +1415,30 @@ export class MetricsService {
     return Math.max(0, Math.min(100, num));
   }
 
-  private sanitizeMetricPayload<T extends Record<string, any>>(payload: T): T {
+  private normalizeMetricsPayload<T extends Record<string, any>>(payload: T, date?: string | Date, deviceId?: number): T {
     const cleaned = { ...payload } as any;
+    const dateStr = date ? (typeof date === 'string' ? date : date.toISOString().split('T')[0]) : 'unknown';
+    const devId = deviceId || payload.device_id || 0;
 
-    for (const key of Object.keys(cleaned)) {
-      const value = cleaned[key];
+    const numericFields = [
+      'usage_minutes', 'safe_minutes', 'warning_minutes', 'critical_minutes', 'low_minutes', 'off_minutes',
+      'efficient_minutes', 'efficiency_score', 'risk_score', 'logs_count', 'sessions_count',
+      'alerts_total', 'alerts_level_1', 'alerts_level_2', 'alerts_level_3',
+      'predictions_total', 'predictions_confirmed', 'predictions_false_positive',
+      'max_temperature', 'min_temperature', 'avg_temperature',
+      'threshold_1_snapshot', 'threshold_2_snapshot', 'threshold_3_snapshot'
+    ];
 
-      if (typeof value === 'number' && !Number.isFinite(value)) {
-        cleaned[key] = null;
+    for (const key of numericFields) {
+      if (key in cleaned) {
+        const value = cleaned[key];
+        // Normalizar si es null, undefined, NaN o Infinity
+        if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+          this.logger.log(`[MetricsNormalize] field=${key} original=${value} normalized=0 date=${dateStr} device=${devId}`);
+          cleaned[key] = 0;
+        } else {
+          cleaned[key] = Number(value);
+        }
       }
     }
 
@@ -1436,9 +1500,27 @@ export class MetricsService {
       daily = this.dailyMetricRepository.create({
         device_id: deviceId,
         metric_date: dayStr,
+        usage_minutes: 0,
+        safe_minutes: 0,
+        warning_minutes: 0,
+        critical_minutes: 0,
+        low_minutes: 0,
+        off_minutes: 0,
+        efficient_minutes: 0,
+        sessions_count: 0,
+        alerts_total: 0,
+        alerts_level_1: 0,
+        alerts_level_2: 0,
+        alerts_level_3: 0,
+        predictions_total: 0,
+        predictions_confirmed: 0,
+        predictions_false_positive: 0,
+        logs_count: 0,
         threshold_1_snapshot: settings.threshold_1,
         threshold_2_snapshot: settings.threshold_2,
         threshold_3_snapshot: settings.threshold_3,
+        efficiency_score: 0,
+        risk_score: 0,
       });
     }
 
@@ -1447,7 +1529,7 @@ export class MetricsService {
     // Recalcular scores básicos si el día ya tenía datos o si acabamos de crearlo
     daily.efficiency_score = this.calculateEfficiencyScore(daily.efficient_minutes, daily.usage_minutes);
 
-    await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
+    await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
   }
 
   private formatMinutes(minutes: number): string {
