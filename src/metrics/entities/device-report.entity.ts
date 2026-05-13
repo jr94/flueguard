@@ -22,7 +22,7 @@ export class DeviceReport {
   @Column({ type: 'date' })
   period_end: Date;
 
-  @Column({ type: 'int', default: 0 })
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
   total_usage_minutes: number;
 
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
@@ -57,6 +57,9 @@ export class DeviceReport {
 
   @Column({ type: 'int', default: 0 })
   off_minutes: number;
+
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
+  efficient_minutes: number;
 
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   efficiency_score: number;

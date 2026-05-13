@@ -16,7 +16,7 @@ export class DeviceDailyMetric {
   @Column({ type: 'date' })
   metric_date: string | Date;
 
-  @Column({ type: 'int', default: 0 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   usage_minutes: number;
 
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
@@ -48,6 +48,9 @@ export class DeviceDailyMetric {
 
   @Column({ type: 'int', default: 0 })
   off_minutes: number;
+
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  efficient_minutes: number;
 
   @Column({ type: 'int', default: 0 })
   alerts_total: number;
