@@ -170,15 +170,29 @@ export class SubscriptionsService {
       await this.validateUserDeviceAccess(userId, deviceId);
     }
 
-    const subscription = await this.deviceSubscriptionRepository.createQueryBuilder('ds')
+    const query = this.deviceSubscriptionRepository.createQueryBuilder('ds')
       .innerJoinAndSelect('ds.plan', 'sp')
       .leftJoinAndSelect('sp.features', 'spf')
       .where('ds.device_id = :deviceId', { deviceId })
       .andWhere('ds.status IN (:...statuses)', { statuses: ['active', 'trialing'] })
       .andWhere('ds.current_period_end > NOW()')
-      .andWhere('sp.is_active = 1')
+      .andWhere('sp.is_active = 1');
+
+    if (userId) {
+      query.andWhere('ds.user_id = :userId', { userId });
+    }
+
+    const subscription = await query
       .orderBy('ds.current_period_end', 'DESC')
       .getOne();
+
+    if (userId) {
+      console.log(`[SubscriptionsService] Looking for subscription: DeviceID=${deviceId}, UserID=${userId}`);
+      console.log(`[SubscriptionsService] Found: ${subscription ? 'YES (ID ' + subscription.id + ')' : 'NO'}`);
+      if (subscription) {
+        console.log(`[SubscriptionsService] Plan: ${subscription.plan?.code}, Status: ${subscription.status}, End: ${subscription.current_period_end}`);
+      }
+    }
 
     if (!subscription) {
       return {
