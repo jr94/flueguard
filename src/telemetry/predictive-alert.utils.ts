@@ -102,7 +102,7 @@ function shouldBlockByLastTemperatureDiff(points: TemperaturePoint[]): {
   if (!points || points.length < 4) {
     return {
       block: true,
-      reason: 'Predicción desactivada: faltan datos para validar cambios recientes de temperatura.',
+      reason: 'Predicción desactivada: se requieren al menos 4 registros para validar tendencia peligrosa.',
     };
   }
 
@@ -110,50 +110,46 @@ function shouldBlockByLastTemperatureDiff(points: TemperaturePoint[]): {
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
+  const last4 = orderedPoints.slice(-4);
+
   const diffs: number[] = [];
 
-  for (let i = 1; i < orderedPoints.length; i++) {
-    const prevTemp = Number(orderedPoints[i - 1].temperature);
-    const currentTemp = Number(orderedPoints[i].temperature);
+  for (let i = 1; i < last4.length; i++) {
+    const prevTemp = Number(last4[i - 1].temperature);
+    const currentTemp = Number(last4[i].temperature);
     const diff = currentTemp - prevTemp;
 
-    if (Number.isFinite(diff)) {
-      diffs.push(diff);
+    if (!Number.isFinite(diff)) {
+      return {
+        block: true,
+        reason: 'Predicción desactivada: diferencia de temperatura inválida en los últimos 4 registros.',
+      };
     }
+
+    diffs.push(diff);
   }
 
-  if (diffs.length < 3) {
+  const hasNegativeOrStableDiff = diffs.some((diff) => diff <= 0);
+
+  if (hasNegativeOrStableDiff) {
     return {
       block: true,
-      reason: 'Predicción desactivada: no hay suficientes diferencias de temperatura para validar tendencia.',
+      reason: `Predicción desactivada: los últimos 4 registros no mantienen subida continua. Diffs=${diffs.map((d) => d.toFixed(2)).join(', ')}°C.`,
     };
   }
 
-  const lastDiff = diffs[diffs.length - 1];
-  const previousDiffs = diffs.slice(0, -1);
+  const slopeCurveDiffs: number[] = [];
 
-  const maxPreviousDiff = Math.max(...previousDiffs);
-  const avgPreviousDiff =
-    previousDiffs.reduce((sum, diff) => sum + diff, 0) / previousDiffs.length;
-
-  if (lastDiff <= 0) {
-    return {
-      block: true,
-      reason: `Predicción desactivada: la última diferencia indica baja o estabilidad (${lastDiff.toFixed(2)}°C).`,
-    };
+  for (let i = 1; i < diffs.length; i++) {
+    slopeCurveDiffs.push(diffs[i] - diffs[i - 1]);
   }
 
-  if (maxPreviousDiff > 0 && lastDiff < maxPreviousDiff * 0.35) {
-    return {
-      block: true,
-      reason: `Predicción desactivada: la última subida perdió fuerza (${lastDiff.toFixed(2)}°C vs máximo previo ${maxPreviousDiff.toFixed(2)}°C).`,
-    };
-  }
+  const hasNegativeSlopeCurve = slopeCurveDiffs.some((diff) => diff < 0);
 
-  if (avgPreviousDiff > 0 && lastDiff < avgPreviousDiff * 0.5) {
+  if (hasNegativeSlopeCurve) {
     return {
       block: true,
-      reason: `Predicción desactivada: la última subida es mucho menor al promedio anterior (${lastDiff.toFixed(2)}°C vs promedio ${avgPreviousDiff.toFixed(2)}°C).`,
+      reason: `Predicción desactivada: la curva de pendiente va bajando. Diffs=${diffs.map((d) => d.toFixed(2)).join(', ')}°C; curva=${slopeCurveDiffs.map((d) => d.toFixed(2)).join(', ')}.`,
     };
   }
 
@@ -199,7 +195,7 @@ export function calculatePredictiveCurveAlert(
   points: TemperaturePoint[],
   threshold2: number,
   threshold3: number,
-  horizonMinutes = 10,
+  horizonMinutes = 5,
 ): PredictiveResult {
   const MIN_TEMP_TO_PREDICT = 200;
 
@@ -234,7 +230,7 @@ export function calculatePredictiveCurveAlert(
   }
 
   const latestTime = new Date(validPoints[validPoints.length - 1].createdAt).getTime();
-  const windowStartTime = latestTime - 10 * 60 * 1000;
+  const windowStartTime = latestTime - 5 * 60 * 1000;
 
   const selectedPoints = validPoints
     .filter((p) => new Date(p.createdAt).getTime() >= windowStartTime)
@@ -255,14 +251,14 @@ export function calculatePredictiveCurveAlert(
 
   const diffTempTrend = calculateDiffTempTrend(selectedPoints);
 
-  if (diffTempTrend < 3) {
+  if (diffTempTrend !== 4) {
     return {
       canPredict: false,
       currentTemperature,
       predictedMax: 0,
       predictedMaxMinute: 0,
       alertLevel: 0,
-      reason: `Predicción desactivada: tendencia diffTemp=${diffTempTrend}. Solo se predice con tendencia 3 o 4.`,
+      reason: `Predicción desactivada: tendencia diffTemp=${diffTempTrend}. Solo se predice con tendencia 4.`,
     };
   }
 
