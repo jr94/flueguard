@@ -500,7 +500,7 @@ export class MetricsService {
       }
 
       const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
-      const maintenancePercent = maintenanceStatus?.percentage ?? 0;
+      const maintenanceUsageHours = Number(maintenanceStatus?.usage_hours || 0);
 
       daily.efficiency_score = this.calculateEfficiencyScore(daily.efficient_minutes, daily.usage_minutes);
       daily.risk_score = this.calculateRiskScore(
@@ -511,10 +511,10 @@ export class MetricsService {
         daily.alerts_level_3,
         t2,
         t3,
-        maintenancePercent
+        maintenanceUsageHours
       );
 
-      this.logger.log(`[MetricsService] risk recalculated device=${deviceId} risk=${daily.risk_score} maintenance=${maintenancePercent}%`);
+      this.logger.log(`[MetricsService] risk recalculated device=${deviceId} risk=${daily.risk_score} maintenanceHours=${maintenanceUsageHours}`);
 
       this.logIfContainsInvalidNumber('device_daily_metrics', daily);
       await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
@@ -582,7 +582,7 @@ export class MetricsService {
             activeSession.alerts_level_3,
             t2,
             t3,
-            maintenancePercent
+            maintenanceUsageHours
           );
         }
         this.logIfContainsInvalidNumber('device_usage_sessions', activeSession);
@@ -638,7 +638,7 @@ export class MetricsService {
         // Recalculate risk
         const settings = await this.deviceSettingsRepository.findOne({ where: { device_id: deviceId } });
         const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
-        const maintenancePercent = maintenanceStatus?.percentage ?? 0;
+        const maintenanceUsageHours = Number(maintenanceStatus?.usage_hours || 0);
         const t2 = settings ? Number(settings.threshold_2) : 220;
         const t3 = settings ? Number(settings.threshold_3) : 330;
 
@@ -650,7 +650,7 @@ export class MetricsService {
           daily.alerts_level_3,
           t2,
           t3,
-          maintenancePercent
+          maintenanceUsageHours
         );
 
         await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
@@ -669,7 +669,7 @@ export class MetricsService {
         // Recalculate session risk
         const settings = await this.deviceSettingsRepository.findOne({ where: { device_id: deviceId } });
         const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
-        const maintenancePercent = maintenanceStatus?.percentage ?? 0;
+        const maintenanceUsageHours = Number(maintenanceStatus?.usage_hours || 0);
         const t2 = settings ? Number(settings.threshold_2) : 220;
         const t3 = settings ? Number(settings.threshold_3) : 330;
 
@@ -681,7 +681,7 @@ export class MetricsService {
           activeSession.alerts_level_3,
           t2,
           t3,
-          maintenancePercent
+          maintenanceUsageHours
         );
 
         await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
@@ -1311,7 +1311,7 @@ export class MetricsService {
     alertsLevel3: any,
     threshold2: any,
     threshold3: any,
-    maintenancePercent = 0,
+    maintenanceUsageHours = 0,
   ): number {
     const maxTemp = this.sanitizeNumber(maxTemperature);
     const warning = this.sanitizeNumber(warningMinutes);
@@ -1320,7 +1320,7 @@ export class MetricsService {
     const level3 = this.sanitizeNumber(alertsLevel3);
     const t2 = this.sanitizeNumber(threshold2, 220);
     const t3 = this.sanitizeNumber(threshold3, 330);
-    const maint = this.sanitizeNumber(maintenancePercent);
+    const maintenanceHours = this.sanitizeNumber(maintenanceUsageHours);
 
     let score = 0;
 
@@ -1338,13 +1338,13 @@ export class MetricsService {
     if (maxTemp >= t3) score += 25;
     if (maxTemp >= t3 + 50) score += 20;
 
-    // mantención
-    if (maint >= 100) {
+    // Mantención por horas acumuladas
+    // 250h a 399h: riesgo medio mínimo
+    // 400h o más: riesgo alto mínimo
+    if (maintenanceHours >= 400) {
       score = Math.max(score, 75);
-    } else if (maint >= 80) {
-      score += 20;
-    } else if (maint >= 60) {
-      score += 10;
+    } else if (maintenanceHours >= 250) {
+      score = Math.max(score, 45);
     }
 
     return Math.round(this.clampScore(score));
