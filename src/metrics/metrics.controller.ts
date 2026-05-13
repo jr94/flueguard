@@ -84,7 +84,7 @@ export class MetricsController {
     return this.metricsService.generateManualReport(deviceId, req.user.id, query.type);
   }
 
-  @Post('device/:deviceId/recalculate')
+  @Get('device/:deviceId/recalculate')
   async recalculate(
     @Param('deviceId', ParseIntPipe) deviceId: number,
     @Query('startDate') startDate: string,

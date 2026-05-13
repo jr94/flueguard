@@ -443,9 +443,10 @@ export class MetricsService {
         
         if (elapsedMinutes > 0 && elapsedMinutes <= MAX_VALID_GAP) {
           isValidGap = true;
-          usageAdd = elapsedMinutes;
-          efficientAdd = inEfficientRange ? elapsedMinutes : 0;
-          minutesDiff = Math.max(1, Math.round(usageAdd));
+          const isUsage = previousTemp > 60;
+          usageAdd = isUsage ? elapsedMinutes : 0;
+          efficientAdd = (isUsage && inEfficientRange) ? elapsedMinutes : 0;
+          minutesDiff = Math.max(1, Math.round(elapsedMinutes));
         } else {
           isValidGap = false;
           usageAdd = 0;
@@ -458,7 +459,7 @@ export class MetricsService {
         }
       }
 
-      this.logger.log(`[EfficiencySegment] prev_temp=${previousTemp.toFixed(2)} curr_temp=${safeTemperature.toFixed(2)} elapsed=${elapsedMinutes.toFixed(2)} valid_gap=${isValidGap} efficient=${inEfficientRange && isValidGap} usage_add=${usageAdd.toFixed(2)} efficient_add=${efficientAdd.toFixed(2)}`);
+      this.logger.log(`[EfficiencySegment] prev_temp=${previousTemp.toFixed(2)} curr_temp=${safeTemperature.toFixed(2)} elapsed=${elapsedMinutes.toFixed(2)} valid_gap=${isValidGap} is_usage=${previousTemp > 60} efficient=${inEfficientRange && isValidGap && previousTemp > 60} usage_add=${usageAdd.toFixed(2)} efficient_add=${efficientAdd.toFixed(2)}`);
 
       const skipZoneClassification = Math.floor(elapsedMinutes) > 60;
       minutesDiff = this.sanitizeNumber(minutesDiff, 0);
@@ -472,11 +473,11 @@ export class MetricsService {
       else if (zone === 'low') daily.low_minutes = this.sanitizeNumber(daily.low_minutes) + minutesDiff;
       else if (zone === 'off') daily.off_minutes = this.sanitizeNumber(daily.off_minutes) + minutesDiff;
 
-      if (previousTemp >= this.STOVE_ON_TEMP && isValidGap) {
+      if (previousTemp > 60 && isValidGap) {
         daily.usage_minutes = this.sanitizeNumber(daily.usage_minutes) + usageAdd;
       }
 
-      if (inEfficientRange && isValidGap) {
+      if (inEfficientRange && isValidGap && previousTemp > 60) {
         daily.efficient_minutes = this.sanitizeNumber(daily.efficient_minutes) + efficientAdd;
       }
 
@@ -550,8 +551,8 @@ export class MetricsService {
 
           activeSession.duration_minutes = this.sanitizeNumber(activeSession.duration_minutes) + usageAdd;
           
-          if (inEfficientRange && isValidGap) {
-            activeSession.efficient_minutes = this.sanitizeNumber(activeSession.efficient_minutes) + usageAdd;
+          if (inEfficientRange && isValidGap && previousTemp > 60) {
+            activeSession.efficient_minutes = this.sanitizeNumber(activeSession.efficient_minutes) + efficientAdd;
           }
 
           activeSession.efficiency_score = this.calculateEfficiencyScore(activeSession.efficient_minutes, activeSession.duration_minutes);
@@ -985,197 +986,243 @@ export class MetricsService {
       throw new BadRequestException('Fechas inválidas. Use YYYY-MM-DD.');
     }
 
-    this.logger.log(`[MetricsRecalculate] Recalculating metrics for device ${deviceId} from ${startDateStr} to ${endDateStr} in timezone ${timezone}`);
+    const dayStartUtc = start.toUTC().toJSDate();
+    const dayEndUtc = end.toUTC().toJSDate();
 
-    let current = start;
-    while (current <= end) {
-      const dateStr = current.toISODate();
-      const dayStartUtc = current.toUTC().toJSDate();
-      const dayEndUtc = current.endOf('day').toUTC().toJSDate();
+    this.logger.log(`[MetricsRecalculate] device=${deviceId} start=${startDateStr} end=${endDateStr}`);
 
-      // Fetch logs for the day
-      const logs = await this.temperatureLogRepository.find({
-        where: {
+    // 1. Cleanup existing metrics in range
+    await this.dailyMetricRepository.delete({
+      device_id: deviceId,
+      metric_date: Between(startDateStr, endDateStr) as any
+    });
+
+    await this.sessionRepository.delete({
+      device_id: deviceId,
+      started_at: Between(dayStartUtc, dayEndUtc)
+    });
+
+    await this.reportRepository.delete({
+      device_id: deviceId,
+      period_start: Between(dayStartUtc, dayEndUtc) as any
+    });
+
+    // 2. Fetch all logs in range
+    const logs = await this.temperatureLogRepository.find({
+      where: {
+        device_id: deviceId,
+        created_at: Between(dayStartUtc, dayEndUtc),
+      },
+      order: { created_at: 'ASC' },
+    });
+
+    const settings = await this.deviceSettingsRepository.findOne({ where: { device_id: deviceId } });
+    const t1 = settings ? Number(settings.threshold_1) : 100;
+    const t2 = settings ? Number(settings.threshold_2) : 200;
+    const t3 = settings ? Number(settings.threshold_3) : 300;
+
+    let currentDaily: DeviceDailyMetric | null = null;
+    let activeSession: DeviceUsageSession | null = null;
+    let prevLog = await this.temperatureLogRepository.findOne({
+      where: { device_id: deviceId, created_at: LessThan(dayStartUtc) },
+      order: { created_at: 'DESC' }
+    });
+
+    let totalUsage = 0;
+    let totalEfficient = 0;
+    let sessionsRebuilt = 0;
+    let daysRecalculatedSet = new Set<string>();
+
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i];
+      const temp = Number(log.temperature);
+      const logDate = this.getLocalMetricDate(log.created_at, timezone);
+
+      if (!currentDaily || currentDaily.metric_date !== logDate) {
+        if (currentDaily) {
+          currentDaily.efficiency_score = this.calculateEfficiencyScore(currentDaily.efficient_minutes, currentDaily.usage_minutes);
+          await this.dailyMetricRepository.save(this.sanitizeMetricPayload(currentDaily));
+        }
+        daysRecalculatedSet.add(logDate);
+        currentDaily = this.dailyMetricRepository.create({
           device_id: deviceId,
-          created_at: Between(dayStartUtc, dayEndUtc),
-        },
-        order: { created_at: 'ASC' },
-      });
-
-      if (logs.length > 0) {
-        // Find existing metric or create new
-        let daily = await this.dailyMetricRepository.findOne({ where: { device_id: deviceId, metric_date: dateStr } });
-        if (!daily) {
-          daily = this.dailyMetricRepository.create({
-            device_id: deviceId,
-            metric_date: dateStr,
-          });
-        }
-
-        // Reset counters
-        daily.usage_minutes = 0;
-        daily.safe_minutes = 0;
-        daily.warning_minutes = 0;
-        daily.critical_minutes = 0;
-        daily.low_minutes = 0;
-        daily.off_minutes = 0;
-        daily.alerts_total = 0;
-        daily.alerts_level_1 = 0;
-        daily.alerts_level_2 = 0;
-        daily.alerts_level_3 = 0;
-        daily.predictions_total = 0;
-        daily.predictions_confirmed = 0;
-        daily.predictions_false_positive = 0;
-
-        let sumTemp = 0;
-        let maxTemp = -Infinity;
-        let minTemp = Infinity;
-        let maxTempAt = logs[0].created_at;
-
-        const settings = await this.deviceSettingsRepository.findOne({ where: { device_id: deviceId } });
-        const t1 = settings ? Number(settings.threshold_1) : 100;
-        const t2 = settings ? Number(settings.threshold_2) : 200;
-        const t3 = settings ? Number(settings.threshold_3) : 300;
-
-        daily.threshold_1_snapshot = t1;
-        daily.threshold_2_snapshot = t2;
-        daily.threshold_3_snapshot = t3;
-
-        for (let i = 0; i < logs.length; i++) {
-          const log = logs[i];
-          const temp = Number(log.temperature);
-          sumTemp += temp;
-
-          if (temp > maxTemp) {
-            maxTemp = temp;
-            maxTempAt = log.created_at;
-          }
-          if (temp < minTemp) {
-            minTemp = temp;
-          }
-
-          // usage & gap handling
-          let elapsed = 0;
-          let usageAdd = 0;
-          let efficientAdd = 0;
-          let diff = 0;
-
-          // Buscar log previo (incluso si es de otro día) para el primer log del día
-          const prevLog = i > 0 ? logs[i - 1] : await this.temperatureLogRepository.findOne({
-            where: { device_id: deviceId, created_at: LessThan(log.created_at) },
-            order: { created_at: 'DESC' }
-          });
-
-          const previousTemp = prevLog ? this.sanitizeNumber(prevLog.temperature, temp) : temp;
-          const inEfficientRange = previousTemp >= 120 && previousTemp <= 180;
-
-          if (prevLog) {
-            const diffMs = new Date(log.created_at).getTime() - new Date(prevLog.created_at).getTime();
-            elapsed = diffMs / 60000;
-            
-            if (elapsed > 0 && elapsed <= 5) {
-              usageAdd = elapsed;
-              efficientAdd = inEfficientRange ? elapsed : 0;
-              diff = Math.max(1, Math.round(usageAdd));
-            } else {
-              usageAdd = 0;
-              efficientAdd = 0;
-              diff = 0;
-
-              if (Math.floor(elapsed) > 60) {
-                const dayStart = current.startOf('day');
-                const logAt = DateTime.fromJSDate(new Date(log.created_at)).setZone(timezone);
-                const prevAt = DateTime.fromJSDate(new Date(prevLog.created_at)).setZone(timezone);
-
-                const gapStart = prevAt > dayStart ? prevAt : dayStart;
-                const gapInToday = Math.floor(logAt.diff(gapStart, 'minutes').minutes);
-
-                if (gapInToday > 0) {
-                  daily.off_minutes += gapInToday;
-                }
-              }
-            }
-          }
-
-          if (previousTemp >= this.STOVE_ON_TEMP && elapsed > 0 && elapsed <= 5) {
-            daily.usage_minutes = Number(daily.usage_minutes) + usageAdd;
-          }
-
-          const zone = this.getTemperatureZone(temp, t1, t2, t3);
-          if (zone === 'safe') daily.safe_minutes += diff;
-          else if (zone === 'warning') daily.warning_minutes += diff;
-          else if (zone === 'critical') daily.critical_minutes += diff;
-          else if (zone === 'low') daily.low_minutes += diff;
-          else if (zone === 'off') daily.off_minutes += diff;
-
-          if (inEfficientRange && elapsed > 0 && elapsed <= 5) {
-            daily.efficient_minutes = Number(daily.efficient_minutes) + efficientAdd;
-          }
-        }
-
-        daily.avg_temperature = Number((sumTemp / logs.length).toFixed(2));
-        daily.max_temperature = maxTemp;
-        daily.max_temperature_at = maxTempAt;
-        daily.min_temperature = minTemp;
-
-        // Recalculate sessions count for this day
-        const sessionsCount = await this.sessionRepository.count({
-          where: {
-            device_id: deviceId,
-            started_at: Between(dayStartUtc, dayEndUtc),
-          }
+          metric_date: logDate,
+          threshold_1_snapshot: t1,
+          threshold_2_snapshot: t2,
+          threshold_3_snapshot: t3,
+          min_temperature: temp,
+          max_temperature: temp,
+          max_temperature_at: log.created_at,
+          avg_temperature: temp,
         });
-        daily.sessions_count = sessionsCount;
-
-        // Recalculate alerts
-        // (Assuming we can query alerts table, but let's just use what we have in daily if possible)
-        // Actually, it's better to just query alerts for that day
-        // But for now, we'll focus on what we have. 
-        // If we really want to be precise:
-        const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
-        const maintenancePercent = maintenanceStatus?.percentage ?? 0;
-      
-        daily.efficiency_score = this.calculateEfficiencyScore(daily.efficient_minutes, daily.usage_minutes);
-
-        daily.risk_score = this.calculateRiskScore(
-          daily.max_temperature,
-          daily.warning_minutes,
-          daily.critical_minutes,
-          daily.alerts_level_2,
-          daily.alerts_level_3,
-          t2,
-          t3,
-          maintenancePercent
-        );
-
-        // Manejar gap al final del día si el siguiente log está muy lejos
-        const lastLogOfToday = logs[logs.length - 1];
-        const nextLog = await this.temperatureLogRepository.findOne({
-          where: { device_id: deviceId, created_at: MoreThan(lastLogOfToday.created_at) },
-          order: { created_at: 'ASC' }
-        });
-
-        if (nextLog) {
-          const diffMs = new Date(nextLog.created_at).getTime() - new Date(lastLogOfToday.created_at).getTime();
-          const totalGap = Math.floor(diffMs / 60000);
-          if (totalGap > 60) {
-            const dayEnd = current.endOf('day');
-            const lastAt = DateTime.fromJSDate(new Date(lastLogOfToday.created_at)).setZone(timezone);
-            const gapInToday = Math.floor(dayEnd.diff(lastAt, 'minutes').minutes);
-            if (gapInToday > 0) {
-              daily.off_minutes += gapInToday;
-            }
-          }
-        }
-
-        await this.dailyMetricRepository.save(this.sanitizeMetricPayload(daily));
       }
 
-      current = current.plus({ days: 1 });
+      if (temp > currentDaily.max_temperature) {
+        currentDaily.max_temperature = temp;
+        currentDaily.max_temperature_at = log.created_at;
+      }
+      if (temp < currentDaily.min_temperature || currentDaily.min_temperature === 0) {
+        currentDaily.min_temperature = temp;
+      }
+      currentDaily.logs_count = (currentDaily.logs_count || 0) + 1;
+      currentDaily.avg_temperature = (currentDaily.avg_temperature * (currentDaily.logs_count - 1) + temp) / currentDaily.logs_count;
+
+      let elapsed = 0;
+      let usageAdd = 0;
+      let efficientAdd = 0;
+      let diff = 0;
+      const previousTemp = prevLog ? Number(prevLog.temperature) : temp;
+      const inEfficientRange = previousTemp >= 120 && previousTemp <= 180;
+
+      if (prevLog) {
+        const diffMs = new Date(log.created_at).getTime() - new Date(prevLog.created_at).getTime();
+        elapsed = diffMs / 60000;
+        
+        if (elapsed > 0 && elapsed <= 5) {
+          const isUsage = previousTemp > 60;
+          usageAdd = isUsage ? elapsed : 0;
+          efficientAdd = (isUsage && inEfficientRange) ? elapsed : 0;
+          diff = Math.max(1, Math.round(elapsed));
+        } else {
+          usageAdd = 0;
+          efficientAdd = 0;
+          diff = 0;
+          if (Math.floor(elapsed) > 60) {
+            const dayStart = DateTime.fromJSDate(log.created_at).setZone(timezone).startOf('day');
+            const prevAt = DateTime.fromJSDate(new Date(prevLog.created_at)).setZone(timezone);
+            const gapStart = prevAt > dayStart ? prevAt : dayStart;
+            const gapInToday = Math.floor(DateTime.fromJSDate(log.created_at).setZone(timezone).diff(gapStart, 'minutes').minutes);
+            if (gapInToday > 0) currentDaily.off_minutes += gapInToday;
+          }
+        }
+      }
+
+      this.logger.log(`[EfficiencySegment] prev_temp=${previousTemp.toFixed(2)} curr_temp=${temp.toFixed(2)} elapsed=${elapsed.toFixed(2)} valid_gap=${elapsed > 0 && elapsed <= 5} is_usage=${previousTemp > 60} efficient=${inEfficientRange && elapsed > 0 && elapsed <= 5 && previousTemp > 60} usage_add=${usageAdd.toFixed(2)} efficient_add=${efficientAdd.toFixed(2)}`);
+
+      if (previousTemp > 60 && elapsed > 0 && elapsed <= 5) {
+        currentDaily.usage_minutes = Number(currentDaily.usage_minutes) + usageAdd;
+        totalUsage += usageAdd;
+      }
+      if (inEfficientRange && elapsed > 0 && elapsed <= 5 && previousTemp > 60) {
+        currentDaily.efficient_minutes = Number(currentDaily.efficient_minutes) + efficientAdd;
+        totalEfficient += efficientAdd;
+      }
+
+      const zone = this.getTemperatureZone(temp, t1, t2, t3);
+      if (zone === 'safe') currentDaily.safe_minutes += diff;
+      else if (zone === 'warning') currentDaily.warning_minutes += diff;
+      else if (zone === 'critical') currentDaily.critical_minutes += diff;
+      else if (zone === 'low') currentDaily.low_minutes += diff;
+      else if (zone === 'off') currentDaily.off_minutes += diff;
+
+      if (activeSession && Math.floor(elapsed) > 60) {
+        activeSession.status = 'closed';
+        activeSession.ended_at = prevLog ? new Date(prevLog.created_at) : log.created_at;
+        await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+        activeSession = null;
+      }
+
+      if (temp >= this.STOVE_ON_TEMP) {
+        if (!activeSession) {
+          activeSession = this.sessionRepository.create({
+            device_id: deviceId,
+            started_at: log.created_at,
+            start_temperature: temp,
+            status: 'active',
+            duration_minutes: 0,
+            efficient_minutes: 0,
+          });
+          sessionsRebuilt++;
+        }
+
+        activeSession.duration_minutes = Number(activeSession.duration_minutes) + usageAdd;
+        if (inEfficientRange && elapsed > 0 && elapsed <= 5 && previousTemp > 60) {
+          activeSession.efficient_minutes = Number(activeSession.efficient_minutes) + efficientAdd;
+        }
+
+        if (temp > Number(activeSession.max_temperature)) {
+          activeSession.max_temperature = temp;
+          activeSession.max_temperature_at = log.created_at;
+        }
+
+        if (zone === 'safe') activeSession.safe_minutes += diff;
+        else if (zone === 'warning') activeSession.warning_minutes += diff;
+        else if (zone === 'critical') activeSession.critical_minutes += diff;
+        else if (zone === 'low') activeSession.low_minutes += diff;
+        else if (zone === 'off') activeSession.off_minutes += diff;
+      } else if (activeSession) {
+        activeSession.duration_minutes = Number(activeSession.duration_minutes) + usageAdd;
+        if (zone === 'low') activeSession.low_minutes += diff;
+        else if (zone === 'off') activeSession.off_minutes += diff;
+      }
+
+      prevLog = log;
     }
 
-    return { success: true, message: `Métricas recalculadas para el periodo ${startDateStr} - ${endDateStr}` };
+    if (currentDaily) {
+      currentDaily.efficiency_score = this.calculateEfficiencyScore(currentDaily.efficient_minutes, currentDaily.usage_minutes);
+      await this.dailyMetricRepository.save(this.sanitizeMetricPayload(currentDaily));
+    }
+    if (activeSession) {
+      activeSession.status = 'closed';
+      activeSession.ended_at = logs[logs.length - 1].created_at;
+      await this.sessionRepository.save(this.sanitizeMetricPayload(activeSession));
+    }
+
+    const finalEfficiencyScore = totalUsage > 0 ? (totalEfficient / totalUsage) * 100 : 0;
+    this.logger.log(`[MetricsRecalculateDone] device=${deviceId} logs=${logs.length} usage=${totalUsage.toFixed(2)} efficient=${totalEfficient.toFixed(2)} score=${finalEfficiencyScore.toFixed(2)}`);
+
+    return {
+      success: true,
+      deviceId,
+      startDate: startDateStr,
+      endDate: endDateStr,
+      daysRecalculated: daysRecalculatedSet.size,
+      logsProcessed: logs.length,
+      sessionsRebuilt,
+      totalUsageMinutes: Number(totalUsage.toFixed(2)),
+      totalEfficientMinutes: Number(totalEfficient.toFixed(2)),
+      efficiencyScore: Number(finalEfficiencyScore.toFixed(2))
+    };
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+
 
   // --- Helpers ---
 

@@ -32,6 +32,9 @@ export class DeviceDailyMetric {
   avg_temperature: number;
 
   @Column({ type: 'int', default: 0 })
+  logs_count: number;
+
+  @Column({ type: 'int', default: 0 })
   sessions_count: number;
 
   @Column({ type: 'int', default: 0 })
