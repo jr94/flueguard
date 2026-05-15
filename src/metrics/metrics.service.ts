@@ -199,7 +199,8 @@ export class MetricsService {
       .addSelect('SUM(m.low_minutes)', 'low_minutes')
       .addSelect('SUM(m.off_minutes)', 'off_minutes')
       .addSelect('SUM(m.efficient_minutes)', 'efficient_minutes')
-      .addSelect('AVG(m.efficiency_score)', 'efficiency_score')
+      .addSelect('SUM(m.usage_samples)', 'total_usage_samples')
+      .addSelect('SUM(m.efficient_samples)', 'total_efficient_samples')
       .addSelect('AVG(m.risk_score)', 'risk_score')
       .where('m.device_id = :deviceId', { deviceId })
       .andWhere('m.metric_date BETWEEN :start AND :end', { start, end })
@@ -230,8 +231,10 @@ export class MetricsService {
       low_minutes: Number(result.low_minutes || 0),
       off_minutes: Number(result.off_minutes || 0),
       efficient_minutes: Number(result.efficient_minutes || 0),
-      efficiency_score: Number((Number(result.total_usage_minutes || 0) > 0 
-        ? (Number(result.efficient_minutes || 0) / Number(result.total_usage_minutes || 0)) * 100 
+      usage_samples: Number(result.total_usage_samples || 0),
+      efficient_samples: Number(result.total_efficient_samples || 0),
+      efficiency_score: Number((Number(result.total_usage_samples || 0) > 0 
+        ? (Number(result.total_efficient_samples || 0) / Number(result.total_usage_samples || 0)) * 100 
         : 0).toFixed(2)),
       risk_score: Number(Number(result.risk_score || 0).toFixed(2)),
       timezone,
@@ -413,6 +416,8 @@ export class MetricsService {
           predictions_confirmed: 0,
           predictions_false_positive: 0,
           logs_count: 0,
+          usage_samples: 0,
+          efficient_samples: 0,
           min_temperature: safeTemperature,
           max_temperature: safeTemperature,
           max_temperature_at: safeCreatedAt,
@@ -453,7 +458,8 @@ export class MetricsService {
       let isValidGap = false;
 
       const previousTemp = lastLog ? this.sanitizeNumber(lastLog.temperature, safeTemperature) : safeTemperature;
-      const inEfficientRange = previousTemp >= 120 && previousTemp <= 180;
+      const inEfficientRange = safeTemperature >= 120 && safeTemperature <= 180;
+      const isUsage = safeTemperature > 60;
 
       if (lastLog) {
         const diffMs = safeCreatedAt.getTime() - new Date(lastLog.created_at).getTime();
@@ -461,7 +467,6 @@ export class MetricsService {
         
         if (elapsedMinutes > 0 && elapsedMinutes <= MAX_VALID_GAP) {
           isValidGap = true;
-          const isUsage = previousTemp > 60;
           usageAdd = isUsage ? elapsedMinutes : 0;
           efficientAdd = (isUsage && inEfficientRange) ? elapsedMinutes : 0;
           minutesDiff = Math.max(1, Math.round(elapsedMinutes));
@@ -477,7 +482,7 @@ export class MetricsService {
         }
       }
 
-      this.logger.log(`[EfficiencySegment] prev_temp=${previousTemp.toFixed(2)} curr_temp=${safeTemperature.toFixed(2)} elapsed=${elapsedMinutes.toFixed(2)} valid_gap=${isValidGap} is_usage=${previousTemp > 60} efficient=${inEfficientRange && isValidGap && previousTemp > 60} usage_add=${usageAdd.toFixed(2)} efficient_add=${efficientAdd.toFixed(2)}`);
+      this.logger.log(`[EfficiencySegment] prev_temp=${previousTemp.toFixed(2)} curr_temp=${safeTemperature.toFixed(2)} elapsed=${elapsedMinutes.toFixed(2)} valid_gap=${isValidGap} is_usage=${isUsage} efficient=${inEfficientRange && isValidGap && isUsage} usage_add=${usageAdd.toFixed(2)} efficient_add=${efficientAdd.toFixed(2)}`);
 
       const skipZoneClassification = Math.floor(elapsedMinutes) > 60;
       minutesDiff = this.sanitizeNumber(minutesDiff, 0);
@@ -491,18 +496,26 @@ export class MetricsService {
       else if (zone === 'low') daily.low_minutes = this.sanitizeNumber(daily.low_minutes) + minutesDiff;
       else if (zone === 'off') daily.off_minutes = this.sanitizeNumber(daily.off_minutes) + minutesDiff;
 
-      if (previousTemp > 60 && isValidGap) {
+      if (isUsage && isValidGap) {
         daily.usage_minutes = this.sanitizeNumber(daily.usage_minutes) + usageAdd;
       }
 
-      if (inEfficientRange && isValidGap && previousTemp > 60) {
+      if (inEfficientRange && isValidGap && isUsage) {
         daily.efficient_minutes = this.sanitizeNumber(daily.efficient_minutes) + efficientAdd;
+      }
+
+      // Sample-based Efficiency (New logic)
+      if (isUsage) {
+        daily.usage_samples = this.sanitizeNumber(daily.usage_samples) + 1;
+        if (inEfficientRange) {
+          daily.efficient_samples = this.sanitizeNumber(daily.efficient_samples) + 1;
+        }
       }
 
       const maintenanceStatus = await this.maintenanceService.getStatus(deviceId);
       const maintenanceUsageHours = Number(maintenanceStatus?.usage_hours || 0);
 
-      daily.efficiency_score = this.calculateEfficiencyScore(daily.efficient_minutes, daily.usage_minutes);
+      daily.efficiency_score = this.calculateEfficiencyScore(daily.efficient_samples, daily.usage_samples);
       daily.risk_score = this.calculateRiskScore(
         daily.max_temperature,
         daily.warning_minutes,
@@ -569,11 +582,18 @@ export class MetricsService {
 
           activeSession.duration_minutes = this.sanitizeNumber(activeSession.duration_minutes) + usageAdd;
           
-          if (inEfficientRange && isValidGap && previousTemp > 60) {
+          if (inEfficientRange && isValidGap && isUsage) {
             activeSession.efficient_minutes = this.sanitizeNumber(activeSession.efficient_minutes) + efficientAdd;
           }
 
-          activeSession.efficiency_score = this.calculateEfficiencyScore(activeSession.efficient_minutes, activeSession.duration_minutes);
+          if (isUsage) {
+            activeSession.usage_samples = this.sanitizeNumber(activeSession.usage_samples) + 1;
+            if (inEfficientRange) {
+              activeSession.efficient_samples = this.sanitizeNumber(activeSession.efficient_samples) + 1;
+            }
+          }
+
+          activeSession.efficiency_score = this.calculateEfficiencyScore(activeSession.efficient_samples, activeSession.usage_samples);
           activeSession.risk_score = this.calculateRiskScore(
             activeSession.max_temperature,
             activeSession.warning_minutes,
@@ -807,6 +827,8 @@ export class MetricsService {
       report.low_minutes = this.sanitizeNumber(summary.low_minutes);
       report.off_minutes = this.sanitizeNumber(summary.off_minutes);
       report.efficient_minutes = this.sanitizeNumber(summary.efficient_minutes);
+      report.usage_samples = this.sanitizeNumber(summary.usage_samples);
+      report.efficient_samples = this.sanitizeNumber(summary.efficient_samples);
       report.efficiency_score = this.sanitizeNumber(summary.efficiency_score);
       report.risk_score = this.sanitizeNumber(summary.risk_score);
 
@@ -862,6 +884,8 @@ export class MetricsService {
       report.low_minutes = this.sanitizeNumber(summary.low_minutes);
       report.off_minutes = this.sanitizeNumber(summary.off_minutes);
       report.efficient_minutes = this.sanitizeNumber(summary.efficient_minutes);
+      report.usage_samples = this.sanitizeNumber(summary.usage_samples);
+      report.efficient_samples = this.sanitizeNumber(summary.efficient_samples);
       report.efficiency_score = this.sanitizeNumber(summary.efficiency_score);
       report.risk_score = this.sanitizeNumber(summary.risk_score);
 
@@ -1048,6 +1072,8 @@ export class MetricsService {
 
     let totalUsage = 0;
     let totalEfficient = 0;
+    let totalUsageSamples = 0;
+    let totalEfficientSamples = 0;
     let sessionsRebuilt = 0;
     let daysRecalculatedSet = new Set<string>();
 
@@ -1081,6 +1107,8 @@ export class MetricsService {
           predictions_confirmed: 0,
           predictions_false_positive: 0,
           logs_count: 0,
+          usage_samples: 0,
+          efficient_samples: 0,
           threshold_1_snapshot: t1,
           threshold_2_snapshot: t2,
           threshold_3_snapshot: t3,
@@ -1103,19 +1131,20 @@ export class MetricsService {
       currentDaily.logs_count = (currentDaily.logs_count || 0) + 1;
       currentDaily.avg_temperature = (currentDaily.avg_temperature * (currentDaily.logs_count - 1) + temp) / currentDaily.logs_count;
 
+      const isUsage = temp > 60;
+      const inEfficientRange = temp >= 120 && temp <= 180;
+
       let elapsed = 0;
       let usageAdd = 0;
       let efficientAdd = 0;
       let diff = 0;
       const previousTemp = prevLog ? Number(prevLog.temperature) : temp;
-      const inEfficientRange = previousTemp >= 120 && previousTemp <= 180;
 
       if (prevLog) {
         const diffMs = new Date(log.created_at).getTime() - new Date(prevLog.created_at).getTime();
         elapsed = diffMs / 60000;
         
         if (elapsed > 0 && elapsed <= 5) {
-          const isUsage = previousTemp > 60;
           usageAdd = isUsage ? elapsed : 0;
           efficientAdd = (isUsage && inEfficientRange) ? elapsed : 0;
           diff = Math.max(1, Math.round(elapsed));
@@ -1133,15 +1162,25 @@ export class MetricsService {
         }
       }
 
-      this.logger.log(`[EfficiencySegment] prev_temp=${previousTemp.toFixed(2)} curr_temp=${temp.toFixed(2)} elapsed=${elapsed.toFixed(2)} valid_gap=${elapsed > 0 && elapsed <= 5} is_usage=${previousTemp > 60} efficient=${inEfficientRange && elapsed > 0 && elapsed <= 5 && previousTemp > 60} usage_add=${usageAdd.toFixed(2)} efficient_add=${efficientAdd.toFixed(2)}`);
+      this.logger.log(`[EfficiencySegment] prev_temp=${previousTemp.toFixed(2)} curr_temp=${temp.toFixed(2)} elapsed=${elapsed.toFixed(2)} valid_gap=${elapsed > 0 && elapsed <= 5} is_usage=${isUsage} efficient=${inEfficientRange && elapsed > 0 && elapsed <= 5 && isUsage} usage_add=${usageAdd.toFixed(2)} efficient_add=${efficientAdd.toFixed(2)}`);
 
-      if (previousTemp > 60 && elapsed > 0 && elapsed <= 5) {
+      if (isUsage && elapsed > 0 && elapsed <= 5) {
         currentDaily.usage_minutes = Number(currentDaily.usage_minutes) + usageAdd;
         totalUsage += usageAdd;
       }
-      if (inEfficientRange && elapsed > 0 && elapsed <= 5 && previousTemp > 60) {
+      if (inEfficientRange && elapsed > 0 && elapsed <= 5 && isUsage) {
         currentDaily.efficient_minutes = Number(currentDaily.efficient_minutes) + efficientAdd;
         totalEfficient += efficientAdd;
+      }
+
+      // Samples logic
+      if (isUsage) {
+        currentDaily.usage_samples = (currentDaily.usage_samples || 0) + 1;
+        totalUsageSamples++;
+        if (inEfficientRange) {
+          currentDaily.efficient_samples = (currentDaily.efficient_samples || 0) + 1;
+          totalEfficientSamples++;
+        }
       }
 
       const zone = this.getTemperatureZone(temp, t1, t2, t3);
@@ -1174,6 +1213,8 @@ export class MetricsService {
             off_minutes: 0,
             alerts_level_2: 0,
             alerts_level_3: 0,
+            usage_samples: 0,
+            efficient_samples: 0,
             efficiency_score: 0,
             risk_score: 0,
             max_temperature: temp,
@@ -1184,8 +1225,15 @@ export class MetricsService {
         }
 
         activeSession.duration_minutes = Number(activeSession.duration_minutes) + usageAdd;
-        if (inEfficientRange && elapsed > 0 && elapsed <= 5 && previousTemp > 60) {
+        if (inEfficientRange && elapsed > 0 && elapsed <= 5 && isUsage) {
           activeSession.efficient_minutes = Number(activeSession.efficient_minutes) + efficientAdd;
+        }
+
+        if (isUsage) {
+          activeSession.usage_samples = (activeSession.usage_samples || 0) + 1;
+          if (inEfficientRange) {
+            activeSession.efficient_samples = (activeSession.efficient_samples || 0) + 1;
+          }
         }
 
         if (temp > Number(activeSession.max_temperature)) {
@@ -1208,7 +1256,7 @@ export class MetricsService {
     }
 
     if (currentDaily) {
-      currentDaily.efficiency_score = this.calculateEfficiencyScore(currentDaily.efficient_minutes, currentDaily.usage_minutes);
+      currentDaily.efficiency_score = this.calculateEfficiencyScore(currentDaily.efficient_samples, currentDaily.usage_samples);
       await this.dailyMetricRepository.save(this.normalizeMetricsPayload(currentDaily));
     }
     if (activeSession) {
@@ -1217,8 +1265,8 @@ export class MetricsService {
       await this.sessionRepository.save(this.normalizeMetricsPayload(activeSession));
     }
 
-    const finalEfficiencyScore = totalUsage > 0 ? (totalEfficient / totalUsage) * 100 : 0;
-    this.logger.log(`[MetricsRecalculateDone] device=${deviceId} logs=${logs.length} usage=${totalUsage.toFixed(2)} efficient=${totalEfficient.toFixed(2)} score=${finalEfficiencyScore.toFixed(2)}`);
+    const finalEfficiencyScore = totalUsageSamples > 0 ? (totalEfficientSamples / totalUsageSamples) * 100 : 0;
+    this.logger.log(`[MetricsRecalculateDone] device=${deviceId} logs=${logs.length} usage_samples=${totalUsageSamples} efficient_samples=${totalEfficientSamples} score=${finalEfficiencyScore.toFixed(2)}`);
 
     return {
       success: true,
@@ -1230,6 +1278,8 @@ export class MetricsService {
       sessionsRebuilt,
       totalUsageMinutes: Number(totalUsage.toFixed(2)),
       totalEfficientMinutes: Number(totalEfficient.toFixed(2)),
+      totalUsageSamples,
+      totalEfficientSamples,
       efficiencyScore: Number(finalEfficiencyScore.toFixed(2))
     };
   }
@@ -1292,13 +1342,13 @@ export class MetricsService {
     return 'critical';
   }
 
-  private calculateEfficiencyScore(efficientMinutes: any, totalUsageMinutes: any): number {
-    const efficient = this.sanitizeNumber(efficientMinutes);
-    const total = this.sanitizeNumber(totalUsageMinutes);
+  private calculateEfficiencyScore(efficientSamples: any, usageSamples: any): number {
+    const efficient = this.sanitizeNumber(efficientSamples);
+    const total = this.sanitizeNumber(usageSamples);
 
     const score = total > 0 ? (efficient / total) * 100 : 0;
 
-    this.logger.log(`[EfficiencyCalculation] total_usage=${total.toFixed(2)} efficient_min=${efficient.toFixed(2)} efficiency_score=${score.toFixed(2)}`);
+    this.logger.log(`[EfficiencyCalculation] total_samples=${total} efficient_samples=${efficient} efficiency_score=${score.toFixed(2)}`);
 
     return Number(this.clampScore(score).toFixed(2));
   }
@@ -1423,6 +1473,7 @@ export class MetricsService {
     const numericFields = [
       'usage_minutes', 'safe_minutes', 'warning_minutes', 'critical_minutes', 'low_minutes', 'off_minutes',
       'efficient_minutes', 'efficiency_score', 'risk_score', 'logs_count', 'sessions_count',
+      'usage_samples', 'efficient_samples',
       'alerts_total', 'alerts_level_1', 'alerts_level_2', 'alerts_level_3',
       'predictions_total', 'predictions_confirmed', 'predictions_false_positive',
       'max_temperature', 'min_temperature', 'avg_temperature',
@@ -1516,6 +1567,8 @@ export class MetricsService {
         predictions_confirmed: 0,
         predictions_false_positive: 0,
         logs_count: 0,
+        usage_samples: 0,
+        efficient_samples: 0,
         threshold_1_snapshot: settings.threshold_1,
         threshold_2_snapshot: settings.threshold_2,
         threshold_3_snapshot: settings.threshold_3,
@@ -1527,7 +1580,7 @@ export class MetricsService {
     daily.off_minutes = this.sanitizeNumber(daily.off_minutes) + minutes;
 
     // Recalcular scores básicos si el día ya tenía datos o si acabamos de crearlo
-    daily.efficiency_score = this.calculateEfficiencyScore(daily.efficient_minutes, daily.usage_minutes);
+    daily.efficiency_score = this.calculateEfficiencyScore(daily.efficient_samples, daily.usage_samples);
 
     await this.dailyMetricRepository.save(this.normalizeMetricsPayload(daily));
   }

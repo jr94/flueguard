@@ -76,6 +76,12 @@ export class DeviceDailyMetric {
   @Column({ type: 'int', default: 0 })
   predictions_false_positive: number;
 
+  @Column({ type: 'int', default: 0 })
+  usage_samples: number;
+
+  @Column({ type: 'int', default: 0 })
+  efficient_samples: number;
+
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   efficiency_score: number;
 

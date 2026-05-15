@@ -67,6 +67,12 @@ export class DeviceUsageSession {
   @Column({ type: 'int', default: 0 })
   alerts_level_3: number;
 
+  @Column({ type: 'int', default: 0 })
+  usage_samples: number;
+
+  @Column({ type: 'int', default: 0 })
+  efficient_samples: number;
+
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   efficiency_score: number;
 

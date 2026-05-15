@@ -61,6 +61,12 @@ export class DeviceReport {
   @Column('decimal', { precision: 12, scale: 2, default: 0 })
   efficient_minutes: number;
 
+  @Column({ type: 'int', default: 0 })
+  usage_samples: number;
+
+  @Column({ type: 'int', default: 0 })
+  efficient_samples: number;
+
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   efficiency_score: number;
 
