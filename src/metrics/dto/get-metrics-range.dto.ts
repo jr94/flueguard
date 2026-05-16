@@ -1,8 +1,8 @@
 import { IsOptional, IsEnum, IsString, IsDateString } from 'class-validator';
 
 export class GetMetricsRangeDto {
-  @IsEnum(['today', '7d', '30d', 'custom'])
-  range: 'today' | '7d' | '30d' | 'custom';
+  @IsEnum(['today', '7d', '30d', 'custom', 'hour', '1h'])
+  range: 'today' | '7d' | '30d' | 'custom' | 'hour' | '1h';
 
   @IsOptional()
   @IsDateString()

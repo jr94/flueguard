@@ -74,7 +74,7 @@ export class MetricsService {
   }
 
   private getLocalDateRangeForRange(
-    range: 'today' | '7d' | '30d' | 'custom',
+    range: 'today' | '7d' | '30d' | 'custom' | 'hour' | '1h',
     timezone: string,
     startDate?: string,
     endDate?: string,
@@ -179,11 +179,47 @@ export class MetricsService {
     };
   }
 
-  async getSummary(deviceId: number, userId: number, range: 'today' | '7d' | '30d' | 'custom', startDate?: string, endDate?: string) {
+  async getSummary(deviceId: number, userId: number, range: 'today' | '7d' | '30d' | 'custom' | 'hour' | '1h', startDate?: string, endDate?: string) {
     await this.assertDeviceMetricAccess(deviceId, userId, 'metrics.historical_max_temperature');
 
     const timezone = await this.getDeviceTimezone(deviceId);
-    const { startDate: start, endDate: end } = this.getLocalDateRangeForRange(range, timezone, startDate, endDate);
+    
+    if (range === 'hour' || (range as string) === '1h') {
+      const now = DateTime.now();
+      const utcEnd = now.toUTC().toJSDate();
+      const utcStart = now.minus({ hours: 1 }).toUTC().toJSDate();
+
+      const stats = await this.temperatureLogRepository
+        .createQueryBuilder('l')
+        .select('COUNT(*)', 'total_samples')
+        .addSelect('SUM(CASE WHEN l.temperature > 60 THEN 1 ELSE 0 END)', 'usage_samples')
+        .addSelect('SUM(CASE WHEN l.temperature >= 120 AND l.temperature <= 180 THEN 1 ELSE 0 END)', 'efficient_samples')
+        .where('l.device_id = :deviceId', { deviceId })
+        .andWhere('l.created_at BETWEEN :utcStart AND :utcEnd', { utcStart: utcStart, utcEnd: utcEnd })
+        .getRawOne();
+
+      const usage_samples = Number(stats.usage_samples || 0);
+      const efficient_samples = Number(stats.efficient_samples || 0);
+      const efficiency_score = usage_samples > 0 
+        ? Number(((efficient_samples / usage_samples) * 100).toFixed(2)) 
+        : 0;
+
+      const period_start = now.minus({ hours: 1 }).setZone(timezone).toISO();
+      const period_end = now.setZone(timezone).toISO();
+
+      this.logger.log(`[EfficiencyHour] device=${deviceId} start=${period_start} end=${period_end} usage_samples=${usage_samples} efficient_samples=${efficient_samples} score=${efficiency_score}`);
+
+      return {
+        range: 'hour',
+        period_start,
+        period_end,
+        usage_samples,
+        efficient_samples,
+        efficiency_score,
+      };
+    }
+
+    const { startDate: start, endDate: end } = this.getLocalDateRangeForRange(range as any, timezone, startDate, endDate);
 
     const result = await this.dailyMetricRepository
       .createQueryBuilder('m')
