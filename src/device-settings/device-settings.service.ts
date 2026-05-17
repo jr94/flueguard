@@ -83,19 +83,9 @@ export class DeviceSettingsService {
       throw new NotFoundException(`User has no access to device with serial number ${serialNumber}`);
     }
 
-    const subscriptionStatus = await this.subscriptionsService.getDeviceSubscriptionStatus(setting.device_id, userId);
-    
-    let planInfo = { id: null, code: 'basic', name: 'FlueGuard Básico' };
-    if (subscriptionStatus && subscriptionStatus.is_active && subscriptionStatus.plan) {
-      planInfo = {
-        id: subscriptionStatus.plan.id,
-        code: subscriptionStatus.plan.code,
-        name: subscriptionStatus.plan.name
-      };
-    }
+    const planInfo = await this.subscriptionsService.getActivePlanByDeviceId(setting.device_id, userId);
 
     console.log(`[DeviceSettings] DeviceID: ${setting.device_id}, UserID: ${userId}`);
-    console.log(`[DeviceSettings] Subscription found: ${subscriptionStatus?.is_active}`);
     console.log(`[DeviceSettings] Plan ID: ${planInfo.id}, Code: ${planInfo.code}, Name: ${planInfo.name}`);
     console.log(`[DeviceSettings] planName final: ${planInfo.code}`);
 

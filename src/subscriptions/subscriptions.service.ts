@@ -165,6 +165,40 @@ export class SubscriptionsService {
     return map;
   }
 
+  async getActivePlanByDeviceId(deviceId: number, requestedByUserId?: number): Promise<{ id: number | null, code: string, name: string }> {
+    const subscription = await this.deviceSubscriptionRepository.createQueryBuilder('ds')
+      .innerJoinAndSelect('ds.plan', 'sp')
+      .where('ds.device_id = :deviceId', { deviceId })
+      .andWhere('ds.status IN (:...statuses)', { statuses: ['active', 'trialing'] })
+      .andWhere('ds.current_period_end > NOW()')
+      .andWhere('sp.is_active = 1')
+      .orderBy('ds.current_period_end', 'DESC')
+      .getOne();
+
+    const planCode = subscription && subscription.plan ? subscription.plan.code : 'basic';
+    const source = subscription ? 'device_subscription' : 'no_active_subscription';
+
+    if (requestedByUserId) {
+      console.log(`[PlanResolve] deviceId=${deviceId} requestedByUserId=${requestedByUserId} activePlan=${planCode} source=${source}`);
+    } else {
+      console.log(`[PlanResolve] deviceId=${deviceId} activePlan=${planCode} source=${source}`);
+    }
+
+    if (subscription && subscription.plan) {
+      return {
+        id: subscription.plan.id,
+        code: subscription.plan.code,
+        name: subscription.plan.name,
+      };
+    }
+
+    return {
+      id: null,
+      code: 'basic',
+      name: 'FlueGuard Básico',
+    };
+  }
+
   async getDeviceSubscriptionStatus(deviceId: number, userId?: number): Promise<any> {
     if (userId) {
       await this.validateUserDeviceAccess(userId, deviceId);
@@ -178,15 +212,12 @@ export class SubscriptionsService {
       .andWhere('ds.current_period_end > NOW()')
       .andWhere('sp.is_active = 1');
 
-    if (userId) {
-      query.andWhere('ds.user_id = :userId', { userId });
-    }
-
     const subscription = await query
       .orderBy('ds.current_period_end', 'DESC')
       .getOne();
 
     if (userId) {
+      console.log(`[PlanResolve] deviceId=${deviceId} requestedByUserId=${userId} activePlan=${subscription ? subscription.plan?.code : 'basic'} source=${subscription ? 'device_subscription' : 'no_active_subscription'}`);
       console.log(`[SubscriptionsService] Looking for subscription: DeviceID=${deviceId}, UserID=${userId}`);
       console.log(`[SubscriptionsService] Found: ${subscription ? 'YES (ID ' + subscription.id + ')' : 'NO'}`);
       if (subscription) {
