@@ -1,13 +1,21 @@
 {
   "latest": {
-    "version": "2.0.2",
-    "file": "https://flueguard.cl/firmware/flueguard_v2_0_2.bin",
-    "notes": "FIX: wifi, searchWifi, update telemetry, WifiSaveEnergy",
-    "date": "2026-04-28",
+    "version": "2.0.3",
+    "file": "https://flueguard.cl/firmware/flueguard_v2_0_3.bin",
+    "notes": "FIX: Light Wifi, alarm",
+    "date": "2026-06-02",
     "mandatory": false,
     "sha256": "FlueGuardUpdate2026V1"
   },
   "versions": [
+    {
+      "version": "2.0.3",
+      "file": "https://flueguard.cl/firmware/flueguard_v2_0_3.bin",
+      "notes": "FIX: Light Wifi, alarm",
+      "date": "2026-06-02",
+      "mandatory": false,
+      "sha256": "FlueGuardUpdate2026V1"
+    },
     {
       "version": "2.0.2",
       "file": "https://flueguard.cl/firmware/flueguard_v2_0_2.bin",
