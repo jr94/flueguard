@@ -23,7 +23,7 @@ export class DeviceFirmwareUpdatesService {
 
   private canTransition(fromStatus: string, toStatus: string): boolean {
     const validTransitions: Record<string, string[]> = {
-      'pending': ['in_progress', 'canceled'],
+      'pending': ['in_progress', 'completed', 'failed', 'canceled'],
       'in_progress': ['completed', 'failed'],
       'completed': [],
       'failed': [],
@@ -228,11 +228,11 @@ export class DeviceFirmwareUpdatesService {
       // Update status and installed version in a short, clean transaction
       await this.updatesRepository.manager.transaction(async em => {
         const result = await em.update(DeviceFirmwareUpdate, 
-          { id: update.id, status: 'in_progress' }, 
+          { id: update.id, status: update.status }, 
           { status: 'completed' }
         );
         if (result.affected === 0) {
-          throw new ConflictException(`Conflicto de concurrencia: la OTA ya no está en estado in_progress.`);
+          throw new ConflictException(`Conflicto de concurrencia: la OTA ya no está en el estado esperado.`);
         }
         // Use raw query to ensure we use the same transaction connection
         await em.query('UPDATE devices SET firmware_version = ? WHERE id = ?', [update.target_version, device.id]);
@@ -243,7 +243,7 @@ export class DeviceFirmwareUpdatesService {
       }
       if (error.code === 'ER_LOCK_WAIT_TIMEOUT') {
         // Fallback: Retry once without transaction if locks are exhausted
-        const result = await this.updatesRepository.update({ id: update.id, status: 'in_progress' }, { status: 'completed' });
+        const result = await this.updatesRepository.update({ id: update.id, status: update.status }, { status: 'completed' });
         if (result.affected && result.affected > 0) {
           await this.devicesService.updateFirmwareVersion(device.id, update.target_version);
         }
@@ -278,12 +278,12 @@ export class DeviceFirmwareUpdatesService {
     }
 
     const result = await this.updatesRepository.update(
-      { id: update.id, status: 'in_progress' },
+      { id: update.id, status: update.status },
       { status: 'failed', reason: dto.reason || 'Unknown error' }
     );
 
     if (result.affected === 0) {
-      throw new ConflictException(`Conflicto de concurrencia: la OTA ya no está en estado in_progress.`);
+      throw new ConflictException(`Conflicto de concurrencia: la OTA ya no está en el estado esperado.`);
     }
 
     return { success: true, message: 'OTA marcada como fallida' };
@@ -378,5 +378,9 @@ export class DeviceFirmwareUpdatesService {
       }
     }
     return result;
+  }
+
+  async autoCompleteOta(id: number): Promise<void> {
+    await this.updatesRepository.update(id, { status: 'completed' });
   }
 }

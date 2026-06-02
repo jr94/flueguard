@@ -8,6 +8,7 @@ import { DevicesService } from '../devices/devices.service';
 import { DeviceFirmwareUpdatesService } from '../device-firmware-updates/device-firmware-updates.service';
 import { Device } from '../devices/entities/device.entity';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { compareVersion } from '../firmware/utils/compare-version.util';
 
 
 @Injectable()
@@ -53,13 +54,19 @@ export class DeviceSettingsService {
     // 3. Find pending OTA request if any
     const otaRequest = await this.deviceFirmwareUpdatesService.getPendingOtaForDevice(device.id);
 
+    const hasAlreadyUpdated = otaRequest && device.firmware_version && compareVersion(device.firmware_version, otaRequest.target_version) >= 0;
+
+    if (hasAlreadyUpdated) {
+      await this.deviceFirmwareUpdatesService.autoCompleteOta(otaRequest.id);
+    }
+
     return {
       ...setting,
       device_name: device.device_name,
       region_id: device.region_id,
       comuna_id: device.comuna_id,
       direccion: device.direccion,
-      firmware_update: otaRequest ? {
+      firmware_update: (otaRequest && !hasAlreadyUpdated) ? {
         requested: true,
         status: otaRequest.status,
         request_id: otaRequest.request_id,
