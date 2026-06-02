@@ -852,7 +852,7 @@ export class MetricsService {
 
       report.total_usage_minutes = this.sanitizeNumber(summary.total_usage_minutes);
       report.max_temperature = this.sanitizeNumber(summary.max_temperature);
-      report.max_temperature_at = summary.max_temperature_at;
+      report.max_temperature_at = summary.max_temperature_at ?? null;
       report.avg_temperature = this.sanitizeNumber(summary.avg_temperature);
       report.total_sessions = this.sanitizeNumber(summary.total_sessions);
       report.total_alerts = this.sanitizeNumber(summary.total_alerts);
@@ -909,7 +909,7 @@ export class MetricsService {
 
       report.total_usage_minutes = this.sanitizeNumber(summary.total_usage_minutes);
       report.max_temperature = this.sanitizeNumber(summary.max_temperature);
-      report.max_temperature_at = summary.max_temperature_at;
+      report.max_temperature_at = summary.max_temperature_at ?? null;
       report.avg_temperature = this.sanitizeNumber(summary.avg_temperature);
       report.total_sessions = this.sanitizeNumber(summary.total_sessions);
       report.total_alerts = this.sanitizeNumber(summary.total_alerts);

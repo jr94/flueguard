@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CompleteOtaDto {
   @IsString()
@@ -8,4 +8,8 @@ export class CompleteOtaDto {
   @IsString()
   @IsNotEmpty()
   request_id: string;
+
+  @IsString()
+  @IsOptional()
+  firmware_version?: string;
 }
