@@ -1,43 +1,46 @@
-/* FlueGuard Digital Documentation Stylesheet */
+/* FlueGuard Digital Documentation Stylesheet - Dark Mode Edition */
 :root {
-    --bg-main: #f8fafc;
-    --bg-card: #ffffff;
-    --text-main: #0f172a;
-    --text-muted: #475569;
+    --bg-main: #0f172a; /* Slate 900 */
+    --bg-card: #1e293b; /* Slate 800 */
+    --text-main: #f8fafc; /* Slate 50 */
+    --text-muted: #94a3b8; /* Slate 400 */
     
     /* Brand Colors */
-    --primary: #ea580c; /* FlueGuard Orange/Red for stove/heat */
-    --primary-hover: #c2410c;
-    --primary-light: #ffedd5;
+    --primary: #f97316; /* FlueGuard Orange ("Flue") */
+    --danger: #ef4444; /* FlueGuard Red ("Guard") */
     
-    /* Alert Status Colors */
+    --primary-hover: #ea580c;
+    --primary-light: rgba(249, 115, 22, 0.15);
+    --secondary-hover: #334155;
+    
+    /* Alert Status Colors in Dark Mode */
     --status-normal: #10b981;
-    --status-normal-bg: #ecfdf5;
-    --status-normal-border: #a7f3d0;
+    --status-normal-bg: rgba(16, 185, 129, 0.05);
+    --status-normal-border: rgba(16, 185, 129, 0.25);
     
     --status-warning: #f59e0b;
-    --status-warning-bg: #fffbeb;
-    --status-warning-border: #fde68a;
+    --status-warning-bg: rgba(245, 158, 11, 0.05);
+    --status-warning-border: rgba(245, 158, 11, 0.25);
     
     --status-alert: #f97316;
-    --status-alert-bg: #fff7ed;
-    --status-alert-border: #ffedd5;
+    --status-alert-bg: rgba(249, 115, 22, 0.05);
+    --status-alert-border: rgba(249, 115, 22, 0.25);
     
     --status-critical: #ef4444;
-    --status-critical-bg: #fef2f2;
-    --status-critical-border: #fee2e2;
+    --status-critical-bg: rgba(239, 68, 68, 0.08);
+    --status-critical-border: rgba(239, 68, 68, 0.3);
 
     /* Spacing & Borders */
-    --border-color: #e2e8f0;
+    --border-color: #334155; /* Slate 700 */
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
     
     /* Shadows */
-    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-    --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -65,13 +68,14 @@ body {
 
 /* Header */
 .manual-header {
-    background-color: var(--bg-card);
+    background-color: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 100;
     box-shadow: var(--shadow-sm);
-    padding: 1rem 0;
+    padding: 0.85rem 0;
 }
 
 .header-content {
@@ -84,30 +88,37 @@ body {
     text-decoration: none;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
-.logo-icon {
-    width: 28px;
-    height: 28px;
-    fill: var(--primary);
+.logo-img {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
 }
 
 .logo-text {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 800;
     color: var(--text-main);
     letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
 }
 
-.logo-text span {
+/* Logo styling: "Flue" in Orange, "Guard" in Red */
+.logo-text span.brand-flue {
     color: var(--primary);
+}
+
+.logo-text span.brand-guard {
+    color: var(--danger);
 }
 
 /* Quick Nav Menu */
 .nav-menu {
     display: flex;
-    gap: 1rem;
+    gap: 0.5rem;
 }
 
 .nav-link {
@@ -115,19 +126,19 @@ body {
     color: var(--text-muted);
     font-size: 0.875rem;
     font-weight: 500;
-    padding: 0.35rem 0.75rem;
+    padding: 0.4rem 0.8rem;
     border-radius: var(--radius-sm);
     transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-    color: var(--primary);
-    background-color: #f1f5f9;
+    color: var(--text-main);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .nav-link.active {
-    color: var(--primary);
-    background-color: var(--primary-light);
+    color: var(--text-main);
+    background-color: rgba(255, 255, 255, 0.1);
     font-weight: 600;
 }
 
@@ -151,7 +162,7 @@ body {
 }
 
 .btn-back:hover {
-    color: var(--primary);
+    color: var(--text-main);
 }
 
 .btn-back svg {
@@ -223,7 +234,7 @@ body {
 .doc-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-hover);
-    border-color: var(--primary-light);
+    border-color: rgba(249, 115, 22, 0.3);
 }
 
 .doc-card:hover::before {
@@ -234,7 +245,7 @@ body {
     width: 48px;
     height: 48px;
     border-radius: var(--radius-md);
-    background-color: #fff7ed;
+    background-color: rgba(249, 115, 22, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -286,7 +297,7 @@ body {
 .btn-primary {
     background-color: var(--primary);
     color: #ffffff;
-    box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.2);
 }
 
 .btn-primary:hover {
@@ -295,13 +306,13 @@ body {
 }
 
 .btn-secondary {
-    background-color: #f1f5f9;
+    background-color: #334155;
     color: var(--text-main);
-    border: 1px solid var(--border-color);
+    border: 1px solid #475569;
 }
 
 .btn-secondary:hover {
-    background-color: #e2e8f0;
+    background-color: var(--secondary-hover);
 }
 
 .btn-pdf {
@@ -337,7 +348,10 @@ body {
 /* Warnings & Alert Callouts */
 .alert-block {
     border-left: 4px solid var(--primary);
-    background-color: #fff7ed;
+    background-color: rgba(249, 115, 22, 0.05);
+    border-right: 1px solid rgba(249, 115, 22, 0.08);
+    border-top: 1px solid rgba(249, 115, 22, 0.08);
+    border-bottom: 1px solid rgba(249, 115, 22, 0.08);
     padding: 1.25rem 1.5rem;
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
     margin: 2rem 0;
@@ -391,7 +405,7 @@ body {
     color: white;
 }
 .level-normal h4 {
-    color: #065f46;
+    color: #34d399;
 }
 
 .level-warning {
@@ -400,10 +414,10 @@ body {
 }
 .level-warning .alert-badge {
     background-color: var(--status-warning);
-    color: #78350f;
+    color: #1e1b4b;
 }
 .level-warning h4 {
-    color: #92400e;
+    color: #fbbf24;
 }
 
 .level-alert {
@@ -415,7 +429,7 @@ body {
     color: white;
 }
 .level-alert h4 {
-    color: #9a3412;
+    color: #fb923c;
 }
 
 .level-critical {
@@ -428,7 +442,7 @@ body {
     color: white;
 }
 .level-critical h4 {
-    color: #991b1b;
+    color: #f87171;
 }
 
 @keyframes pulseBorder {
@@ -558,11 +572,11 @@ body {
 
 /* Footer */
 .manual-footer {
-    background-color: #0f172a;
-    color: #94a3b8;
+    background-color: #0b0f19;
+    color: #64748b;
     padding: 3rem 0;
     margin-top: 5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-color);
 }
 
 .footer-content {
@@ -576,13 +590,13 @@ body {
 .footer-brand {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
-.footer-logo {
-    width: 24px;
-    height: 24px;
-    fill: #f97316;
+.footer-logo-img {
+    height: 28px;
+    width: auto;
+    object-fit: contain;
 }
 
 .footer-logo-text {
@@ -592,8 +606,12 @@ body {
     letter-spacing: -0.5px;
 }
 
-.footer-logo-text span {
-    color: #f97316;
+.footer-logo-text span.brand-flue {
+    color: var(--primary);
+}
+
+.footer-logo-text span.brand-guard {
+    color: var(--danger);
 }
 
 .footer-desc {
@@ -604,7 +622,7 @@ body {
 
 .footer-copyright {
     font-size: 0.8rem;
-    color: #64748b;
+    color: #475569;
 }
 
 /* PDF Modal Dialog style */
@@ -615,8 +633,8 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(4px);
+    background-color: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(6px);
     z-index: 1000;
     justify-content: center;
     align-items: center;
@@ -625,6 +643,7 @@ body {
 
 .modal-content {
     background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     padding: 2.5rem;
     max-width: 450px;
@@ -637,7 +656,7 @@ body {
 .modal-icon {
     width: 60px;
     height: 60px;
-    background-color: #fff7ed;
+    background-color: rgba(249, 115, 22, 0.15);
     color: var(--primary);
     border-radius: 50%;
     display: flex;
@@ -650,6 +669,7 @@ body {
     font-size: 1.25rem;
     font-weight: 700;
     margin-bottom: 0.75rem;
+    color: var(--text-main);
 }
 
 .modal-desc {
