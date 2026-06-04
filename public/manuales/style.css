@@ -92,7 +92,7 @@ body {
 }
 
 .logo-img {
-    height: 32px;
+    height: 24px;
     width: auto;
     object-fit: contain;
 }
@@ -594,7 +594,7 @@ body {
 }
 
 .footer-logo-img {
-    height: 28px;
+    height: 20px;
     width: auto;
     object-fit: contain;
 }
