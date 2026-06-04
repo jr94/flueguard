@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- SEO Basic Tags -->
+    <title>Manual de Usuario Completo - FlueGuard</title>
+    <meta name="description" content="Manual de instrucciones oficial para FlueGuard. Aprende cómo funciona, configuración paso a paso, niveles de alerta térmica, solución de problemas y mantenimiento.">
+    <!-- Open Graph Metadata -->
+    <meta property="og:title" content="Manual de Usuario - FlueGuard">
+    <meta property="og:description" content="Guía detallada del funcionamiento, rangos de temperatura, solución de problemas técnicos, mantenimiento e indicaciones de seguridad para el dispositivo de monitoreo FlueGuard.">
+    <meta property="og:type" content="article">
+    <meta property="og:image" content="/manuales/logo-share.png">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/manuales/style.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="manual-header">
+        <div class="container header-content">
+            <a href="/manuales" class="logo-link">
+                <svg class="logo-icon" viewBox="0 0 24 24">
+                    <path d="M12 2C11.38 2 10.83 2.37 10.6 2.94L9.12 6.64L5.3 7.82C4.7 8.01 4.3 8.56 4.3 9.2C4.3 9.84 4.7 10.39 5.3 10.58L9.12 11.76L10.6 15.46C10.83 16.03 11.38 16.4 12 16.4C12.62 16.4 13.17 16.03 13.4 15.46L14.88 11.76L18.7 10.58C19.3 10.39 19.7 9.84 19.7 9.2C19.7 8.56 19.3 8.01 18.7 7.82L14.88 6.64L13.4 2.94C13.17 2.37 12.62 2 12 2M12 5.12L12.92 7.42L13.17 8.04L13.8 8.23L16.1 9.2L13.8 10.17L13.17 10.36L12.92 10.98L12 13.28L11.08 10.98L10.83 10.36L10.2 10.17L7.9 9.2L10.2 8.23L10.83 8.04L11.08 7.42L12 5.12M12 17.5C9 17.5 5.5 19.42 5.5 21C5.5 21.55 5.95 22 6.5 22H17.5C18.05 22 18.5 21.55 18.5 21C18.5 19.42 15 17.5 12 17.5Z"/>
+                </svg>
+                <span class="logo-text">Flue<span>Guard</span></span>
+            </a>
+            <nav class="nav-menu">
+                <a href="/manuales" class="nav-link">Inicio</a>
+                <a href="/manuales/manual-usuario" class="nav-link active">Manual</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Wrapper -->
+    <main class="container">
+        
+        <!-- Sub-Navigation / Header actions -->
+        <div class="sub-nav">
+            <a href="/manuales" class="btn-back" id="back-to-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Volver al centro
+            </a>
+            <button class="btn btn-pdf" id="btn-download-pdf">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Descargar PDF
+            </button>
+        </div>
+
+        <!-- Documentation Card Container -->
+        <article class="manual-content-wrapper">
+            
+            <!-- Page Title -->
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <h1 class="page-title">Manual de Usuario</h1>
+                <p style="color: var(--text-muted); font-size: 1rem; margin-top: 0.5rem;">FlueGuard &bull; Guía de Operación y Configuración Completa</p>
+            </div>
+
+            <!-- Introducción -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Introducción</h3>
+                <p class="manual-paragraph">
+                    FlueGuard es un sistema inteligente de monitoreo térmico diseñado para supervisar continuamente la temperatura del ducto de evacuación de gases (cañón) de una estufa a leña.
+                </p>
+                <p class="manual-paragraph">
+                    Su objetivo principal es ayudar a detectar de forma temprana situaciones potencialmente peligrosas asociadas al sobrecalentamiento del cañón, entregando alertas locales acústicas y notificaciones remotas en teléfonos móviles para que el usuario pueda actuar oportunamente y prevenir accidentes domésticos.
+                </p>
+            </section>
+
+            <!-- ¿Cómo funciona? -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">¿Cómo funciona?</h3>
+                <p class="manual-paragraph">El sistema está integrado por cuatro componentes principales:</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item"><strong>Sensor magnético de temperatura:</strong> Adherido directamente al metal para medir la temperatura superficial.</li>
+                    <li class="bullet-item"><strong>Módulo electrónico FlueGuard:</strong> Unidad de procesamiento y control de pared.</li>
+                    <li class="bullet-item"><strong>Aplicación móvil:</strong> Panel de control del usuario para monitoreo en vivo.</li>
+                    <li class="bullet-item"><strong>Plataforma en la nube:</strong> Sincronización de datos, histórico y alertas móviles.</li>
+                </ul>
+                <p class="manual-paragraph">El sensor mide continuamente la temperatura superficial del cañón metálico. La unidad de procesamiento FlueGuard evalúa el nivel de temperatura en tiempo real y realiza las siguientes acciones:</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item">Registra y grafica la evolución térmica.</li>
+                    <li class="bullet-item">Detecta incrementos bruscos de temperatura.</li>
+                    <li class="bullet-item">Evalúa el nivel de riesgo térmico en base a rangos predefinidos.</li>
+                    <li class="bullet-item">Envía notificaciones instantáneas push a la aplicación móvil.</li>
+                    <li class="bullet-item">Activa una potente alarma acústica local en caso de riesgo crítico.</li>
+                    <li class="bullet-item">Recibe actualizaciones inalámbricas de firmware (OTA) automáticas.</li>
+                </ul>
+            </section>
+
+            <!-- Componentes del sistema -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Componentes del sistema</h3>
+                
+                <h4 class="manual-section-subtitle">1. Sensor magnético de temperatura</h4>
+                <p class="manual-paragraph">Es la unidad encargada de registrar la temperatura real de contacto del ducto.</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item"><strong>Medición continua:</strong> Registra la temperatura a intervalos de alta frecuencia.</li>
+                    <li class="bullet-item"><strong>Contacto directo:</strong> Utiliza el contacto magnético de alta resistencia al calor sobre superficies ferrosas.</li>
+                    <li class="bullet-item"><strong>Instalación simple:</strong> No requiere herramientas, perforaciones ni tornillos.</li>
+                    <li class="bullet-item"><strong>Cable blindado metálico:</strong> Recubrimiento metálico flexible de alta tolerancia térmica para mayor seguridad.</li>
+                </ul>
+
+                <h4 class="manual-section-subtitle">2. Unidad FlueGuard de pared</h4>
+                <p class="manual-paragraph">Es el cerebro lógico del kit que gestiona el procesamiento de señales y la conectividad.</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item"><strong>Procesamiento local:</strong> Opera y alerta de manera local aunque no haya conexión a Internet.</li>
+                    <li class="bullet-item"><strong>Conectividad WiFi:</strong> Sincroniza datos con la red doméstica hacia el servidor cloud.</li>
+                    <li class="bullet-item"><strong>Buzzer acústico:</strong> Alarma sonora integrada para alertar directamente en la habitación.</li>
+                    <li class="bullet-item"><strong>Configuración rápida:</strong> Incorpora chip de comunicación Bluetooth para facilitar la vinculación inicial.</li>
+                </ul>
+
+                <h4 class="manual-section-subtitle">3. Aplicación móvil</h4>
+                <p class="manual-paragraph">Es la interfaz interactiva para el usuario final.</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item">Visualización del valor exacto de temperatura actual.</li>
+                    <li class="bullet-item">Recepción de alertas críticas push en segundo plano.</li>
+                    <li class="bullet-item">Acceso al historial detallado de mediciones diarias y mensuales.</li>
+                    <li class="bullet-item">Configuración de perfiles y administración de múltiples dispositivos FlueGuard en el hogar.</li>
+                    <li class="bullet-item">Indicador visual de estado de conectividad online/offline.</li>
+                </ul>
+            </section>
+
+            <!-- Instalación recomendada -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Instalación recomendada</h3>
+                
+                <h4 class="manual-section-subtitle">Ubicación física del sensor magnético:</h4>
+                <ul class="bullet-list">
+                    <li class="bullet-item">Debe instalarse preferentemente en la parte posterior del cañón de la estufa para resguardar la estética visual.</li>
+                    <li class="bullet-item">La altura ideal de fijación es de 10 a 15 cm medidos desde la base del cañón (salida del calefactor).</li>
+                    <li class="bullet-item">El sensor debe quedar firmemente en contacto metal con metal. Limpie toda pintura descascarada, óxido grueso o residuos aceitosos antes del montaje.</li>
+                    <li class="bullet-item">No doble en ángulos agudos o extremos el cable blindado metálico.</li>
+                </ul>
+
+                <h4 class="manual-section-subtitle">Ubicación de la unidad FlueGuard:</h4>
+                <ul class="bullet-list">
+                    <li class="bullet-item">Fije el módulo de procesamiento directamente a la pared mediante cinta doble contacto de alta calidad.</li>
+                    <li class="bullet-item">La altura recomendada es a un máximo de 35 cm desde el nivel de suelo.</li>
+                    <li class="bullet-item">Debe conservar una distancia horizontal mínima de seguridad de 30 cm con respecto al cuerpo caliente de la estufa.</li>
+                    <li class="bullet-item"><strong>Prohibido:</strong> Pegar el módulo directamente sobre la estufa, apoyarlo sobre el cañón caliente o en zonas con humedad condensada.</li>
+                </ul>
+            </section>
+
+            <!-- Primera configuración -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Primera configuración</h3>
+                <ol class="step-list">
+                    <li class="step-item">
+                        <div class="step-number">1</div>
+                        <div class="step-desc">Conecte el cable de alimentación USB-C de FlueGuard a una fuente de energía eléctrica de 5V.</div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">2</div>
+                        <div class="step-desc">Abra la aplicación FlueGuard en su smartphone, inicie sesión o cree una nueva cuenta.</div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">3</div>
+                        <div class="step-desc">Presione en el botón de agregar nuevo dispositivo (“+”) de la interfaz móvil.</div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">4</div>
+                        <div class="step-desc">Active la conexión Bluetooth y el sensor de ubicación si la aplicación lo solicita.</div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">5</div>
+                        <div class="step-desc">Seleccione el identificador de su FlueGuard y proporcione los datos exactos de su WiFi (SSID y clave).</div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">6</div>
+                        <div class="step-desc">Espere la confirmación en pantalla, asigne un nombre identificador personalizado y comience a utilizar el sistema.</div>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- Temperaturas y comportamiento -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Temperaturas y comportamiento</h3>
+                <p class="manual-paragraph">
+                    Es importante tener en cuenta que las temperaturas registradas en el cañón pueden fluctuar de forma significativa dependiendo de factores ajenos al sensor:
+                </p>
+                <ul class="bullet-list">
+                    <li class="bullet-item">El modelo, antigüedad y hermeticidad de la estufa.</li>
+                    <li class="bullet-item">El tipo de madera utilizada como combustible (maderas duras versus blandas).</li>
+                    <li class="bullet-item">La humedad interna de la leña (leña húmeda disminuye la eficiencia y eleva riesgos de creosota).</li>
+                    <li class="bullet-item">El volumen de carga dentro de la cámara de combustión.</li>
+                    <li class="bullet-item">La apertura del tiraje y la entrada de aire.</li>
+                    <li class="bullet-item">El estado de limpieza interna de las tuberías.</li>
+                    <li class="bullet-item">La presión atmosférica y el tiro natural exterior.</li>
+                </ul>
+                <p class="manual-paragraph">
+                    Por este motivo, las lecturas térmicas del sistema de sensores deben utilizarse como datos referenciales y deben interpretarse de manera conjunta con la inspección visual habitual que realiza el usuario del comportamiento de su calefactor.
+                </p>
+            </section>
+
+            <!-- Sistema de alertas -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Sistema de alertas</h3>
+                <p class="manual-paragraph">
+                    FlueGuard monitoriza constantemente la temperatura y clasifica las lecturas en cuatro niveles de riesgo definidos, desencadenando diferentes comportamientos acústicos e inalámbricos:
+                </p>
+                
+                <!-- Nivel Normal -->
+                <div class="alert-level-box level-normal">
+                    <div>
+                        <span class="alert-badge">Normal</span>
+                    </div>
+                    <div>
+                        <h4>Rango Óptimo de Trabajo</h4>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem;">La temperatura en la pared exterior del cañón se mantiene dentro de los rangos normales y eficientes de evacuación.</p>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; font-weight: 600; color: #047857; margin-bottom: 0;">Acción recomendada: Continuar operando y vigilando el calefactor con normalidad.</p>
+                    </div>
+                </div>
+
+                <!-- Nivel Advertencia -->
+                <div class="alert-level-box level-warning">
+                    <div>
+                        <span class="alert-badge">Advertencia</span>
+                    </div>
+                    <div>
+                        <h4>Temperatura en Aumento</h4>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem;">La temperatura exterior del ducto comienza a sobrepasar el promedio recomendado para un funcionamiento seguro de larga duración.</p>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; font-weight: 600; color: #b45309; margin-bottom: 0;">Acción recomendada: Observe visualmente la estufa, evite añadir cargas grandes de leña y verifique si el tiraje está en una posición muy abierta.</p>
+                    </div>
+                </div>
+
+                <!-- Nivel Alerta -->
+                <div class="alert-level-box level-alert">
+                    <div>
+                        <span class="alert-badge">Alerta</span>
+                    </div>
+                    <div>
+                        <h4>Sobrecalentamiento Moderado</h4>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem;">La temperatura exterior del cañón ha alcanzado un valor de riesgo térmico elevado. Se envía una notificación push prioritaria al celular.</p>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; font-weight: 600; color: #c2410c; margin-bottom: 0;">Acción recomendada: Reduzca de inmediato la entrada de aire primario al calefactor ajustando los tirajes y verifique la estanqueidad de la puerta.</p>
+                    </div>
+                </div>
+
+                <!-- Nivel Crítico -->
+                <div class="alert-level-box level-critical">
+                    <div>
+                        <span class="alert-badge">Crítico</span>
+                    </div>
+                    <div>
+                        <h4>Riesgo Térmico Extremo</h4>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem;">Rango de temperatura extremadamente peligroso en el cañón. El módulo de pared emite una fuerte sirena acústica local y se alerta de forma insistente en la app.</p>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; font-weight: 600; color: #b91c1c; margin-bottom: 0;">Acción recomendada: Mantenga la puerta de la estufa cerrada, restrinja totalmente la entrada de aire (tiraje al mínimo) y active protocolos de evacuación o emergencia en caso de visualizar fuego en el ducto.</p>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Funcionamiento sin Internet -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Funcionamiento sin Internet</h3>
+                <p class="manual-paragraph">
+                    La unidad local de pared FlueGuard continuará operando y garantizando su seguridad local de manera independiente aunque la red WiFi doméstica sufra caídas o interrupciones.
+                </p>
+                <ul class="bullet-list">
+                    <li class="bullet-item">El buzzer sonoro emitirá las alertas sonoras locales correspondientes en caso de sobrecalentamiento crítico.</li>
+                    <li class="bullet-item">La aplicación móvil no recibirá lecturas en tiempo real hasta restablecer la conexión del dispositivo.</li>
+                    <li class="bullet-item">El historial de telemetría de la nube permanecerá sin actualizar hasta que la red esté activa nuevamente.</li>
+                    <li class="bullet-item">El dispositivo intentará reconectarse a la red guardada automáticamente al detectar señal estable.</li>
+                </ul>
+            </section>
+
+            <!-- Notificaciones -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Notificaciones móviles</h3>
+                <p class="manual-paragraph">La app móvil FlueGuard configurará notificaciones push en segundo plano para informarle sobre:</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item">Alertas por aumento sospechoso de temperatura (Nivel Alerta).</li>
+                    <li class="bullet-item">Alarmas de emergencias térmicas inminentes (Nivel Crítico).</li>
+                    <li class="bullet-item">Notificación por desconexión eléctrica prolongada o corte de enlace WiFi.</li>
+                    <li class="bullet-item">Recordatorios de mantenimiento preventivo sugerido.</li>
+                    <li class="bullet-item">Reportes periódicos sobre la eficiencia de calefacción.</li>
+                </ul>
+                <p class="manual-paragraph" style="font-size: 0.9rem;">
+                    <strong>Nota:</strong> Para asegurar la recepción de avisos de seguridad, por favor brinde todos los permisos de notificaciones a la app, desactive el modo de optimización de batería agresiva para FlueGuard en su celular y no fuerce el cierre de la aplicación.
+                </p>
+            </section>
+
+            <!-- Historial -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Historial de temperatura</h3>
+                <p class="manual-paragraph">
+                    El sistema almacena el registro histórico en nuestros servidores, permitiéndole analizar a través de la aplicación:
+                </p>
+                <ul class="bullet-list">
+                    <li class="bullet-item">La temperatura registrada minuto a minuto en las últimas horas de funcionamiento.</li>
+                    <li class="bullet-item">Los valores promedio, mínimos y picos máximos alcanzados por día.</li>
+                    <li class="bullet-item">Tendencias y patrones de uso a lo largo del mes para optimizar su consumo de leña.</li>
+                </ul>
+            </section>
+
+            <!-- Mantenimiento -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Mantenimiento preventivo</h3>
+                <p class="manual-paragraph">Mantenga su equipo operativo con acciones muy sencillas:</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item">Revise periódicamente la correcta adherencia magnética del sensor térmico al cañón metálico.</li>
+                    <li class="bullet-item">Asegúrese de quitar el polvo seco acumulado sobre la unidad de pared y el sensor (realice esta tarea sólo con el calefactor completamente frío).</li>
+                    <li class="bullet-item">Inspeccione el cable blindado para descartar desgastes por tracción, cortes accidentales o dobleces pronunciados.</li>
+                    <li class="bullet-item">Evite mojar, salpicar o someter la unidad de pared a vapores o humedad condensada excesiva.</li>
+                </ul>
+            </section>
+
+            <!-- Solución de problemas -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Solución de problemas</h3>
+                
+                <div style="margin-top: 1.5rem;">
+                    
+                    <!-- Falla 1 -->
+                    <div style="padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
+                        <h5 style="font-weight: 700; color: var(--text-main); font-size: 1rem;">El dispositivo no enciende</h5>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem; margin-bottom: 0;"><strong>Solución:</strong> Inspeccione el cable de alimentación USB-C, verifique que el transformador de pared esté energizado correctamente y que el enchufe no tenga holguras.</p>
+                    </div>
+                    
+                    <!-- Falla 2 -->
+                    <div style="padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
+                        <h5 style="font-weight: 700; color: var(--text-main); font-size: 1rem;">El dispositivo no figura en la Aplicación</h5>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem; margin-bottom: 0;"><strong>Solución:</strong> Cerciórese de que el Bluetooth de su teléfono esté activado, que la aplicación tenga otorgados los permisos de comunicación por cercanía y que el módulo esté encendido.</p>
+                    </div>
+                    
+                    <!-- Falla 3 -->
+                    <div style="padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
+                        <h5 style="font-weight: 700; color: var(--text-main); font-size: 1rem;">No logra conectarse a la red WiFi</h5>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem; margin-bottom: 0;"><strong>Solución:</strong> Corrobore haber digitado correctamente la contraseña del enrutador. Nota: FlueGuard es compatible con redes WiFi de 2.4 GHz (los canales de 5 GHz no están soportados).</p>
+                    </div>
+                    
+                    <!-- Falla 4 -->
+                    <div style="padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
+                        <h5 style="font-weight: 700; color: var(--text-main); font-size: 1rem;">El valor de la temperatura parece erróneo</h5>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem; margin-bottom: 0;"><strong>Solución:</strong> Valore si la ubicación del sensor está en la zona y altura recomendadas. Asegure un contacto directo sin capas gruesas de hollín, pintura suelta, óxido o separadores térmicos.</p>
+                    </div>
+                    
+                    <!-- Falla 5 -->
+                    <div style="padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
+                        <h5 style="font-weight: 700; color: var(--text-main); font-size: 1rem;">No se reciben notificaciones push en el celular</h5>
+                        <p class="manual-paragraph" style="font-size: 0.9rem; margin-top: 0.25rem; margin-bottom: 0;"><strong>Solución:</strong> Habilite las notificaciones de FlueGuard en la sección de aplicaciones del sistema operativo de su smartphone, garantice una conexión a Internet constante y no fuerce el cierre de la app.</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Recomendaciones de seguridad -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Recomendaciones de seguridad</h3>
+                <ul class="bullet-list">
+                    <li class="bullet-item">Nunca intente manipular, reubicar o tocar el sensor magnético o el cable blindado mientras el cañón o la estufa se encuentren calientes. Realice cualquier mantención en frío.</li>
+                    <li class="bullet-item">No deje la estufa desatendida a carga máxima o con tirajes completamente abiertos en condiciones de riesgo.</li>
+                    <li class="bullet-item">Evite cargar leña verde o con alto nivel de humedad, ya que provoca baja eficiencia calórica y acumulación peligrosa de resinas altamente inflamables (creosota) en los ductos.</li>
+                    <li class="bullet-item">No desmonte, abra o altere los componentes internos de la caja plástica del dispositivo FlueGuard, esto anulará automáticamente la garantía y puede comprometer su seguridad.</li>
+                </ul>
+            </section>
+
+            <!-- Limitaciones -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Limitaciones</h3>
+                <p class="manual-paragraph">
+                    FlueGuard es una herramienta preventiva y de asistencia.
+                </p>
+                <p class="manual-paragraph" style="font-weight: 500;">No sustituye ni reemplaza:</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item">Sistemas o detectores de humo certificados por normativas de construcción.</li>
+                    <li class="bullet-item">Detectores de presencia de gas monóxido de carbono (CO) ambiental.</li>
+                    <li class="bullet-item">Limpiezas periódicas profesionales de chimeneas y cañones.</li>
+                    <li class="bullet-item">La activación de protocolos de llamadas de emergencias o bomberos en caso de incendio en curso.</li>
+                </ul>
+            </section>
+
+            <!-- Especificaciones -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Especificaciones generales</h3>
+                <ul class="bullet-list">
+                    <li class="bullet-item"><strong>Conectividad inalámbrica:</strong> WiFi 802.11 b/g/n (2.4 GHz) y Bluetooth Low Energy (BLE).</li>
+                    <li class="bullet-item"><strong>Alimentación eléctrica:</strong> USB-C (5V CC, 1A mínimo).</li>
+                    <li class="bullet-item"><strong>Tipo de Sensor:</strong> Termocupla con encapsulado magnético de alta temperatura.</li>
+                    <li class="bullet-item"><strong>Indicador Acústico:</strong> Buzzer piezoeléctrico integrado de 85dB.</li>
+                    <li class="bullet-item"><strong>Actualizaciones:</strong> Actualización de software inalámbrica automática por aire (OTA).</li>
+                </ul>
+            </section>
+
+            <!-- Soporte -->
+            <section class="manual-section">
+                <h3 class="manual-section-title">Soporte y Consultas</h3>
+                <p class="manual-paragraph">Para asistencia adicional o dudas sobre el funcionamiento:</p>
+                <ul class="bullet-list">
+                    <li class="bullet-item"><strong>Sitio Web Oficial:</strong> <a href="http://www.flueguard.cl" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">www.flueguard.cl</a></li>
+                    <li class="bullet-item"><strong>Correo electrónico de soporte:</strong> <a href="mailto:soporte@flueguard.cl" style="color: var(--primary); text-decoration: none; font-weight: 500;">soporte@flueguard.cl</a></li>
+                    <li class="bullet-item"><strong>Formulario web:</strong> Disponible en el portal de clientes.</li>
+                    <li class="bullet-item"><strong>Preguntas frecuentes (FAQ):</strong> Accesible desde la app y el sitio oficial.</li>
+                </ul>
+            </section>
+
+            <!-- Inter-document navigation -->
+            <div style="display: flex; justify-content: space-between; margin-top: 4rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+                <a href="/manuales/inicio-rapido" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+                    <!-- Left Arrow SVG -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Atrás: Inicio Rápido
+                </a>
+                <a href="/manuales/garantia" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+                    Siguiente: Garantía y Soporte
+                    <!-- Right Arrow SVG -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </a>
+            </div>
+
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="manual-footer">
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <svg class="footer-logo" viewBox="0 0 24 24">
+                    <path d="M12 2C11.38 2 10.83 2.37 10.6 2.94L9.12 6.64L5.3 7.82C4.7 8.01 4.3 8.56 4.3 9.2C4.3 9.84 4.7 10.39 5.3 10.58L9.12 11.76L10.6 15.46C10.83 16.03 11.38 16.4 12 16.4C12.62 16.4 13.17 16.03 13.4 15.46L14.88 11.76L18.7 10.58C19.3 10.39 19.7 9.84 19.7 9.2C19.7 8.56 19.3 8.01 18.7 7.82L14.88 6.64L13.4 2.94C13.17 2.37 12.62 2 12 2M12 5.12L12.92 7.42L13.17 8.04L13.8 8.23L16.1 9.2L13.8 10.17L13.17 10.36L12.92 10.98L12 13.28L11.08 10.98L10.83 10.36L10.2 10.17L7.9 9.2L10.2 8.23L10.83 8.04L11.08 7.42L12 5.12M12 17.5C9 17.5 5.5 19.42 5.5 21C5.5 21.55 5.95 22 6.5 22H17.5C18.05 22 18.5 21.55 18.5 21C18.5 19.42 15 17.5 12 17.5Z"/>
+                </svg>
+                <span class="footer-logo-text">Flue<span>Guard</span></span>
+            </div>
+            <p class="footer-desc">Monitoreo térmico inteligente de estufas a leña para un hogar más seguro y eficiente.</p>
+            <p class="footer-copyright">&copy; 2026 FlueGuard. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Interactive PDF Alert Modal -->
+    <div class="modal-overlay" id="pdf-modal">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
+            <h4 class="modal-title">Descarga de PDF</h4>
+            <p class="modal-desc">La descarga de los manuales en formato PDF estará disponible próximamente junto a la actualización del embalaje físico. Por el momento, puedes consultar toda la documentación oficial en esta versión web optimizada para móviles.</p>
+            <button class="btn btn-primary" id="btn-close-modal" style="width: 100%;">Entendido</button>
+        </div>
+    </div>
+
+    <!-- Modal Script Logic -->
+    <script>
+        const downloadBtn = document.getElementById('btn-download-pdf');
+        const modal = document.getElementById('pdf-modal');
+        const closeModalBtn = document.getElementById('btn-close-modal');
+
+        downloadBtn.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+
+</body>
+</html>
