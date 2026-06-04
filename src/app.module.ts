@@ -25,6 +25,7 @@ import { SupportModule } from './support/support.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ManualesModule } from './manuales/manuales.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SupportModule,
     SubscriptionsModule,
     MetricsModule,
+    ManualesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
