@@ -1,18 +1,14 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { SubscriptionPlan } from './subscription-plan.entity';
 import { SubscriptionEvent } from './subscription-event.entity';
-import { Device } from '../../devices/entities/device.entity';
 import { User } from '../../users/entities/user.entity';
 
-@Entity('device_subscriptions')
-export class DeviceSubscription {
+@Entity('user_subscriptions')
+export class UserSubscription {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'device_id' })
-  device_id: number;
-
-  @Column({ name: 'user_id', nullable: true })
+  @Column({ name: 'user_id' })
   user_id: number;
 
   @Column({ name: 'plan_id' })
@@ -27,11 +23,11 @@ export class DeviceSubscription {
   @Column({ type: 'varchar', length: 255, nullable: true })
   provider_product_id: string | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  provider_subscription_id: string | null;
-
   @Column({ name: 'provider_base_plan_id', type: 'varchar', length: 100, nullable: true })
   provider_base_plan_id: string | null;
+
+  @Column({ name: 'provider_subscription_id', type: 'varchar', length: 255, nullable: true })
+  provider_subscription_id: string | null;
 
   @Column({ name: 'provider_order_id', type: 'varchar', length: 255, nullable: true })
   provider_order_id: string | null;
@@ -60,11 +56,7 @@ export class DeviceSubscription {
   @UpdateDateColumn({ name: 'updated_at' })
   updated_at: Date;
 
-  @ManyToOne(() => Device, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'device_id' })
-  device: Device;
-
-  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
@@ -72,6 +64,6 @@ export class DeviceSubscription {
   @JoinColumn({ name: 'plan_id' })
   plan: SubscriptionPlan;
 
-  @OneToMany(() => SubscriptionEvent, event => event.deviceSubscription)
+  @OneToMany(() => SubscriptionEvent, event => event.userSubscription)
   events: SubscriptionEvent[];
 }

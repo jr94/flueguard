@@ -4,7 +4,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { SubscriptionPlan } from './entities/subscription-plan.entity';
 import { SubscriptionPlanFeature } from './entities/subscription-plan-feature.entity';
-import { DeviceSubscription } from './entities/device-subscription.entity';
+import { UserSubscription } from './entities/user-subscription.entity';
 import { SubscriptionEvent } from './entities/subscription-event.entity';
 import { Device } from '../devices/entities/device.entity';
 import { UserDevice } from '../devices/entities/user-device.entity';
@@ -14,7 +14,7 @@ import { UserDevice } from '../devices/entities/user-device.entity';
     TypeOrmModule.forFeature([
       SubscriptionPlan,
       SubscriptionPlanFeature,
-      DeviceSubscription,
+      UserSubscription,
       SubscriptionEvent,
       Device,
       UserDevice,

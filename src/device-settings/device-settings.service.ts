@@ -90,7 +90,7 @@ export class DeviceSettingsService {
       throw new NotFoundException(`User has no access to device with serial number ${serialNumber}`);
     }
 
-    const planInfo = await this.subscriptionsService.getActivePlanByDeviceId(setting.device_id, userId);
+    const planInfo = await this.subscriptionsService.getEffectivePlanByUserId(userId);
 
     console.log(`[DeviceSettings] DeviceID: ${setting.device_id}, UserID: ${userId}`);
     console.log(`[DeviceSettings] Plan ID: ${planInfo.id}, Code: ${planInfo.code}, Name: ${planInfo.name}`);

@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { SubscriptionPlanFeature } from './subscription-plan-feature.entity';
-import { DeviceSubscription } from './device-subscription.entity';
+import { UserSubscription } from './user-subscription.entity';
 
 @Entity('subscription_plans')
 export class SubscriptionPlan {
@@ -34,6 +34,6 @@ export class SubscriptionPlan {
   @OneToMany(() => SubscriptionPlanFeature, feature => feature.plan)
   features: SubscriptionPlanFeature[];
 
-  @OneToMany(() => DeviceSubscription, subscription => subscription.plan)
-  deviceSubscriptions: DeviceSubscription[];
+  @OneToMany(() => UserSubscription, subscription => subscription.plan)
+  userSubscriptions: UserSubscription[];
 }

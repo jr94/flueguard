@@ -1,7 +1,5 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, ParseIntPipe, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Query, Headers } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
-import { ManualActivateSubscriptionDto } from './dto/manual-activate-subscription.dto';
-import { ManualCancelSubscriptionDto } from './dto/manual-cancel-subscription.dto';
 import { GooglePlayVerifyDto } from './dto/google-play-verify.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -9,14 +7,19 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
+  @Get('plans')
+  async getActivePlans() {
+    return this.subscriptionsService.getActivePlans();
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('google-play/verify')
-  async verifyGooglePlayPurchase(
+  async verifyGooglePlaySubscription(
     @Body() dto: GooglePlayVerifyDto,
     @Req() req: any,
   ) {
     const userId = req.user.id;
-    return this.subscriptionsService.verifyGooglePlayPurchase(userId, dto);
+    return this.subscriptionsService.verifyGooglePlaySubscription(userId, dto);
   }
 
   @Post('google-play/rtdn')
@@ -32,106 +35,31 @@ export class SubscriptionsController {
     });
   }
 
-  @Post('google-play/revalidate')
   @UseGuards(JwtAuthGuard)
-  async revalidateGooglePlaySubscriptions() {
-    // TODO: restrict to admin
-    const result = await this.subscriptionsService.revalidateGooglePlaySubscriptionsDaily();
-    return {
-      success: true,
-      ...result,
-    };
-  }
-
-  @Get('plans')
-  async getActivePlans() {
-    return this.subscriptionsService.getActivePlans();
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('device/:deviceId')
-  async getDeviceSubscriptionStatus(
-    @Param('deviceId', ParseIntPipe) deviceId: number,
-    @Req() req: any,
-  ) {
+  @Get('me')
+  async getMySubscription(@Req() req: any) {
     const userId = req.user.id;
-    return this.subscriptionsService.getDeviceSubscriptionStatus(deviceId, userId);
+    return this.subscriptionsService.getMySubscription(userId);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('user/:userId/next-product')
-  async getNextAvailableGooglePlayProduct(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Query('plan') plan: string,
-  ) {
-    return this.subscriptionsService.getNextAvailableGooglePlayProduct(userId, plan);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('device/:deviceId/status')
-  async getDeviceSubscriptionStatusV2(
-    @Param('deviceId', ParseIntPipe) deviceId: number,
-    @Req() req: any,
-  ) {
+  @Get('me/plan')
+  async getMyPlan(@Req() req: any) {
     const userId = req.user.id;
-    const status = await this.subscriptionsService.getDeviceSubscriptionStatus(deviceId, userId);
-    
-    // Format response as requested by the user
-    return {
-      deviceId: status.device_id,
-      hasActiveSubscription: status.is_active,
-      planCode: status.plan?.code || (status.is_active ? status.plan?.code : 'basic'),
-      planName: status.plan?.name || (status.is_active ? status.plan?.name : 'Básico'),
-      status: status.status === 'inactive' ? 'none' : status.status,
-      currentPeriodEnd: status.current_period_end,
-      provider: status.provider,
-      providerProductId: status.provider_product_id,
-      providerBasePlanId: status.provider_base_plan_id,
-      providerProductDisplayName: status.provider_product_display_name,
-      providerProductSlot: status.provider_product_slot,
-      manageSubscriptionUrl: status.manage_subscription_url,
-    };
+    return this.subscriptionsService.getEffectivePlanByUserId(userId);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('device/:deviceId/features')
-  async getDeviceFeatures(
-    @Param('deviceId', ParseIntPipe) deviceId: number,
-    @Req() req: any,
-  ) {
+  @Get('me/features')
+  async getMyPlanFeatures(@Req() req: any) {
     const userId = req.user.id;
-    return this.subscriptionsService.getDeviceFeatures(deviceId, userId);
+    return this.subscriptionsService.getUserPlanFeatures(userId);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('manual-activate')
-  async manualActivateSubscription(
-    @Body() dto: ManualActivateSubscriptionDto,
-    @Req() req: any,
-  ) {
+  @Post('cancel')
+  async cancelUserSubscription(@Req() req: any) {
     const userId = req.user.id;
-    return this.subscriptionsService.manualActivateSubscription(userId, dto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('manual-cancel')
-  async manualCancelSubscription(
-    @Body() dto: ManualCancelSubscriptionDto,
-    @Req() req: any,
-  ) {
-    const userId = req.user.id;
-    return this.subscriptionsService.manualCancelSubscription(userId, dto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('device/:deviceId/has-feature/:featureCode')
-  async deviceHasFeature(
-    @Param('deviceId', ParseIntPipe) deviceId: number,
-    @Param('featureCode') featureCode: string,
-    @Req() req: any,
-  ) {
-    const userId = req.user.id;
-    await this.subscriptionsService.validateUserDeviceAccess(userId, deviceId);
-    return this.subscriptionsService.deviceHasFeature(deviceId, featureCode);
+    return this.subscriptionsService.cancelUserSubscription(userId);
   }
 }

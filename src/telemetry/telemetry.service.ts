@@ -158,7 +158,9 @@ export class TelemetryService {
 
         // 7. Lógica Predictiva
         if (t2 !== null && t3 !== null) {
-          const canUsePredictive = await this.subscriptionsService.deviceHasActiveFeature(device.id, 'predictive_curve_alerts');
+          const ownerId = await this.subscriptionsService.getOwnerUserIdByDeviceId(device.id);
+          const predictiveResult = ownerId ? await this.subscriptionsService.userHasFeature(ownerId, 'predictive_curve_alerts') : null;
+          const canUsePredictive = predictiveResult?.has_feature || false;
 
           if (canUsePredictive) {
             console.log(`[PREDICTIVE] Enabled for device ${device.id}`);
@@ -255,9 +257,9 @@ export class TelemetryService {
     // 1. Validar acceso al dispositivo
     await this.subscriptionsService.validateUserDeviceAccess(userId, deviceId);
 
-    // 2. Obtener features de suscripción
-    const status = await this.subscriptionsService.getDeviceSubscriptionStatus(deviceId);
-    const historyDays = Number(status.features?.extended_history_days || 0);
+    // 2. Obtener features de suscripción del usuario
+    const featuresInfo = await this.subscriptionsService.getUserPlanFeatures(userId);
+    const historyDays = Number(featuresInfo.features?.extended_history_days || 0);
 
     // 3. Validar permisos según la vista solicitada
     this.validateHistoryAccess(view, historyDays);

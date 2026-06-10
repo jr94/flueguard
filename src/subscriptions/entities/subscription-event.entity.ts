@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { DeviceSubscription } from './device-subscription.entity';
+import { UserSubscription } from './user-subscription.entity';
 import { SubscriptionPlan } from './subscription-plan.entity';
 
 @Entity('subscription_events')
@@ -7,11 +7,8 @@ export class SubscriptionEvent {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'device_subscription_id', nullable: true })
-  device_subscription_id: number;
-
-  @Column({ name: 'device_id', nullable: true })
-  device_id: number;
+  @Column({ name: 'user_subscription_id', nullable: true })
+  user_subscription_id: number;
 
   @Column({ name: 'user_id', nullable: true })
   user_id: number;
@@ -34,9 +31,9 @@ export class SubscriptionEvent {
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 
-  @ManyToOne(() => DeviceSubscription, sub => sub.events, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'device_subscription_id' })
-  deviceSubscription: DeviceSubscription;
+  @ManyToOne(() => UserSubscription, sub => sub.events, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'user_subscription_id' })
+  userSubscription: UserSubscription;
 
   @ManyToOne(() => SubscriptionPlan, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'plan_id' })

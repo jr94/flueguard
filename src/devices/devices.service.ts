@@ -97,26 +97,24 @@ export class DevicesService {
       .orderBy('device.id', 'ASC')
       .getMany();
 
-    const deviceIds = devices.map(d => d.id);
-    const premiumMap = await this.subscriptionsService.getActiveSubscriptionsForDevices(deviceIds);
+    const subStatus = await this.subscriptionsService.getMySubscription(userId);
 
     return devices.map(device => {
-      const premiumStatus = premiumMap.get(device.id);
       return {
         ...device,
         user_id: userId,
         premium: {
-          hasActiveSubscription: premiumStatus?.is_active || false,
-          planCode: premiumStatus?.plan_code || 'basic',
-          planName: premiumStatus?.plan_name || 'Básico',
-          status: premiumStatus?.status || 'none',
-          provider: premiumStatus?.provider || null,
-          providerProductId: premiumStatus?.provider_product_id || null,
-          providerBasePlanId: premiumStatus?.provider_base_plan_id || null,
-          providerProductDisplayName: premiumStatus?.provider_product_display_name || null,
-          providerProductSlot: premiumStatus?.provider_product_slot || null,
-          manageSubscriptionUrl: premiumStatus?.manage_subscription_url || null,
-          currentPeriodEnd: premiumStatus?.current_period_end || null,
+          hasActiveSubscription: subStatus.is_active || false,
+          planCode: subStatus.plan?.code || 'basic',
+          planName: subStatus.plan?.name || 'Básico',
+          status: subStatus.status || 'none',
+          provider: subStatus.provider || null,
+          providerProductId: subStatus.provider_product_id || null,
+          providerBasePlanId: subStatus.provider_base_plan_id || null,
+          providerProductDisplayName: subStatus.provider_product_display_name || null,
+          providerProductSlot: subStatus.provider_product_slot || null,
+          manageSubscriptionUrl: subStatus.manage_subscription_url || null,
+          currentPeriodEnd: subStatus.current_period_end || null,
         },
       };
     });

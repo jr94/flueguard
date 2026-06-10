@@ -970,11 +970,13 @@ export class MetricsService {
       end.setHours(23, 59, 59, 999);
     }
 
-    const activeSubDeviceIds = await this.subscriptionsService.getActiveSubscriptionsDeviceIds();
+    const activeSubDeviceIds = await this.subscriptionsService.getDevicesForProUsers();
 
     for (const deviceId of activeSubDeviceIds) {
       try {
-        const hasFeature = await this.subscriptionsService.deviceHasFeature(deviceId, 'metrics.reports_and_recommendations');
+        const ownerId = await this.subscriptionsService.getOwnerUserIdByDeviceId(deviceId);
+        if (!ownerId) continue;
+        const hasFeature = await this.subscriptionsService.userHasFeature(ownerId, 'metrics.reports_and_recommendations');
         if (hasFeature.has_feature && hasFeature.plan_code === 'pro') {
           const timezone = await this.getDeviceTimezone(deviceId);
           const now = DateTime.now().setZone(timezone);
@@ -1363,7 +1365,7 @@ export class MetricsService {
   private async assertDeviceMetricAccess(deviceId: number, userId: number, featureCode: string) {
     if (userId !== 0) { // skip for internal calls if userId is 0
       await this.subscriptionsService.validateUserDeviceAccess(userId, deviceId);
-      const hasFeature = await this.subscriptionsService.deviceHasFeature(deviceId, featureCode);
+      const hasFeature = await this.subscriptionsService.userHasFeature(userId, featureCode);
       if (!hasFeature.has_feature) {
         throw new ForbiddenException('Esta funcionalidad está disponible solo en el plan PRO.');
       }
