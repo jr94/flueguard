@@ -263,6 +263,28 @@ export class SubscriptionsService {
     };
   }
 
+  async getEligibleNotificationUsersForFeature(deviceId: number, featureCode: string): Promise<number[]> {
+    const userDevices = await this.deviceRepository.createQueryBuilder('device')
+      .innerJoin('user_devices', 'ud', 'ud.device_id = device.id')
+      .select('ud.user_id', 'user_id')
+      .where('device.id = :deviceId', { deviceId })
+      .andWhere('ud.notifications_enabled = 1')
+      .getRawMany();
+
+    const userIds = userDevices.map(ud => Number(ud.user_id));
+    if (userIds.length === 0) return [];
+
+    const eligibleUserIds: number[] = [];
+    for (const userId of userIds) {
+      const hasFeature = await this.userHasFeature(userId, featureCode);
+      if (hasFeature.has_feature) {
+        eligibleUserIds.push(userId);
+      }
+    }
+
+    return eligibleUserIds;
+  }
+
   async cancelUserSubscription(userId: number): Promise<any> {
     const subscription = await this.userSubscriptionRepository.findOne({
       where: { user_id: userId, status: In(['active', 'trialing', 'past_due']) }

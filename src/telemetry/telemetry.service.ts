@@ -104,23 +104,30 @@ export class TelemetryService {
           }
         }
         else if (t1 !== null && settings.sound_alarm_temp_low) {
-          const lastLowTempAlertAt = this.lowTempAlertControl.get(device.id);
-          const now = Date.now();
+          const eligibleLowTempUsers = await this.subscriptionsService.getEligibleNotificationUsersForFeature(device.id, 'low_temperature_alert');
+          const hasLowTempFeature = eligibleLowTempUsers.length > 0;
 
-          if (logTemp < t1) {
-            const shouldSendLowTempAlert =
-              !lastLowTempAlertAt ||
-              now - lastLowTempAlertAt >= this.LOW_TEMP_ALERT_INTERVAL_MS;
+          if (hasLowTempFeature) {
+            const lastLowTempAlertAt = this.lowTempAlertControl.get(device.id);
+            const now = Date.now();
 
-            if (shouldSendLowTempAlert) {
-              finalLevel = '1';
-              message = `Temperatura baja ${temperature}°C. Es momento de agregar leña.`;
+            if (logTemp < t1) {
+              const shouldSendLowTempAlert =
+                !lastLowTempAlertAt ||
+                now - lastLowTempAlertAt >= this.LOW_TEMP_ALERT_INTERVAL_MS;
 
-              // Guarda el momento de la última alerta nivel 1
-              this.lowTempAlertControl.set(device.id, now);
+              if (shouldSendLowTempAlert) {
+                finalLevel = '1';
+                message = `Temperatura baja ${temperature}°C. Es momento de agregar leña.`;
+
+                // Guarda el momento de la última alerta nivel 1
+                this.lowTempAlertControl.set(device.id, now);
+              }
+            } else {
+              // Si supera o iguala el umbral, se resetea el contador
+              this.lowTempAlertControl.delete(device.id);
             }
           } else {
-            // Si supera o iguala el umbral, se resetea el contador
             this.lowTempAlertControl.delete(device.id);
           }
         }
@@ -158,9 +165,8 @@ export class TelemetryService {
 
         // 7. Lógica Predictiva
         if (t2 !== null && t3 !== null) {
-          const ownerId = await this.subscriptionsService.getOwnerUserIdByDeviceId(device.id);
-          const predictiveResult = ownerId ? await this.subscriptionsService.userHasFeature(ownerId, 'predictive_curve_alerts') : null;
-          const canUsePredictive = predictiveResult?.has_feature || false;
+          const eligiblePredictiveUsers = await this.subscriptionsService.getEligibleNotificationUsersForFeature(device.id, 'predictive_curve_alerts');
+          const canUsePredictive = eligiblePredictiveUsers.length > 0;
 
           if (canUsePredictive) {
             console.log(`[PREDICTIVE] Enabled for device ${device.id}`);

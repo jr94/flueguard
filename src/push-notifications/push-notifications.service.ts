@@ -3,12 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as admin from 'firebase-admin';
 import { DevicePushToken } from '../push-tokens/entities/device-push-token.entity';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class PushNotificationsService {
   constructor(
     @InjectRepository(DevicePushToken)
     private readonly pushTokenRepository: Repository<DevicePushToken>,
+    private readonly subscriptionsService: SubscriptionsService,
   ) { }
 
   async sendAlertNotification(deviceId: number, alert: any, serialNumber: string = ''): Promise<void> {
@@ -85,6 +87,14 @@ export class PushNotificationsService {
       const alertLevel = Number(alert.alert_level || 1);
       const isCriticalAlert = alertLevel === 3;
 
+      const alertType = alert.alert_type || alert.type || '';
+      let featureCode: string | null = null;
+      if (alertType === 'NORMAL_LEVEL_1') {
+        featureCode = 'low_temperature_alert';
+      } else if (alertType.startsWith('PREDICTIVE_')) {
+        featureCode = 'predictive_curve_alerts';
+      }
+
       for (const record of activeTokens) {
         if (!isCriticalAlert && !record.notifications_enabled) {
           console.log(`[PUSH] Usuario ${record.user_id} tiene notificaciones desactivadas para device_id ${deviceId}`);
@@ -93,6 +103,16 @@ export class PushNotificationsService {
 
         if (isCriticalAlert && !record.notifications_enabled) {
           console.log(`[PUSH] Alerta crítica nivel 3: se ignora switch desactivado del usuario ${record.user_id} para device_id ${deviceId}`);
+        }
+
+        if (featureCode) {
+          const hasFeature = await this.subscriptionsService.userHasFeature(record.user_id, featureCode);
+          if (!hasFeature.has_feature) {
+            console.log(`[PUSH] Omitting premium alert (${alertType}) for user ${record.user_id} due to plan restrictions (feature ${featureCode} not enabled).`);
+            continue;
+          } else {
+            console.log(`[PUSH] Sending premium alert (${alertType}) to eligible user ${record.user_id} (feature ${featureCode} is enabled).`);
+          }
         }
 
         tokensEnviados++;

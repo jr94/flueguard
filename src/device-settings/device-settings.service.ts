@@ -111,6 +111,13 @@ export class DeviceSettingsService {
       throw new ForbiddenException('No tienes permisos para modificar la configuración de este equipo.');
     }
 
+    if (updateDto.sound_alarm_temp_low !== undefined) {
+      const hasFeature = await this.subscriptionsService.userHasFeature(userId, 'low_temperature_alert');
+      if (!hasFeature.has_feature) {
+        throw new ForbiddenException('Esta funcionalidad requiere plan Plus o Pro.');
+      }
+    }
+
     const { device_name, region_id, comuna_id, direccion, timezone: rawTimezone, ...settingsDto } = updateDto;
 
     const timezone = this.validateTimezone(rawTimezone);
