@@ -372,7 +372,28 @@ export class TelemetryService {
 
   async getLastTempForUserDevices(userId: number) {
     const devices = await this.devicesService.findByUserId(userId);
-    return this.buildLastTempResults(devices);
+    const lastTempResults = await this.buildLastTempResults(devices);
+    const subStatus = await this.subscriptionsService.getMySubscription(userId);
+
+    const hasActive = subStatus?.is_active === true;
+    const premium = {
+      hasActiveSubscription: hasActive,
+      planCode: hasActive ? (subStatus.plan?.code || 'plus') : 'basic',
+      planName: hasActive ? (subStatus.plan?.name || 'FlueGuard Plus') : 'FlueGuard Basic',
+      status: hasActive ? (subStatus.status || 'active') : 'inactive',
+      provider: hasActive ? (subStatus.provider || null) : null,
+      providerProductId: hasActive ? (subStatus.provider_product_id || null) : null,
+      providerBasePlanId: hasActive ? (subStatus.provider_base_plan_id || null) : null,
+      providerProductDisplayName: hasActive ? (subStatus.provider_product_display_name || null) : null,
+      providerProductSlot: hasActive ? (subStatus.provider_product_slot || null) : null,
+      manageSubscriptionUrl: hasActive ? (subStatus.manage_subscription_url || null) : null,
+      currentPeriodEnd: hasActive ? (subStatus.current_period_end || null) : null,
+    };
+
+    return {
+      premium,
+      devices: lastTempResults,
+    };
   }
 
   async getLastTempAllDevices() {

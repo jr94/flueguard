@@ -97,25 +97,10 @@ export class DevicesService {
       .orderBy('device.id', 'ASC')
       .getMany();
 
-    const subStatus = await this.subscriptionsService.getMySubscription(userId);
-
     return devices.map(device => {
       return {
         ...device,
         user_id: userId,
-        premium: {
-          hasActiveSubscription: subStatus.is_active || false,
-          planCode: subStatus.plan?.code || 'basic',
-          planName: subStatus.plan?.name || 'Básico',
-          status: subStatus.status || 'none',
-          provider: subStatus.provider || null,
-          providerProductId: subStatus.provider_product_id || null,
-          providerBasePlanId: subStatus.provider_base_plan_id || null,
-          providerProductDisplayName: subStatus.provider_product_display_name || null,
-          providerProductSlot: subStatus.provider_product_slot || null,
-          manageSubscriptionUrl: subStatus.manage_subscription_url || null,
-          currentPeriodEnd: subStatus.current_period_end || null,
-        },
       };
     });
   }
