@@ -60,6 +60,9 @@
 
         .header {
             margin-bottom: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .logo-img {
@@ -68,11 +71,25 @@
             width: auto;
             height: auto;
             object-fit: contain;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.6rem;
             transition: transform 0.3s ease;
         }
 
         .logo-img:hover {
+            transform: scale(1.03);
+        }
+
+        .logo-text-img {
+            max-height: 38px;
+            max-width: 220px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            margin-bottom: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-text-img:hover {
             transform: scale(1.03);
         }
 
@@ -159,6 +176,11 @@
                 max-width: 220px;
             }
 
+            .logo-text-img {
+                max-height: 30px;
+                max-width: 180px;
+            }
+
             .link-btn {
                 padding: 1rem 1.2rem;
                 font-size: 0.95rem;
@@ -173,7 +195,7 @@
         <!-- Encabezado con logotipo y texto de bienvenida -->
         <header class="header">
             <img src="/FlueGuard.png" alt="FlueGuard" class="logo-img" />
-            <h1 class="logo">FlueGuard</h1>
+            <img src="/FlueGuardText.png" alt="FlueGuard" class="logo-text-img" />
             <p class="subtitle">Monitorea la temperatura de tu estufa a leña y recibe alertas tempranas ante posibles
                 sobrecalentamientos.</p>
         </header>
