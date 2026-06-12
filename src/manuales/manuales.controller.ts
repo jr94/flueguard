@@ -1,4 +1,9 @@
-import { Controller, Get, Res, InternalServerErrorException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Res,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -25,12 +30,12 @@ export class ManualesController {
 
   private serveFile(filename: string, res: Response) {
     const filePath = this.getFilePath(filename);
-    
+
     if (!existsSync(filePath)) {
       throw new InternalServerErrorException(
         `File not found: ${filename}. Checked paths: ` +
-        `[1] ${join(process.cwd(), 'public', 'manuales', filename)}, ` +
-        `[2] ${join(__dirname, '..', '..', 'public', 'manuales', filename)}`
+          `[1] ${join(process.cwd(), 'public', 'manuales', filename)}, ` +
+          `[2] ${join(__dirname, '..', '..', 'public', 'manuales', filename)}`,
       );
     }
 

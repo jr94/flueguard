@@ -5,10 +5,7 @@ import { DevicePushToken } from '../push-tokens/entities/device-push-token.entit
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([DevicePushToken]),
-    SubscriptionsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([DevicePushToken]), SubscriptionsModule],
   providers: [PushNotificationsService],
   exports: [PushNotificationsService],
 })

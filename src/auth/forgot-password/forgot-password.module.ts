@@ -7,10 +7,7 @@ import { User } from '../../users/entities/user.entity';
 import { MailModule } from '../../mail/mail.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([PasswordReset, User]),
-    MailModule,
-  ],
+  imports: [TypeOrmModule.forFeature([PasswordReset, User]), MailModule],
   controllers: [ForgotPasswordController],
   providers: [ForgotPasswordService],
   exports: [ForgotPasswordService],

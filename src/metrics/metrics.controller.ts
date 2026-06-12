@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Param, Query, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { MetricsService } from './metrics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetMetricsRangeDto } from './dto/get-metrics-range.dto';
@@ -54,7 +63,11 @@ export class MetricsController {
     @Query() query: GetMetricsRangeDto,
     @Req() req: any,
   ) {
-    return this.metricsService.getRiskRanking(deviceId, req.user.id, query.range);
+    return this.metricsService.getRiskRanking(
+      deviceId,
+      req.user.id,
+      query.range,
+    );
   }
 
   @Get('device/:deviceId/predictions')
@@ -63,7 +76,11 @@ export class MetricsController {
     @Query() query: GetMetricsRangeDto,
     @Req() req: any,
   ) {
-    return this.metricsService.getPredictionStats(deviceId, req.user.id, query.range);
+    return this.metricsService.getPredictionStats(
+      deviceId,
+      req.user.id,
+      query.range,
+    );
   }
 
   @Get('device/:deviceId/reports')
@@ -81,7 +98,11 @@ export class MetricsController {
     @Query() query: GetReportsRangeDto,
     @Req() req: any,
   ) {
-    return this.metricsService.generateManualReport(deviceId, req.user.id, query.type);
+    return this.metricsService.generateManualReport(
+      deviceId,
+      req.user.id,
+      query.type,
+    );
   }
 
   @Get('device/:deviceId/recalculate')
@@ -91,6 +112,11 @@ export class MetricsController {
     @Query('endDate') endDate: string,
     @Req() req: any,
   ) {
-    return this.metricsService.recalculateDailyMetrics(deviceId, req.user.id, startDate, endDate);
+    return this.metricsService.recalculateDailyMetrics(
+      deviceId,
+      req.user.id,
+      startDate,
+      endDate,
+    );
   }
 }

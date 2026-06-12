@@ -6,7 +6,10 @@ import { DeviceMaintenance } from './entities/device-maintenance.entity';
 import { DevicesService } from '../devices/devices.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service';
-import { MAINTENANCE_PREVENTIVE_HOURS, MAINTENANCE_URGENT_HOURS } from './constants/maintenance.constants';
+import {
+  MAINTENANCE_PREVENTIVE_HOURS,
+  MAINTENANCE_URGENT_HOURS,
+} from './constants/maintenance.constants';
 
 describe('MaintenanceService', () => {
   let service: MaintenanceService;
@@ -59,10 +62,14 @@ describe('MaintenanceService', () => {
     }).compile();
 
     service = module.get<MaintenanceService>(MaintenanceService);
-    maintenanceRepository = module.get<Repository<DeviceMaintenance>>(getRepositoryToken(DeviceMaintenance));
+    maintenanceRepository = module.get<Repository<DeviceMaintenance>>(
+      getRepositoryToken(DeviceMaintenance),
+    );
     devicesService = module.get<DevicesService>(DevicesService);
     alertsService = module.get<AlertsService>(AlertsService);
-    pushNotificationsService = module.get<PushNotificationsService>(PushNotificationsService);
+    pushNotificationsService = module.get<PushNotificationsService>(
+      PushNotificationsService,
+    );
 
     jest.clearAllMocks();
   });
@@ -72,7 +79,10 @@ describe('MaintenanceService', () => {
     const serialNumber = 'SN123';
 
     beforeEach(() => {
-      mockDevicesService.findOne.mockResolvedValue({ id: deviceId, serial_number: serialNumber });
+      mockDevicesService.findOne.mockResolvedValue({
+        id: deviceId,
+        serial_number: serialNumber,
+      });
     });
 
     it('1. Caso bajo umbral preventivo (249h)', async () => {
@@ -87,7 +97,9 @@ describe('MaintenanceService', () => {
       await service.checkAndNotifyMaintenance(deviceId);
 
       expect(mockAlertsService.create).not.toHaveBeenCalled();
-      expect(mockPushNotificationsService.sendAlertNotification).not.toHaveBeenCalled();
+      expect(
+        mockPushNotificationsService.sendAlertNotification,
+      ).not.toHaveBeenCalled();
       expect(mockMaintenanceRepository.save).not.toHaveBeenCalled();
     });
 
@@ -100,18 +112,28 @@ describe('MaintenanceService', () => {
         last_urgent_notified_at: null,
       };
       mockMaintenanceRepository.findOne.mockResolvedValue(maintenance);
-      mockAlertsService.create.mockResolvedValue({ id: 100, alert_type: 'maintenance_preventive' });
+      mockAlertsService.create.mockResolvedValue({
+        id: 100,
+        alert_type: 'maintenance_preventive',
+      });
 
       await service.checkAndNotifyMaintenance(deviceId);
 
-      expect(mockAlertsService.create).toHaveBeenCalledWith(expect.objectContaining({
-        alert_type: 'maintenance_preventive',
-        alert_level: '1',
-      }));
-      expect(mockPushNotificationsService.sendAlertNotification).toHaveBeenCalledWith(
+      expect(mockAlertsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          alert_type: 'maintenance_preventive',
+          alert_level: '1',
+        }),
+      );
+      expect(
+        mockPushNotificationsService.sendAlertNotification,
+      ).toHaveBeenCalledWith(
         deviceId,
-        expect.objectContaining({ title: 'Limpieza preventiva recomendada', type: 'maintenance_preventive' }),
-        serialNumber
+        expect.objectContaining({
+          title: 'Limpieza preventiva recomendada',
+          type: 'maintenance_preventive',
+        }),
+        serialNumber,
       );
       expect(maintenance.last_preventive_notified_at).toBeInstanceOf(Date);
       expect(maintenance.last_urgent_notified_at).toBeNull();
@@ -133,7 +155,9 @@ describe('MaintenanceService', () => {
       await service.checkAndNotifyMaintenance(deviceId);
 
       expect(mockAlertsService.create).not.toHaveBeenCalled();
-      expect(mockPushNotificationsService.sendAlertNotification).not.toHaveBeenCalled();
+      expect(
+        mockPushNotificationsService.sendAlertNotification,
+      ).not.toHaveBeenCalled();
     });
 
     it('4. Caso preventiva repetida después de 3 días', async () => {
@@ -153,7 +177,9 @@ describe('MaintenanceService', () => {
       await service.checkAndNotifyMaintenance(deviceId);
 
       expect(mockAlertsService.create).toHaveBeenCalled();
-      expect(mockPushNotificationsService.sendAlertNotification).toHaveBeenCalled();
+      expect(
+        mockPushNotificationsService.sendAlertNotification,
+      ).toHaveBeenCalled();
       expect(mockMaintenanceRepository.save).toHaveBeenCalled();
     });
 
@@ -170,9 +196,11 @@ describe('MaintenanceService', () => {
 
       await service.checkAndNotifyMaintenance(deviceId);
 
-      expect(mockAlertsService.create).toHaveBeenCalledWith(expect.objectContaining({
-        alert_type: 'maintenance_preventive'
-      }));
+      expect(mockAlertsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          alert_type: 'maintenance_preventive',
+        }),
+      );
     });
 
     it('5. Caso urgente exacta (400h)', async () => {
@@ -184,18 +212,28 @@ describe('MaintenanceService', () => {
         last_urgent_notified_at: null,
       };
       mockMaintenanceRepository.findOne.mockResolvedValue(maintenance);
-      mockAlertsService.create.mockResolvedValue({ id: 200, alert_type: 'maintenance_urgent' });
+      mockAlertsService.create.mockResolvedValue({
+        id: 200,
+        alert_type: 'maintenance_urgent',
+      });
 
       await service.checkAndNotifyMaintenance(deviceId);
 
-      expect(mockAlertsService.create).toHaveBeenCalledWith(expect.objectContaining({
-        alert_type: 'maintenance_urgent',
-        alert_level: '2',
-      }));
-      expect(mockPushNotificationsService.sendAlertNotification).toHaveBeenCalledWith(
+      expect(mockAlertsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          alert_type: 'maintenance_urgent',
+          alert_level: '2',
+        }),
+      );
+      expect(
+        mockPushNotificationsService.sendAlertNotification,
+      ).toHaveBeenCalledWith(
         deviceId,
-        expect.objectContaining({ title: 'Mantención urgente requerida', type: 'maintenance_urgent' }),
-        serialNumber
+        expect.objectContaining({
+          title: 'Mantención urgente requerida',
+          type: 'maintenance_urgent',
+        }),
+        serialNumber,
       );
       expect(maintenance.last_urgent_notified_at).toBeInstanceOf(Date);
       expect(maintenance.last_preventive_notified_at).toBeNull();
@@ -215,9 +253,11 @@ describe('MaintenanceService', () => {
       await service.checkAndNotifyMaintenance(deviceId);
 
       expect(mockAlertsService.create).toHaveBeenCalledTimes(1);
-      expect(mockAlertsService.create).toHaveBeenCalledWith(expect.objectContaining({
-        alert_type: 'maintenance_urgent'
-      }));
+      expect(mockAlertsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          alert_type: 'maintenance_urgent',
+        }),
+      );
     });
 
     it('7. Caso urgente repetida antes de 3 días', async () => {
@@ -270,7 +310,10 @@ describe('MaintenanceService', () => {
         threshold_hours: 80,
       };
 
-      mockDevicesService.getUserDeviceLink.mockResolvedValue({ device_id: deviceId, user_id: userId });
+      mockDevicesService.getUserDeviceLink.mockResolvedValue({
+        device_id: deviceId,
+        user_id: userId,
+      });
       mockMaintenanceRepository.findOne.mockResolvedValue(maintenance);
       mockMaintenanceRepository.save.mockResolvedValue(maintenance);
 
@@ -341,11 +384,16 @@ describe('MaintenanceService', () => {
         { device_id: 3, usage_seconds_accumulated: 500 * 3600 }, // Urgent
       ];
 
-      // In the real service, the query filters by >= 250h. 
+      // In the real service, the query filters by >= 250h.
       // We simulate the repository returning only the relevant ones.
-      mockMaintenanceRepository.find.mockResolvedValue([records[1], records[2]]);
-      
-      const checkSpy = jest.spyOn(service, 'checkAndNotifyMaintenance').mockResolvedValue(undefined);
+      mockMaintenanceRepository.find.mockResolvedValue([
+        records[1],
+        records[2],
+      ]);
+
+      const checkSpy = jest
+        .spyOn(service, 'checkAndNotifyMaintenance')
+        .mockResolvedValue(undefined);
 
       await service.handleMaintenanceCron();
 

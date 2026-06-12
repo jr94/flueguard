@@ -17,23 +17,23 @@ export class LocationsService {
     const regiones = await this.regionRepository.find({
       select: ['id', 'region'],
     });
-    return regiones.map(r => ({ id: r.id, nombre: r.region }));
+    return regiones.map((r) => ({ id: r.id, nombre: r.region }));
   }
 
   async findComunasByRegion(regionId: number): Promise<any[]> {
     const comunas = await this.comunaRepository.find({
       relations: ['provincia'],
-      where: { provincia: { region_id: regionId } }
+      where: { provincia: { region_id: regionId } },
     });
 
     if (!comunas || comunas.length === 0) {
       throw new NotFoundException(`No comunas found for region ${regionId}`);
     }
 
-    return comunas.map(c => ({
+    return comunas.map((c) => ({
       id: c.id,
       nombre: c.comuna,
-      region_id: c.provincia.region_id
+      region_id: c.provincia.region_id,
     }));
   }
 }

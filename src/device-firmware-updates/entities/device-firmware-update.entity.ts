@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('device_firmware_updates')
 export class DeviceFirmwareUpdate {
@@ -29,7 +35,11 @@ export class DeviceFirmwareUpdate {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @Column({ type: 'enum', enum: ['pending', 'in_progress', 'completed', 'failed', 'canceled'], default: 'pending' })
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'in_progress', 'completed', 'failed', 'canceled'],
+    default: 'pending',
+  })
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'canceled';
 
   @Column({ type: 'varchar', length: 255, nullable: true })

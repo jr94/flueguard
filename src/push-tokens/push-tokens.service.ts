@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DevicePushToken } from './entities/device-push-token.entity';
@@ -53,7 +57,9 @@ export class PushTokensService {
       };
     } catch (error) {
       console.error('Error procesando FCM token:', error);
-      throw new InternalServerErrorException('Error interno al guardar en base de datos');
+      throw new InternalServerErrorException(
+        'Error interno al guardar en base de datos',
+      );
     }
   }
 }

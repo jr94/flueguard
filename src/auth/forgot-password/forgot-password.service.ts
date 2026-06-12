@@ -20,11 +20,18 @@ export class ForgotPasswordService {
     private readonly userRepository: Repository<User>,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
-  async requestPasswordReset(dto: ForgotPasswordRequestDto): Promise<{ success: boolean; message: string }> {
-    const user = await this.userRepository.findOne({ where: { email: dto.email } });
-    const genericResponse = { success: true, message: 'Si el correo existe, se envió un código de recuperación.' };
+  async requestPasswordReset(
+    dto: ForgotPasswordRequestDto,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { email: dto.email },
+    });
+    const genericResponse = {
+      success: true,
+      message: 'Si el correo existe, se envió un código de recuperación.',
+    };
 
     if (!user) {
       return genericResponse;
@@ -36,7 +43,9 @@ export class ForgotPasswordService {
     // Generate 6 digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const minutes = Number(this.configService.get<number>('FORGOT_PASSWORD_CODE_EXP_MINUTES') || 10);
+    const minutes = Number(
+      this.configService.get<number>('FORGOT_PASSWORD_CODE_EXP_MINUTES') || 10,
+    );
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + minutes);
 
@@ -54,7 +63,9 @@ export class ForgotPasswordService {
     return genericResponse;
   }
 
-  async verifyCode(dto: VerifyCodeDto): Promise<{ success: boolean; reset_token: string }> {
+  async verifyCode(
+    dto: VerifyCodeDto,
+  ): Promise<{ success: boolean; reset_token: string }> {
     const { email, code } = dto;
 
     const resetRecord = await this.passwordResetRepository.findOne({
@@ -62,14 +73,22 @@ export class ForgotPasswordService {
       order: { created_at: 'DESC' },
     });
 
-    if (!resetRecord || resetRecord.code !== code || new Date() > new Date(resetRecord.code_expires_at)) {
+    if (
+      !resetRecord ||
+      resetRecord.code !== code ||
+      new Date() > new Date(resetRecord.code_expires_at)
+    ) {
       throw new BadRequestException('Código inválido o expirado.');
     }
 
-    const tokenLength = Number(this.configService.get<number>('FRONTEND_RESET_TOKEN_LENGTH') || 64);
+    const tokenLength = Number(
+      this.configService.get<number>('FRONTEND_RESET_TOKEN_LENGTH') || 64,
+    );
     const reset_token = crypto.randomBytes(tokenLength / 2).toString('hex');
 
-    const minutes = Number(this.configService.get<number>('FORGOT_PASSWORD_TOKEN_EXP_MINUTES') || 15);
+    const minutes = Number(
+      this.configService.get<number>('FORGOT_PASSWORD_TOKEN_EXP_MINUTES') || 15,
+    );
     const tokenExpiresAt = new Date();
     tokenExpiresAt.setMinutes(tokenExpiresAt.getMinutes() + minutes);
 
@@ -82,7 +101,9 @@ export class ForgotPasswordService {
     return { success: true, reset_token };
   }
 
-  async resetPassword(dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
+  async resetPassword(
+    dto: ResetPasswordDto,
+  ): Promise<{ success: boolean; message: string }> {
     const { reset_token, password, confirm_password } = dto;
 
     if (password !== confirm_password) {
@@ -97,11 +118,16 @@ export class ForgotPasswordService {
       throw new BadRequestException('Token inválido o no verificado.');
     }
 
-    if (resetRecord.token_expires_at && new Date() > new Date(resetRecord.token_expires_at)) {
+    if (
+      resetRecord.token_expires_at &&
+      new Date() > new Date(resetRecord.token_expires_at)
+    ) {
       throw new BadRequestException('El token ha expirado.');
     }
 
-    const user = await this.userRepository.findOne({ where: { id: resetRecord.user_id } });
+    const user = await this.userRepository.findOne({
+      where: { id: resetRecord.user_id },
+    });
     if (!user) {
       throw new BadRequestException('Usuario no válido.');
     }

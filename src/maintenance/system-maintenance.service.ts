@@ -40,7 +40,9 @@ export class SystemMaintenanceService {
     const twentyMinsAgo = new Date(now.getTime() - 20 * 60000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600000);
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600000);
-    const oneHundredEightyDaysAgo = new Date(now.getTime() - 180 * 24 * 3600000);
+    const oneHundredEightyDaysAgo = new Date(
+      now.getTime() - 180 * 24 * 3600000,
+    );
     const oneYearAgo = new Date(now.getTime() - 365 * 24 * 3600000);
 
     // 1. Marcar dispositivos offline si llevan más de 20 minutos sin conexión.
@@ -52,7 +54,9 @@ export class SystemMaintenanceService {
       .andWhere('last_connection < :twentyMinsAgo', { twentyMinsAgo })
       .andWhere('status != :offlineStatus', { offlineStatus: 'offline' })
       .execute();
-    this.logger.log(`[SystemMaintenance] Devices marked offline: ${updateResult.affected || 0}`);
+    this.logger.log(
+      `[SystemMaintenance] Devices marked offline: ${updateResult.affected || 0}`,
+    );
 
     // 2. Borrar temperature_logs anteriores a 30 días.
     const deleteResult = await this.logRepository
@@ -61,7 +65,9 @@ export class SystemMaintenanceService {
       .from(TemperatureLog)
       .where('created_at < :thirtyDaysAgo', { thirtyDaysAgo })
       .execute();
-    this.logger.log(`[SystemMaintenance] Temperature logs deleted: ${deleteResult.affected || 0}`);
+    this.logger.log(
+      `[SystemMaintenance] Temperature logs deleted: ${deleteResult.affected || 0}`,
+    );
 
     // 3. Limpieza de alerts compatible con métricas PRO.
     // Nivel 1: mantener 30 días.
@@ -96,14 +102,24 @@ export class SystemMaintenanceService {
       .createQueryBuilder()
       .delete()
       .from(Alert)
-      .where('alert_type IN (:...types)', { types: ['maintenance', 'maintenance_preventive', 'maintenance_urgent'] })
+      .where('alert_type IN (:...types)', {
+        types: ['maintenance', 'maintenance_preventive', 'maintenance_urgent'],
+      })
       .andWhere('created_at < :date', { date: oneYearAgo })
       .execute();
 
-    this.logger.log(`[SystemMaintenance] Alerts L1 deleted: ${deleteInfoAlerts.affected || 0}`);
-    this.logger.log(`[SystemMaintenance] Alerts L2 deleted: ${deleteWarningAlerts.affected || 0}`);
-    this.logger.log(`[SystemMaintenance] Alerts L3 deleted: ${deleteCriticalAlerts.affected || 0}`);
-    this.logger.log(`[SystemMaintenance] Maintenance alerts deleted: ${deleteMaintenanceAlerts.affected || 0}`);
+    this.logger.log(
+      `[SystemMaintenance] Alerts L1 deleted: ${deleteInfoAlerts.affected || 0}`,
+    );
+    this.logger.log(
+      `[SystemMaintenance] Alerts L2 deleted: ${deleteWarningAlerts.affected || 0}`,
+    );
+    this.logger.log(
+      `[SystemMaintenance] Alerts L3 deleted: ${deleteCriticalAlerts.affected || 0}`,
+    );
+    this.logger.log(
+      `[SystemMaintenance] Maintenance alerts deleted: ${deleteMaintenanceAlerts.affected || 0}`,
+    );
 
     // 4. Borrar firmware updates anteriores a 30 días.
     const deleteFirmwareUpdates = await this.firmwareUpdateRepository
@@ -112,7 +128,9 @@ export class SystemMaintenanceService {
       .from(DeviceFirmwareUpdate)
       .where('created_at < :date', { date: thirtyDaysAgo })
       .execute();
-    this.logger.log(`[SystemMaintenance] Firmware updates deleted: ${deleteFirmwareUpdates.affected || 0}`);
+    this.logger.log(
+      `[SystemMaintenance] Firmware updates deleted: ${deleteFirmwareUpdates.affected || 0}`,
+    );
 
     // 5. Borrar push tokens inactivos.
     const deleteInactiveTokens = await this.pushTokenRepository
@@ -122,7 +140,9 @@ export class SystemMaintenanceService {
       .where('is_active = :isActive', { isActive: false })
       .andWhere('updated_at < :date', { date: thirtyDaysAgo })
       .execute();
-    this.logger.log(`[SystemMaintenance] Inactive push tokens deleted: ${deleteInactiveTokens.affected || 0}`);
+    this.logger.log(
+      `[SystemMaintenance] Inactive push tokens deleted: ${deleteInactiveTokens.affected || 0}`,
+    );
 
     // 6. Limpieza de device_prediction_metrics anteriores a 180 días.
     const deletePredictionMetrics = await this.predictionMetricRepository
@@ -131,7 +151,9 @@ export class SystemMaintenanceService {
       .from(DevicePredictionMetric)
       .where('created_at < :date', { date: oneHundredEightyDaysAgo })
       .execute();
-    this.logger.log(`[SystemMaintenance] Prediction metrics deleted: ${deletePredictionMetrics.affected || 0}`);
+    this.logger.log(
+      `[SystemMaintenance] Prediction metrics deleted: ${deletePredictionMetrics.affected || 0}`,
+    );
 
     // 7. Revalidación diaria Google Play.
     let google_play_revalidation: any = null;

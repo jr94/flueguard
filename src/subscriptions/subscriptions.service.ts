@@ -1,4 +1,12 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { SubscriptionPlan } from './entities/subscription-plan.entity';
@@ -74,9 +82,9 @@ export class SubscriptionsService {
       relations: ['features'],
     });
 
-    return plans.map(plan => {
+    return plans.map((plan) => {
       const featuresObj: any = {};
-      plan.features.forEach(f => {
+      plan.features.forEach((f) => {
         featuresObj[f.feature_code] = this.parseFeatureValue(f.feature_value);
       });
 
@@ -92,15 +100,21 @@ export class SubscriptionsService {
     });
   }
 
-  async validateUserDeviceAccess(userId: number, deviceId: number): Promise<Device> {
-    const device = await this.deviceRepository.createQueryBuilder('device')
+  async validateUserDeviceAccess(
+    userId: number,
+    deviceId: number,
+  ): Promise<Device> {
+    const device = await this.deviceRepository
+      .createQueryBuilder('device')
       .innerJoin('user_devices', 'ud', 'ud.device_id = device.id')
       .where('device.id = :deviceId', { deviceId })
       .andWhere('ud.user_id = :userId', { userId })
       .getOne();
 
     if (!device) {
-      const exists = await this.deviceRepository.findOne({ where: { id: deviceId } });
+      const exists = await this.deviceRepository.findOne({
+        where: { id: deviceId },
+      });
       if (!exists) {
         throw new NotFoundException('Device not found');
       }
@@ -110,7 +124,8 @@ export class SubscriptionsService {
   }
 
   async getOwnerUserIdByDeviceId(deviceId: number): Promise<number | null> {
-    const link = await this.deviceRepository.createQueryBuilder('device')
+    const link = await this.deviceRepository
+      .createQueryBuilder('device')
       .innerJoin('user_devices', 'ud', 'ud.device_id = device.id')
       .select('ud.user_id', 'user_id')
       .where('device.id = :deviceId', { deviceId })
@@ -121,19 +136,26 @@ export class SubscriptionsService {
 
   // --- REQUIRED USER-BASED METHODS ---
 
-  async getActiveSubscriptionByUserId(userId: number): Promise<UserSubscription | null> {
-    return this.userSubscriptionRepository.createQueryBuilder('us')
+  async getActiveSubscriptionByUserId(
+    userId: number,
+  ): Promise<UserSubscription | null> {
+    return this.userSubscriptionRepository
+      .createQueryBuilder('us')
       .innerJoinAndSelect('us.plan', 'sp')
       .leftJoinAndSelect('sp.features', 'spf')
       .where('us.user_id = :userId', { userId })
-      .andWhere('us.status IN (:...statuses)', { statuses: ['active', 'trialing'] })
+      .andWhere('us.status IN (:...statuses)', {
+        statuses: ['active', 'trialing'],
+      })
       .andWhere('us.current_period_end > NOW()')
       .andWhere('sp.is_active = 1')
       .orderBy('us.current_period_end', 'DESC')
       .getOne();
   }
 
-  async getEffectivePlanByUserId(userId: number): Promise<{ id: number | null, code: string, name: string }> {
+  async getEffectivePlanByUserId(
+    userId: number,
+  ): Promise<{ id: number | null; code: string; name: string }> {
     const subscription = await this.getActiveSubscriptionByUserId(userId);
     if (subscription && subscription.plan) {
       return {
@@ -159,7 +181,7 @@ export class SubscriptionsService {
       planCode = subscription.plan.code;
       planName = subscription.plan.name;
       if (subscription.plan.features) {
-        subscription.plan.features.forEach(f => {
+        subscription.plan.features.forEach((f) => {
           featuresObj[f.feature_code] = this.parseFeatureValue(f.feature_value);
         });
       }
@@ -169,7 +191,7 @@ export class SubscriptionsService {
         relations: ['features'],
       });
       if (basicPlan && basicPlan.features) {
-        basicPlan.features.forEach(f => {
+        basicPlan.features.forEach((f) => {
           featuresObj[f.feature_code] = this.parseFeatureValue(f.feature_value);
         });
       }
@@ -194,7 +216,7 @@ export class SubscriptionsService {
       });
       const featuresObj: any = {};
       if (basicPlan && basicPlan.features) {
-        basicPlan.features.forEach(f => {
+        basicPlan.features.forEach((f) => {
           featuresObj[f.feature_code] = this.parseFeatureValue(f.feature_value);
         });
       }
@@ -219,15 +241,21 @@ export class SubscriptionsService {
 
     const featuresObj: any = {};
     if (subscription.plan && subscription.plan.features) {
-      subscription.plan.features.forEach(f => {
+      subscription.plan.features.forEach((f) => {
         featuresObj[f.feature_code] = this.parseFeatureValue(f.feature_value);
       });
     }
 
-    const productInfo = this.getGooglePlayProductDisplayName(subscription.provider_product_id || '');
-    const manageUrl = subscription.provider === 'google_play' && subscription.provider_product_id 
-      ? this.buildGooglePlayManageSubscriptionUrl(subscription.provider_product_id) 
-      : null;
+    const productInfo = this.getGooglePlayProductDisplayName(
+      subscription.provider_product_id || '',
+    );
+    const manageUrl =
+      subscription.provider === 'google_play' &&
+      subscription.provider_product_id
+        ? this.buildGooglePlayManageSubscriptionUrl(
+            subscription.provider_product_id,
+          )
+        : null;
 
     return {
       user_id: userId,
@@ -253,7 +281,9 @@ export class SubscriptionsService {
 
   async userHasFeature(userId: number, featureCode: string): Promise<any> {
     const featuresInfo = await this.getUserPlanFeatures(userId);
-    const hasFeature = featuresInfo.features[featureCode] !== undefined && this.isFeatureEnabled(featuresInfo.features[featureCode]);
+    const hasFeature =
+      featuresInfo.features[featureCode] !== undefined &&
+      this.isFeatureEnabled(featuresInfo.features[featureCode]);
     return {
       user_id: userId,
       feature_code: featureCode,
@@ -263,15 +293,19 @@ export class SubscriptionsService {
     };
   }
 
-  async getEligibleNotificationUsersForFeature(deviceId: number, featureCode: string): Promise<number[]> {
-    const userDevices = await this.deviceRepository.createQueryBuilder('device')
+  async getEligibleNotificationUsersForFeature(
+    deviceId: number,
+    featureCode: string,
+  ): Promise<number[]> {
+    const userDevices = await this.deviceRepository
+      .createQueryBuilder('device')
       .innerJoin('user_devices', 'ud', 'ud.device_id = device.id')
       .select('ud.user_id', 'user_id')
       .where('device.id = :deviceId', { deviceId })
       .andWhere('ud.notifications_enabled = 1')
       .getRawMany();
 
-    const userIds = userDevices.map(ud => Number(ud.user_id));
+    const userIds = userDevices.map((ud) => Number(ud.user_id));
     if (userIds.length === 0) return [];
 
     const eligibleUserIds: number[] = [];
@@ -287,7 +321,10 @@ export class SubscriptionsService {
 
   async cancelUserSubscription(userId: number): Promise<any> {
     const subscription = await this.userSubscriptionRepository.findOne({
-      where: { user_id: userId, status: In(['active', 'trialing', 'past_due']) }
+      where: {
+        user_id: userId,
+        status: In(['active', 'trialing', 'past_due']),
+      },
     });
     if (!subscription) {
       throw new NotFoundException('No active subscription found to cancel');
@@ -311,7 +348,10 @@ export class SubscriptionsService {
 
   async expireUserSubscription(userId: number): Promise<any> {
     const subscription = await this.userSubscriptionRepository.findOne({
-      where: { user_id: userId, status: In(['active', 'trialing', 'past_due', 'canceled']) }
+      where: {
+        user_id: userId,
+        status: In(['active', 'trialing', 'past_due', 'canceled']),
+      },
     });
     if (!subscription) {
       throw new NotFoundException('No active subscription found to expire');
@@ -337,10 +377,19 @@ export class SubscriptionsService {
   private async getGooglePlaySubscription(token: string) {
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME;
     const clientEmail = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL;
-    const privateKey = process.env.GOOGLE_PLAY_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const privateKey = process.env.GOOGLE_PLAY_PRIVATE_KEY?.replace(
+      /\\n/g,
+      '\n',
+    );
 
-    if (!packageName || (!clientEmail && !process.env.GOOGLE_APPLICATION_CREDENTIALS) || (!privateKey && !process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
-      throw new InternalServerErrorException('Google Play credentials not configured');
+    if (
+      !packageName ||
+      (!clientEmail && !process.env.GOOGLE_APPLICATION_CREDENTIALS) ||
+      (!privateKey && !process.env.GOOGLE_APPLICATION_CREDENTIALS)
+    ) {
+      throw new InternalServerErrorException(
+        'Google Play credentials not configured',
+      );
     }
 
     try {
@@ -371,55 +420,87 @@ export class SubscriptionsService {
     }
   }
 
-  async verifyGooglePlaySubscription(userId: number, dto: GooglePlayVerifyDto): Promise<any> {
+  async verifyGooglePlaySubscription(
+    userId: number,
+    dto: GooglePlayVerifyDto,
+  ): Promise<any> {
     const payload = this.normalizeGooglePlayVerifyPayload(dto);
-    
+
     // Diagnostic Logs
-    const maskedToken = payload.providerPurchaseToken 
+    const maskedToken = payload.providerPurchaseToken
       ? `${payload.providerPurchaseToken.substring(0, 8)}...${payload.providerPurchaseToken.substring(payload.providerPurchaseToken.length - 8)}`
       : 'MISSING';
-    
-    console.log(`[Verify] Received payload:`, JSON.stringify({ ...dto, purchase_token: '***', purchaseToken: '***', providerPurchaseToken: '***' }));
-    console.log(`[Verify] Normalized: productId=${payload.providerProductId}, token=${maskedToken}`);
+
+    console.log(
+      `[Verify] Received payload:`,
+      JSON.stringify({
+        ...dto,
+        purchase_token: '***',
+        purchaseToken: '***',
+        providerPurchaseToken: '***',
+      }),
+    );
+    console.log(
+      `[Verify] Normalized: productId=${payload.providerProductId}, token=${maskedToken}`,
+    );
 
     // Validaciones obligatorias
-    if (!payload.providerProductId) throw new BadRequestException('providerProductId es obligatorio');
-    if (!payload.providerPurchaseToken) throw new BadRequestException('providerPurchaseToken es obligatorio');
+    if (!payload.providerProductId)
+      throw new BadRequestException('providerProductId es obligatorio');
+    if (!payload.providerPurchaseToken)
+      throw new BadRequestException('providerPurchaseToken es obligatorio');
 
     // Detectar plan nuevo desde providerProductId
     let newPlanCode: string | null = null;
     const prodId = payload.providerProductId;
 
-    if (prodId.startsWith('flueguard_plus_device_') || prodId === 'flueguard_plus_monthly') {
+    if (
+      prodId.startsWith('flueguard_plus_device_') ||
+      prodId === 'flueguard_plus_monthly'
+    ) {
       newPlanCode = 'plus';
-    } else if (prodId.startsWith('flueguard_pro_device_') || prodId === 'flueguard_pro_monthly') {
+    } else if (
+      prodId.startsWith('flueguard_pro_device_') ||
+      prodId === 'flueguard_pro_monthly'
+    ) {
       newPlanCode = 'pro';
     } else if (prodId === 'flueguard_business_monthly') {
       newPlanCode = 'business';
     }
 
-    if (!newPlanCode) throw new BadRequestException('Producto de Google Play no reconocido');
+    if (!newPlanCode)
+      throw new BadRequestException('Producto de Google Play no reconocido');
 
-    const newPlan = await this.planRepository.findOne({ where: { code: newPlanCode, is_active: true } });
-    if (!newPlan) throw new BadRequestException('Plan no configurado en base de datos');
+    const newPlan = await this.planRepository.findOne({
+      where: { code: newPlanCode, is_active: true },
+    });
+    if (!newPlan)
+      throw new BadRequestException('Plan no configurado en base de datos');
 
-    const PLAN_HIERARCHY: { [key: string]: number } = { 'basic': 0, 'plus': 1, 'pro': 2, 'business': 3 };
+    const PLAN_HIERARCHY: { [key: string]: number } = {
+      basic: 0,
+      plus: 1,
+      pro: 2,
+      business: 3,
+    };
     const newPlanLevel = PLAN_HIERARCHY[newPlanCode] || 0;
 
     // Buscar suscripción activa actual del usuario
     const activeSub = await this.userSubscriptionRepository.findOne({
-      where: { 
-        user_id: userId, 
-        status: In(['active', 'trialing', 'past_due']) 
+      where: {
+        user_id: userId,
+        status: In(['active', 'trialing', 'past_due']),
       },
-      relations: ['plan']
+      relations: ['plan'],
     });
 
     if (activeSub) {
       const currentPlanCode = activeSub.plan?.code || 'basic';
       const currentPlanLevel = PLAN_HIERARCHY[currentPlanCode] || 0;
 
-      console.log(`[Verify] User ${userId} has active plan: ${currentPlanCode} (Level ${currentPlanLevel}). New plan: ${newPlanCode} (Level ${newPlanLevel})`);
+      console.log(
+        `[Verify] User ${userId} has active plan: ${currentPlanCode} (Level ${currentPlanLevel}). New plan: ${newPlanCode} (Level ${newPlanLevel})`,
+      );
 
       // Caso A: Mismo purchaseToken (Idempotencia)
       if (activeSub.provider_purchase_token === payload.providerPurchaseToken) {
@@ -428,42 +509,68 @@ export class SubscriptionsService {
         // Caso B: Token distinto (Compra nueva o cambio de plan)
         if (newPlanLevel > currentPlanLevel) {
           // UPGRADE: Cerrar la anterior
-          console.log(`[Verify] UPGRADE DETECTED. Closing old subscription ID ${activeSub.id}`);
+          console.log(
+            `[Verify] UPGRADE DETECTED. Closing old subscription ID ${activeSub.id}`,
+          );
           activeSub.status = 'canceled';
           activeSub.cancel_at_period_end = false;
           activeSub.canceled_at = new Date();
           activeSub.updated_at = new Date();
           await this.userSubscriptionRepository.save(activeSub);
         } else if (newPlanLevel === currentPlanLevel) {
-          console.log(`[Verify] User already has active plan of same level. Updating existing record ID ${activeSub.id}`);
+          console.log(
+            `[Verify] User already has active plan of same level. Updating existing record ID ${activeSub.id}`,
+          );
         } else {
-          throw new ConflictException('No puedes cambiar a un plan inferior mientras el plan actual sigue activo');
+          throw new ConflictException(
+            'No puedes cambiar a un plan inferior mientras el plan actual sigue activo',
+          );
         }
       }
     }
 
     // Call Google Play API
-    const googleData = await this.getGooglePlaySubscription(payload.providerPurchaseToken);
-    
-    console.log(`[Google API] state=${googleData.subscriptionState}, latestOrder=${googleData.latestOrderId}`);
+    const googleData = await this.getGooglePlaySubscription(
+      payload.providerPurchaseToken,
+    );
 
-    const activeStates = ['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'];
+    console.log(
+      `[Google API] state=${googleData.subscriptionState}, latestOrder=${googleData.latestOrderId}`,
+    );
+
+    const activeStates = [
+      'SUBSCRIPTION_STATE_ACTIVE',
+      'SUBSCRIPTION_STATE_IN_GRACE_PERIOD',
+    ];
     if (!activeStates.includes(googleData.subscriptionState || '')) {
-      throw new BadRequestException(`La suscripción de Google Play no está activa (Estado: ${googleData.subscriptionState})`);
+      throw new BadRequestException(
+        `La suscripción de Google Play no está activa (Estado: ${googleData.subscriptionState})`,
+      );
     }
 
-    const lineItem = googleData.lineItems?.find(item => item.productId === payload.providerProductId) || googleData.lineItems?.[0];
+    const lineItem =
+      googleData.lineItems?.find(
+        (item) => item.productId === payload.providerProductId,
+      ) || googleData.lineItems?.[0];
     if (!lineItem || lineItem.productId !== payload.providerProductId) {
-      throw new BadRequestException('El productId de Google Play no coincide con el token de compra');
+      throw new BadRequestException(
+        'El productId de Google Play no coincide con el token de compra',
+      );
     }
 
-    const expiryTime = new Date(lineItem.expiryTime!);
-    const startTime = googleData.startTime ? new Date(googleData.startTime) : new Date();
-    const latestOrderId = googleData.latestOrderId || payload.providerOrderId || payload.providerSubscriptionId || null;
+    const expiryTime = new Date(lineItem.expiryTime);
+    const startTime = googleData.startTime
+      ? new Date(googleData.startTime)
+      : new Date();
+    const latestOrderId =
+      googleData.latestOrderId ||
+      payload.providerOrderId ||
+      payload.providerSubscriptionId ||
+      null;
 
     // Buscar si ya existe la suscripción con este token específico (re-verificación)
     let subscription = await this.userSubscriptionRepository.findOne({
-      where: { provider_purchase_token: payload.providerPurchaseToken }
+      where: { provider_purchase_token: payload.providerPurchaseToken },
     });
 
     if (subscription) {
@@ -473,19 +580,28 @@ export class SubscriptionsService {
       subscription.status = 'active';
       subscription.provider_product_id = payload.providerProductId;
       subscription.provider_subscription_id = latestOrderId;
-      subscription.provider_base_plan_id = payload.providerBasePlanId || subscription.provider_base_plan_id;
-      subscription.provider_order_id = payload.providerOrderId || subscription.provider_order_id || latestOrderId;
+      subscription.provider_base_plan_id =
+        payload.providerBasePlanId || subscription.provider_base_plan_id;
+      subscription.provider_order_id =
+        payload.providerOrderId ||
+        subscription.provider_order_id ||
+        latestOrderId;
       subscription.current_period_start = startTime;
       subscription.current_period_end = expiryTime;
       subscription.cancel_at_period_end = false;
       subscription.canceled_at = null;
       subscription.updated_at = new Date();
       await this.userSubscriptionRepository.save(subscription);
-      console.log(`[Verify] Updated subscription ID ${subscription.id} (Idempotent)`);
+      console.log(
+        `[Verify] Updated subscription ID ${subscription.id} (Idempotent)`,
+      );
     } else {
       // Si el usuario ya tiene una suscripción activa (como la que encontramos arriba), podemos reusarla y actualizarla
       const existingActive = await this.userSubscriptionRepository.findOne({
-        where: { user_id: userId, status: In(['active', 'trialing', 'past_due']) }
+        where: {
+          user_id: userId,
+          status: In(['active', 'trialing', 'past_due']),
+        },
       });
 
       if (existingActive) {
@@ -497,7 +613,8 @@ export class SubscriptionsService {
         subscription.provider_subscription_id = latestOrderId;
         subscription.provider_purchase_token = payload.providerPurchaseToken;
         subscription.provider_base_plan_id = payload.providerBasePlanId || null;
-        subscription.provider_order_id = payload.providerOrderId || latestOrderId;
+        subscription.provider_order_id =
+          payload.providerOrderId || latestOrderId;
         subscription.started_at = startTime;
         subscription.current_period_start = startTime;
         subscription.current_period_end = expiryTime;
@@ -505,7 +622,9 @@ export class SubscriptionsService {
         subscription.canceled_at = null;
         subscription.updated_at = new Date();
         await this.userSubscriptionRepository.save(subscription);
-        console.log(`[Verify] Updated user existing subscription ID ${subscription.id} to Google Play`);
+        console.log(
+          `[Verify] Updated user existing subscription ID ${subscription.id} to Google Play`,
+        );
       } else {
         // Crear nueva suscripción
         subscription = this.userSubscriptionRepository.create({
@@ -525,7 +644,9 @@ export class SubscriptionsService {
           canceled_at: null,
         });
         subscription = await this.userSubscriptionRepository.save(subscription);
-        console.log(`[Verify] Created new user subscription ID ${subscription.id} for plan ${newPlanCode}`);
+        console.log(
+          `[Verify] Created new user subscription ID ${subscription.id} for plan ${newPlanCode}`,
+        );
       }
     }
 
@@ -536,7 +657,11 @@ export class SubscriptionsService {
       provider: 'google_play',
       provider_event_id: latestOrderId,
       event_type: 'google_play_subscription_verified',
-      raw_payload: { product_id: payload.providerProductId, latestOrderId, expiryTime: lineItem.expiryTime },
+      raw_payload: {
+        product_id: payload.providerProductId,
+        latestOrderId,
+        expiryTime: lineItem.expiryTime,
+      },
     });
     await this.eventRepository.save(event);
 
@@ -546,7 +671,9 @@ export class SubscriptionsService {
   private validateRtdnSecret(querySecret?: string, headerSecret?: string) {
     const expectedSecret = process.env.GOOGLE_PLAY_RTDN_SECRET;
     if (!expectedSecret) {
-      console.warn('GOOGLE_PLAY_RTDN_SECRET is not set in environment variables');
+      console.warn(
+        'GOOGLE_PLAY_RTDN_SECRET is not set in environment variables',
+      );
       throw new UnauthorizedException('Invalid RTDN secret');
     }
     if (querySecret !== expectedSecret && headerSecret !== expectedSecret) {
@@ -586,8 +713,13 @@ export class SubscriptionsService {
     const messageId = params.body?.message?.messageId;
     const publishTime = params.body?.message?.publishTime;
 
-    if (decoded.packageName && decoded.packageName !== process.env.GOOGLE_PLAY_PACKAGE_NAME) {
-      console.warn(`[RTDN] Ignored message for package: ${decoded.packageName}`);
+    if (
+      decoded.packageName &&
+      decoded.packageName !== process.env.GOOGLE_PLAY_PACKAGE_NAME
+    ) {
+      console.warn(
+        `[RTDN] Ignored message for package: ${decoded.packageName}`,
+      );
       return { success: true, message: 'Ignored unknown package' };
     }
 
@@ -608,7 +740,10 @@ export class SubscriptionsService {
         raw_payload: { decoded, pubsub: params.body },
       });
       await this.eventRepository.save(event);
-      return { success: true, message: 'Ignored non-subscription notification' };
+      return {
+        success: true,
+        message: 'Ignored non-subscription notification',
+      };
     }
 
     const notification = decoded.subscriptionNotification;
@@ -616,17 +751,26 @@ export class SubscriptionsService {
     const subscriptionId = notification.subscriptionId;
     const notificationType = notification.notificationType;
     const notificationName = this.getNotificationTypeName(notificationType);
-    
-    const partialToken = purchaseToken ? `${purchaseToken.substring(0, 6)}...${purchaseToken.substring(purchaseToken.length - 6)}` : 'null';
-    console.log(`[RTDN] Received ${notificationName} for sub ${subscriptionId}, token ${partialToken}, msgId ${messageId}`);
+
+    const partialToken = purchaseToken
+      ? `${purchaseToken.substring(0, 6)}...${purchaseToken.substring(purchaseToken.length - 6)}`
+      : 'null';
+    console.log(
+      `[RTDN] Received ${notificationName} for sub ${subscriptionId}, token ${partialToken}, msgId ${messageId}`,
+    );
 
     const subscription = await this.userSubscriptionRepository.findOne({
-      where: { provider: 'google_play', provider_purchase_token: purchaseToken },
-      order: { id: 'DESC' }
+      where: {
+        provider: 'google_play',
+        provider_purchase_token: purchaseToken,
+      },
+      order: { id: 'DESC' },
     });
 
     if (!subscription) {
-      console.warn(`[RTDN] No active user subscription found for token ${partialToken}`);
+      console.warn(
+        `[RTDN] No active user subscription found for token ${partialToken}`,
+      );
       const event = this.eventRepository.create({
         provider: 'google_play',
         event_type: 'google_play_rtdn_unmatched',
@@ -641,13 +785,25 @@ export class SubscriptionsService {
     try {
       googleData = await this.getGooglePlaySubscription(purchaseToken);
     } catch (error: any) {
-      console.error(`[RTDN] Google API error for token ${partialToken}:`, error.message);
-      throw new InternalServerErrorException('Error verifying subscription with Google Play');
+      console.error(
+        `[RTDN] Google API error for token ${partialToken}:`,
+        error.message,
+      );
+      throw new InternalServerErrorException(
+        'Error verifying subscription with Google Play',
+      );
     }
 
-    const lineItem = googleData.lineItems?.find((item: any) => item.productId === subscriptionId) || googleData.lineItems?.[0];
-    const expiryTimeDate = lineItem?.expiryTime ? new Date(lineItem.expiryTime) : null;
-    const startTimeDate = googleData.startTime ? new Date(googleData.startTime) : null;
+    const lineItem =
+      googleData.lineItems?.find(
+        (item: any) => item.productId === subscriptionId,
+      ) || googleData.lineItems?.[0];
+    const expiryTimeDate = lineItem?.expiryTime
+      ? new Date(lineItem.expiryTime)
+      : null;
+    const startTimeDate = googleData.startTime
+      ? new Date(googleData.startTime)
+      : null;
     const now = new Date();
 
     let status = subscription.status;
@@ -664,7 +820,7 @@ export class SubscriptionsService {
       case 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD':
         status = 'active';
         cancel_at_period_end = false;
-        canceled_at = null; 
+        canceled_at = null;
         break;
       case 'SUBSCRIPTION_STATE_ON_HOLD':
       case 'SUBSCRIPTION_STATE_PAUSED':
@@ -694,24 +850,30 @@ export class SubscriptionsService {
         break;
     }
 
-    if (notificationType === 12) { // SUBSCRIPTION_REVOKED
+    if (notificationType === 12) {
+      // SUBSCRIPTION_REVOKED
       status = 'canceled';
       current_period_end = now;
       cancel_at_period_end = false;
       canceled_at = now;
-    } else if (notificationType === 13) { // SUBSCRIPTION_EXPIRED
+    } else if (notificationType === 13) {
+      // SUBSCRIPTION_EXPIRED
       status = 'expired';
       current_period_end = expiryTimeDate || now;
       cancel_at_period_end = false;
-    } else if (notificationType === 5) { // SUBSCRIPTION_ON_HOLD
+    } else if (notificationType === 5) {
+      // SUBSCRIPTION_ON_HOLD
       status = 'past_due';
-    } else if (notificationType === 6) { // SUBSCRIPTION_IN_GRACE_PERIOD
+    } else if (notificationType === 6) {
+      // SUBSCRIPTION_IN_GRACE_PERIOD
       status = 'active';
-    } else if (notificationType === 2) { // SUBSCRIPTION_RENEWED
+    } else if (notificationType === 2) {
+      // SUBSCRIPTION_RENEWED
       status = 'active';
       cancel_at_period_end = false;
       canceled_at = null;
-    } else if (notificationType === 3) { // SUBSCRIPTION_CANCELED
+    } else if (notificationType === 3) {
+      // SUBSCRIPTION_CANCELED
       if (current_period_end && current_period_end > now) {
         status = 'active';
         cancel_at_period_end = true;
@@ -729,7 +891,9 @@ export class SubscriptionsService {
     let newPlanId = subscription.plan_id;
     if (subscriptionId && productToPlanMap[subscriptionId]) {
       const planCode = productToPlanMap[subscriptionId];
-      const plan = await this.planRepository.findOne({ where: { code: planCode } });
+      const plan = await this.planRepository.findOne({
+        where: { code: planCode },
+      });
       if (plan) {
         newPlanId = plan.id;
       }
@@ -737,9 +901,12 @@ export class SubscriptionsService {
 
     subscription.status = status;
     subscription.plan_id = newPlanId;
-    subscription.provider_product_id = subscriptionId || subscription.provider_product_id;
-    subscription.provider_subscription_id = googleData.latestOrderId || subscription.provider_subscription_id;
-    subscription.current_period_start = startTimeDate || subscription.current_period_start;
+    subscription.provider_product_id =
+      subscriptionId || subscription.provider_product_id;
+    subscription.provider_subscription_id =
+      googleData.latestOrderId || subscription.provider_subscription_id;
+    subscription.current_period_start =
+      startTimeDate || subscription.current_period_start;
     subscription.current_period_end = current_period_end;
     subscription.cancel_at_period_end = cancel_at_period_end;
     subscription.canceled_at = canceled_at;
@@ -767,7 +934,9 @@ export class SubscriptionsService {
     });
     await this.eventRepository.save(event);
 
-    console.log(`[RTDN] Updated subscription ${subscription.id} to status ${status}`);
+    console.log(
+      `[RTDN] Updated subscription ${subscription.id} to status ${status}`,
+    );
 
     return {
       success: true,
@@ -779,18 +948,18 @@ export class SubscriptionsService {
 
   async shouldRunGooglePlayDailyRevalidation(): Promise<boolean> {
     const now = new Date();
-    
+
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Santiago',
       hour: 'numeric',
       minute: 'numeric',
       hour12: false,
     });
-    
+
     const parts = formatter.formatToParts(now);
-    const hourStr = parts.find(p => p.type === 'hour')?.value;
-    const minStr = parts.find(p => p.type === 'minute')?.value;
-    
+    const hourStr = parts.find((p) => p.type === 'hour')?.value;
+    const minStr = parts.find((p) => p.type === 'minute')?.value;
+
     const hour = parseInt(hourStr || '0', 10);
     const minute = parseInt(minStr || '0', 10);
 
@@ -805,7 +974,7 @@ export class SubscriptionsService {
         provider: 'google_play',
         event_type: 'google_play_daily_revalidation_finished',
       },
-      order: { created_at: 'DESC' }
+      order: { created_at: 'DESC' },
     });
 
     if (alreadyRan && alreadyRan.created_at > twentyFourHoursAgo) {
@@ -815,37 +984,54 @@ export class SubscriptionsService {
     return true;
   }
 
-  async revalidateGooglePlaySubscriptionsDaily(): Promise<{ checked: number; updated: number; errors: number; skipped: number; }> {
-    console.log("Starting Google Play daily subscription revalidation");
+  async revalidateGooglePlaySubscriptionsDaily(): Promise<{
+    checked: number;
+    updated: number;
+    errors: number;
+    skipped: number;
+  }> {
+    console.log('Starting Google Play daily subscription revalidation');
     const result = { checked: 0, updated: 0, errors: 0, skipped: 0 };
-    
+
     try {
-      const subscriptionsToRevalidate = await this.userSubscriptionRepository.createQueryBuilder('us')
+      const subscriptionsToRevalidate = await this.userSubscriptionRepository
+        .createQueryBuilder('us')
         .where('us.provider = :provider', { provider: 'google_play' })
         .andWhere('us.provider_purchase_token IS NOT NULL')
-        .andWhere('(us.status IN (:...statuses) OR us.cancel_at_period_end = true OR us.current_period_end >= NOW())', {
-          statuses: ['active', 'trialing', 'past_due'],
-        })
+        .andWhere(
+          '(us.status IN (:...statuses) OR us.cancel_at_period_end = true OR us.current_period_end >= NOW())',
+          {
+            statuses: ['active', 'trialing', 'past_due'],
+          },
+        )
         .getMany();
 
-      console.log(`Found ${subscriptionsToRevalidate.length} Google Play user subscriptions to revalidate`);
+      console.log(
+        `Found ${subscriptionsToRevalidate.length} Google Play user subscriptions to revalidate`,
+      );
 
       for (const subscription of subscriptionsToRevalidate) {
         result.checked++;
         const token = subscription.provider_purchase_token;
         if (!token) continue;
         const partialToken = `${token.substring(0, 6)}...${token.substring(token.length - 6)}`;
-        
+
         try {
           const googleData = await this.getGooglePlaySubscription(token);
-          
-          let lineItem = googleData.lineItems?.find((item: any) => item.productId === subscription.provider_product_id);
+
+          let lineItem = googleData.lineItems?.find(
+            (item: any) => item.productId === subscription.provider_product_id,
+          );
           if (!lineItem && googleData.lineItems?.length > 0) {
             lineItem = googleData.lineItems[0];
           }
 
-          const expiryTimeDate = lineItem?.expiryTime ? new Date(lineItem.expiryTime) : null;
-          const startTimeDate = googleData.startTime ? new Date(googleData.startTime) : null;
+          const expiryTimeDate = lineItem?.expiryTime
+            ? new Date(lineItem.expiryTime)
+            : null;
+          const startTimeDate = googleData.startTime
+            ? new Date(googleData.startTime)
+            : null;
           const now = new Date();
 
           let status = subscription.status;
@@ -905,26 +1091,51 @@ export class SubscriptionsService {
           const previousPeriodEnd = subscription.current_period_end;
           const previousCancelAtPeriodEnd = subscription.cancel_at_period_end;
           const previousCanceledAt = subscription.canceled_at;
-          const previousProviderSubscriptionId = subscription.provider_subscription_id;
+          const previousProviderSubscriptionId =
+            subscription.provider_subscription_id;
 
           const changedStatus = previousStatus !== status;
-          const changedPeriodEnd = previousPeriodEnd?.getTime() !== current_period_end?.getTime();
-          const changedCancelAtPeriodEnd = previousCancelAtPeriodEnd !== cancel_at_period_end;
-          const changedCanceledAt = previousCanceledAt?.getTime() !== canceled_at?.getTime();
-          const changedProviderSubscriptionId = previousProviderSubscriptionId !== googleData.latestOrderId && googleData.latestOrderId;
+          const changedPeriodEnd =
+            previousPeriodEnd?.getTime() !== current_period_end?.getTime();
+          const changedCancelAtPeriodEnd =
+            previousCancelAtPeriodEnd !== cancel_at_period_end;
+          const changedCanceledAt =
+            previousCanceledAt?.getTime() !== canceled_at?.getTime();
+          const changedProviderSubscriptionId =
+            previousProviderSubscriptionId !== googleData.latestOrderId &&
+            googleData.latestOrderId;
 
-          const problematicStates = ['SUBSCRIPTION_STATE_ON_HOLD', 'SUBSCRIPTION_STATE_PAUSED', 'SUBSCRIPTION_STATE_EXPIRED', 'SUBSCRIPTION_STATE_CANCELED', 'SUBSCRIPTION_STATE_PENDING', 'SUBSCRIPTION_STATE_UNSPECIFIED'];
-          const hasProblematicState = problematicStates.includes(googleData.subscriptionState || '');
+          const problematicStates = [
+            'SUBSCRIPTION_STATE_ON_HOLD',
+            'SUBSCRIPTION_STATE_PAUSED',
+            'SUBSCRIPTION_STATE_EXPIRED',
+            'SUBSCRIPTION_STATE_CANCELED',
+            'SUBSCRIPTION_STATE_PENDING',
+            'SUBSCRIPTION_STATE_UNSPECIFIED',
+          ];
+          const hasProblematicState = problematicStates.includes(
+            googleData.subscriptionState || '',
+          );
 
-          const changedAny = changedStatus || changedPeriodEnd || changedCancelAtPeriodEnd || changedCanceledAt || changedProviderSubscriptionId;
+          const changedAny =
+            changedStatus ||
+            changedPeriodEnd ||
+            changedCancelAtPeriodEnd ||
+            changedCanceledAt ||
+            changedProviderSubscriptionId;
 
-          console.log(`- Sub ${subscription.id} | User ${subscription.user_id} | State: ${googleData.subscriptionState} | Mapped: ${status} | Changed: ${changedAny}`);
+          console.log(
+            `- Sub ${subscription.id} | User ${subscription.user_id} | State: ${googleData.subscriptionState} | Mapped: ${status} | Changed: ${changedAny}`,
+          );
 
           if (changedAny) {
             subscription.status = status;
-            if (lineItem?.productId) subscription.provider_product_id = lineItem.productId;
-            if (googleData.latestOrderId) subscription.provider_subscription_id = googleData.latestOrderId;
-            if (startTimeDate) subscription.current_period_start = startTimeDate;
+            if (lineItem?.productId)
+              subscription.provider_product_id = lineItem.productId;
+            if (googleData.latestOrderId)
+              subscription.provider_subscription_id = googleData.latestOrderId;
+            if (startTimeDate)
+              subscription.current_period_start = startTimeDate;
             subscription.current_period_end = current_period_end;
             subscription.cancel_at_period_end = cancel_at_period_end;
             subscription.canceled_at = canceled_at;
@@ -932,13 +1143,15 @@ export class SubscriptionsService {
 
             await this.userSubscriptionRepository.save(subscription);
             result.updated++;
-            
+
             const changedFields: string[] = [];
             if (changedStatus) changedFields.push('status');
             if (changedPeriodEnd) changedFields.push('current_period_end');
-            if (changedCancelAtPeriodEnd) changedFields.push('cancel_at_period_end');
+            if (changedCancelAtPeriodEnd)
+              changedFields.push('cancel_at_period_end');
             if (changedCanceledAt) changedFields.push('canceled_at');
-            if (changedProviderSubscriptionId) changedFields.push('provider_subscription_id');
+            if (changedProviderSubscriptionId)
+              changedFields.push('provider_subscription_id');
 
             const event = this.eventRepository.create({
               user_subscription_id: subscription.id,
@@ -946,9 +1159,11 @@ export class SubscriptionsService {
               plan_id: subscription.plan_id,
               provider: 'google_play',
               event_type: 'google_play_daily_revalidation',
-              provider_event_id: googleData.latestOrderId || subscription.provider_subscription_id,
+              provider_event_id:
+                googleData.latestOrderId ||
+                subscription.provider_subscription_id,
               raw_payload: {
-                source: "daily_cron",
+                source: 'daily_cron',
                 subscriptionId: subscription.id,
                 userId: subscription.user_id,
                 previousStatus,
@@ -961,7 +1176,7 @@ export class SubscriptionsService {
                 latestOrderId: googleData.latestOrderId,
                 productId: lineItem?.productId,
                 expiryTime: lineItem?.expiryTime,
-                changedFields
+                changedFields,
               },
             });
             await this.eventRepository.save(event);
@@ -972,9 +1187,11 @@ export class SubscriptionsService {
               plan_id: subscription.plan_id,
               provider: 'google_play',
               event_type: 'google_play_daily_revalidation_unhandled_state',
-              provider_event_id: googleData.latestOrderId || subscription.provider_subscription_id,
+              provider_event_id:
+                googleData.latestOrderId ||
+                subscription.provider_subscription_id,
               raw_payload: {
-                source: "daily_cron",
+                source: 'daily_cron',
                 subscriptionId: subscription.id,
                 userId: subscription.user_id,
                 subscriptionState: googleData.subscriptionState,
@@ -986,11 +1203,13 @@ export class SubscriptionsService {
           } else {
             result.skipped++;
           }
-
         } catch (subError: any) {
-          console.error(`Error revalidating subscription ${subscription.id} (token: ${partialToken}):`, subError.message);
+          console.error(
+            `Error revalidating subscription ${subscription.id} (token: ${partialToken}):`,
+            subError.message,
+          );
           result.errors++;
-          
+
           const errEvent = this.eventRepository.create({
             user_subscription_id: subscription.id,
             user_id: subscription.user_id,
@@ -998,7 +1217,7 @@ export class SubscriptionsService {
             provider: 'google_play',
             event_type: 'google_play_daily_revalidation_error',
             raw_payload: {
-              source: "daily_cron",
+              source: 'daily_cron',
               subscriptionId: subscription.id,
               userId: subscription.user_id,
               error: subError.message,
@@ -1014,52 +1233,58 @@ export class SubscriptionsService {
         event_type: 'google_play_daily_revalidation_finished',
         raw_payload: {
           ...result,
-          executedAt: new Date().toISOString()
+          executedAt: new Date().toISOString(),
         },
       });
       await this.eventRepository.save(finishEvent);
-
     } catch (error: any) {
-      console.error('Fatal error during Google Play daily subscription revalidation:', error.message);
-      
+      console.error(
+        'Fatal error during Google Play daily subscription revalidation:',
+        error.message,
+      );
+
       const finishErrorEvent = this.eventRepository.create({
         provider: 'google_play',
         event_type: 'google_play_daily_revalidation_failed',
         raw_payload: {
           error: error.message,
-          executedAt: new Date().toISOString()
+          executedAt: new Date().toISOString(),
         },
       });
       await this.eventRepository.save(finishErrorEvent);
     }
-    
-    console.log("Google Play daily subscription revalidation finished", result);
+
+    console.log('Google Play daily subscription revalidation finished', result);
     return result;
   }
 
   async getProUserIds(): Promise<number[]> {
-    const activeProSubs = await this.userSubscriptionRepository.createQueryBuilder('us')
+    const activeProSubs = await this.userSubscriptionRepository
+      .createQueryBuilder('us')
       .innerJoin('us.plan', 'sp')
       .select('us.user_id', 'user_id')
-      .where('us.status IN (:...statuses)', { statuses: ['active', 'trialing'] })
+      .where('us.status IN (:...statuses)', {
+        statuses: ['active', 'trialing'],
+      })
       .andWhere('us.current_period_end > NOW()')
       .andWhere('sp.code = :planCode', { planCode: 'pro' })
       .getRawMany();
-    return activeProSubs.map(s => Number(s.user_id));
+    return activeProSubs.map((s) => Number(s.user_id));
   }
 
   async getDevicesForProUsers(): Promise<number[]> {
     const proUserIds = await this.getProUserIds();
     if (proUserIds.length === 0) return [];
 
-    const devices = await this.deviceRepository.createQueryBuilder('device')
+    const devices = await this.deviceRepository
+      .createQueryBuilder('device')
       .innerJoin('user_devices', 'ud', 'ud.device_id = device.id')
       .select('device.id', 'device_id')
       .where('ud.user_id IN (:...proUserIds)', { proUserIds })
       .andWhere('ud.owner = 1')
       .getRawMany();
 
-    return devices.map(d => Number(d.device_id));
+    return devices.map((d) => Number(d.device_id));
   }
 
   public isFeatureEnabled(value: any): boolean {
@@ -1080,8 +1305,11 @@ export class SubscriptionsService {
     return true;
   }
 
-  private buildGooglePlayManageSubscriptionUrl(providerProductId: string): string {
-    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'cl.flueguard.app';
+  private buildGooglePlayManageSubscriptionUrl(
+    providerProductId: string,
+  ): string {
+    const packageName =
+      process.env.GOOGLE_PLAY_PACKAGE_NAME || 'cl.flueguard.app';
     return `https://play.google.com/store/account/subscriptions?sku=${providerProductId}&package=${packageName}`;
   }
 
@@ -1107,23 +1335,61 @@ export class SubscriptionsService {
     }
 
     if (providerProductId === 'flueguard_plus_monthly') {
-      return { planCode: 'plus', slotNumber: null, displayName: 'FlueGuard Plus' };
+      return {
+        planCode: 'plus',
+        slotNumber: null,
+        displayName: 'FlueGuard Plus',
+      };
     }
     if (providerProductId === 'flueguard_pro_monthly') {
-      return { planCode: 'pro', slotNumber: null, displayName: 'FlueGuard Pro' };
+      return {
+        planCode: 'pro',
+        slotNumber: null,
+        displayName: 'FlueGuard Pro',
+      };
     }
 
-    return { planCode: 'premium', slotNumber: null, displayName: providerProductId };
+    return {
+      planCode: 'premium',
+      slotNumber: null,
+      displayName: providerProductId,
+    };
   }
 
   private normalizeGooglePlayVerifyPayload(dto: GooglePlayVerifyDto) {
     const normalized = {
       deviceId: dto.deviceId ?? dto.device_id,
-      providerProductId: dto.providerProductId ?? dto.provider_product_id ?? dto.productId ?? dto.product_id,
-      providerPurchaseToken: dto.providerPurchaseToken ?? dto.provider_purchase_token ?? dto.purchaseToken ?? dto.purchase_token,
-      providerSubscriptionId: dto.providerSubscriptionId ?? dto.provider_subscription_id ?? dto.purchaseId ?? dto.purchase_id ?? dto.orderId ?? dto.order_id ?? dto.providerOrderId ?? dto.provider_order_id,
-      providerBasePlanId: dto.providerBasePlanId ?? dto.provider_base_plan_id ?? dto.basePlanId ?? dto.base_plan_id,
-      providerOrderId: dto.providerOrderId ?? dto.provider_order_id ?? dto.orderId ?? dto.order_id ?? dto.purchaseId ?? dto.purchase_id,
+      providerProductId:
+        dto.providerProductId ??
+        dto.provider_product_id ??
+        dto.productId ??
+        dto.product_id,
+      providerPurchaseToken:
+        dto.providerPurchaseToken ??
+        dto.provider_purchase_token ??
+        dto.purchaseToken ??
+        dto.purchase_token,
+      providerSubscriptionId:
+        dto.providerSubscriptionId ??
+        dto.provider_subscription_id ??
+        dto.purchaseId ??
+        dto.purchase_id ??
+        dto.orderId ??
+        dto.order_id ??
+        dto.providerOrderId ??
+        dto.provider_order_id,
+      providerBasePlanId:
+        dto.providerBasePlanId ??
+        dto.provider_base_plan_id ??
+        dto.basePlanId ??
+        dto.base_plan_id,
+      providerOrderId:
+        dto.providerOrderId ??
+        dto.provider_order_id ??
+        dto.orderId ??
+        dto.order_id ??
+        dto.purchaseId ??
+        dto.purchase_id,
     };
 
     return normalized;

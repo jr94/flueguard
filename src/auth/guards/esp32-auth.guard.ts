@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -10,18 +15,24 @@ export class Esp32AuthGuard implements CanActivate {
     // Allow either header "x-device-secret" or standard "Authorization: Bearer"
     const xDeviceSecret = request.headers['x-device-secret'];
     const authHeader = request.headers.authorization;
-    
+
     const expectedSecret = this.configService.get<string>('ESP32_API_SECRET');
 
     if (!expectedSecret) {
-      throw new UnauthorizedException('ESP32 API secret is not configured on the server');
+      throw new UnauthorizedException(
+        'ESP32 API secret is not configured on the server',
+      );
     }
 
     if (xDeviceSecret === expectedSecret) {
       return true;
     }
 
-    if (authHeader && (authHeader === expectedSecret || authHeader === `Bearer ${expectedSecret}`)) {
+    if (
+      authHeader &&
+      (authHeader === expectedSecret ||
+        authHeader === `Bearer ${expectedSecret}`)
+    ) {
       return true;
     }
 

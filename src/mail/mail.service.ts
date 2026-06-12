@@ -89,7 +89,7 @@ export class MailService {
     userId: number,
     type: string,
     message: string,
-    environmentUrl: string
+    environmentUrl: string,
   ): Promise<void> {
     const apiKey = this.configService.get<string>('BREVO_API_KEY');
 
@@ -150,14 +150,18 @@ export class MailService {
                     <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Fecha y hora:</td>
                     <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">${new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' })}</td>
                   </tr>
-                  ${environmentUrl ? `
+                  ${
+                    environmentUrl
+                      ? `
                   <tr>
                     <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Ambiente:</td>
                     <td style="padding: 8px 0; color: #0f172a; font-weight: 500; font-size: 14px;">
                       <a href="${environmentUrl}" style="color: #3b82f6; text-decoration: none;">${environmentUrl}</a>
                     </td>
                   </tr>
-                  ` : ''}
+                  `
+                      : ''
+                  }
                 </table>
               </div>
 

@@ -35,7 +35,12 @@ import { ManualesModule } from './manuales/manuales.module';
     }),
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'public'),
-      exclude: ['/api/*', '/firmware/check', '/firmware/latest.json', '/firmware/versions.json'],
+      exclude: [
+        '/api/*',
+        '/firmware/check',
+        '/firmware/latest.json',
+        '/firmware/versions.json',
+      ],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

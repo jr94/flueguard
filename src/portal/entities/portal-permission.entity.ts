@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, JoinColumn, OneToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
+  OneToOne,
+} from 'typeorm';
 import { PortalUser } from './portal-user.entity';
 
 @Entity('portal_permissions')
@@ -36,7 +44,9 @@ export class PortalPermission {
   @UpdateDateColumn({ name: 'updated_at' })
   updated_at: Date;
 
-  @OneToOne(() => PortalUser, (user) => user.permissions, { onDelete: 'CASCADE' })
+  @OneToOne(() => PortalUser, (user) => user.permissions, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'portal_user_id' })
   portalUser: PortalUser;
 }

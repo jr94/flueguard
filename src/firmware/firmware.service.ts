@@ -1,4 +1,10 @@
-import { Injectable, InternalServerErrorException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import * as fs from 'fs/promises';
 import { constants, createReadStream } from 'fs';
 import * as path from 'path';
@@ -30,9 +36,7 @@ interface FirmwareCacheItem {
 
 @Injectable()
 export class FirmwareService {
-  constructor(
-    private readonly devicesService: DevicesService,
-  ) {}
+  constructor(private readonly devicesService: DevicesService) {}
 
   private metadataCache = new Map<string, FirmwareCacheItem>();
 
@@ -42,26 +46,39 @@ export class FirmwareService {
 
   private async readLatestJson(): Promise<FirmwareManifest> {
     const filePath = this.getLatestJsonPath();
-    
+
     try {
       await fs.access(filePath, constants.F_OK);
     } catch {
-      throw new NotFoundException('El archivo de metadatos de firmware no existe.');
+      throw new NotFoundException(
+        'El archivo de metadatos de firmware no existe.',
+      );
     }
-    
+
     try {
       const data = await fs.readFile(filePath, 'utf8');
       const parsed = JSON.parse(data);
-      
-      if (!parsed || !parsed.latest || !parsed.latest.version || !parsed.latest.file) {
-        throw new Error('El JSON de firmware no tiene el formato correcto (faltan latest.version o latest.file)');
+
+      if (
+        !parsed ||
+        !parsed.latest ||
+        !parsed.latest.version ||
+        !parsed.latest.file
+      ) {
+        throw new Error(
+          'El JSON de firmware no tiene el formato correcto (faltan latest.version o latest.file)',
+        );
       }
       return parsed;
     } catch (error) {
       if (error instanceof SyntaxError) {
-        throw new InternalServerErrorException('El archivo de firmware está mal formado.');
+        throw new InternalServerErrorException(
+          'El archivo de firmware está mal formado.',
+        );
       }
-      throw new InternalServerErrorException('Error leyendo los metadatos: ' + error.message);
+      throw new InternalServerErrorException(
+        'Error leyendo los metadatos: ' + error.message,
+      );
     }
   }
 
@@ -72,9 +89,9 @@ export class FirmwareService {
     return new Promise((resolve, reject) => {
       const hash = crypto.createHash('sha256');
       const stream = createReadStream(filePath);
-      
-      stream.on('error', err => reject(err));
-      stream.on('data', chunk => hash.update(chunk));
+
+      stream.on('error', (err) => reject(err));
+      stream.on('data', (chunk) => hash.update(chunk));
       stream.on('end', () => resolve(hash.digest('hex')));
     });
   }
@@ -83,7 +100,9 @@ export class FirmwareService {
    * Helper privado para validar existencia física, obtener tamaño y calcular SHA256 automático.
    * Utiliza cache en memoria invalidadable por mtimeMs y devuelve un nuevo objeto (puramente inmutable).
    */
-  private async enrichFirmwareMetadata(firmware: FirmwareVersion): Promise<FirmwareVersion> {
+  private async enrichFirmwareMetadata(
+    firmware: FirmwareVersion,
+  ): Promise<FirmwareVersion> {
     if (!firmware || !firmware.file) return firmware;
 
     const filename = path.basename(firmware.file);
@@ -97,7 +116,9 @@ export class FirmwareService {
       if (this.metadataCache.has(filename)) {
         this.metadataCache.delete(filename);
       }
-      throw new NotFoundException(`Firmware binary not found for version ${firmware.version}`);
+      throw new NotFoundException(
+        `Firmware binary not found for version ${firmware.version}`,
+      );
     }
 
     const { size, mtimeMs } = stat;
@@ -105,7 +126,10 @@ export class FirmwareService {
     const cachedItem = this.metadataCache.get(cacheKey);
 
     let finalSha256 = firmware.sha256;
-    const isPlaceholder = !finalSha256 || finalSha256 === 'OPCIONAL_HASH' || finalSha256.trim() === '';
+    const isPlaceholder =
+      !finalSha256 ||
+      finalSha256 === 'OPCIONAL_HASH' ||
+      finalSha256.trim() === '';
 
     // Si el archivo no ha sido modificado y existe en cache
     if (cachedItem && cachedItem.mtimeMs === mtimeMs) {
@@ -132,7 +156,7 @@ export class FirmwareService {
     // Actualizar cache inteligente de forma centralizada
     this.metadataCache.set(cacheKey, {
       size_bytes: size,
-      sha256: isPlaceholder ? calculatedSha256 : (finalSha256 || ''),
+      sha256: isPlaceholder ? calculatedSha256 : finalSha256 || '',
       mtimeMs,
     });
 
@@ -145,20 +169,22 @@ export class FirmwareService {
 
   async getLatestVersion(): Promise<FirmwareManifest> {
     const data = await this.readLatestJson();
-    
+
     // Generar nuevos objetos inmutables
-    const enrichedLatest = data.latest 
+    const enrichedLatest = data.latest
       ? await this.enrichFirmwareMetadata(data.latest)
       : data.latest;
 
     const enrichedVersions = Array.isArray(data.versions)
-      ? await Promise.all(data.versions.map((ver) => this.enrichFirmwareMetadata(ver)))
+      ? await Promise.all(
+          data.versions.map((ver) => this.enrichFirmwareMetadata(ver)),
+        )
       : data.versions;
 
     return {
       ...data,
       latest: enrichedLatest,
-      versions: enrichedVersions
+      versions: enrichedVersions,
     };
   }
 
@@ -167,7 +193,7 @@ export class FirmwareService {
     if (!Array.isArray(data.versions)) return [];
 
     return Promise.all(
-      data.versions.map((ver) => this.enrichFirmwareMetadata(ver))
+      data.versions.map((ver) => this.enrichFirmwareMetadata(ver)),
     );
   }
 
@@ -180,7 +206,7 @@ export class FirmwareService {
     if (cmp > 0) {
       // Validar física y metadata si hay update ANTES de contestarle true al frontend
       const enrichedLatest = await this.enrichFirmwareMetadata(latest);
-      
+
       return {
         update: true,
         current_version: query.version,
@@ -190,14 +216,14 @@ export class FirmwareService {
         date: enrichedLatest.date || '',
         file: enrichedLatest.file,
         size_bytes: enrichedLatest.size_bytes, // <- Agregado automáticamente
-        sha256: enrichedLatest.sha256 // <- Validado/Calculado automáticamente
+        sha256: enrichedLatest.sha256, // <- Validado/Calculado automáticamente
       };
     } else {
       return {
         update: false,
         current_version: query.version,
         latest_version: latest.version,
-        mandatory: latest.mandatory || false
+        mandatory: latest.mandatory || false,
       };
     }
   }
@@ -205,7 +231,9 @@ export class FirmwareService {
   async checkUpdateBySerialNumber(serialNumber: string): Promise<any> {
     const device = await this.devicesService.findBySerialNumber(serialNumber);
     if (!device) {
-      throw new NotFoundException(`Device with serial number ${serialNumber} not found`);
+      throw new NotFoundException(
+        `Device with serial number ${serialNumber} not found`,
+      );
     }
 
     const currentVersion = device.firmware_version || '0.0.0';

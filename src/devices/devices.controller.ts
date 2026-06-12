@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { ShareDeviceDto } from './dto/share-device.dto';
@@ -44,7 +55,7 @@ export class DevicesController {
   @Get(':deviceId/shared')
   getSharedUsers(
     @Param('deviceId', ParseIntPipe) deviceId: number,
-    @Req() req: any
+    @Req() req: any,
   ) {
     const userId = req.user.id;
     return this.devicesService.getSharedUsers(deviceId, userId);
@@ -53,6 +64,9 @@ export class DevicesController {
   @Delete('remove-by-serial')
   removeBySerial(@Body() removeDeviceDto: RemoveDeviceDto, @Req() req: any) {
     const userId = req.user.id;
-    return this.devicesService.removeBySerial(removeDeviceDto.serial_number, userId);
+    return this.devicesService.removeBySerial(
+      removeDeviceDto.serial_number,
+      userId,
+    );
   }
 }

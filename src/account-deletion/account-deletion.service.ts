@@ -35,9 +35,15 @@ export class AccountDeletionService {
     }
 
     const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
-    const ttlMinutes = this.configService.get<number>('ACCOUNT_DELETION_TOKEN_TTL_MINUTES', 30);
+    const ttlMinutes = this.configService.get<number>(
+      'ACCOUNT_DELETION_TOKEN_TTL_MINUTES',
+      30,
+    );
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + ttlMinutes);
 
@@ -50,7 +56,10 @@ export class AccountDeletionService {
 
     await this.requestRepo.save(request);
 
-    const baseUrl = this.configService.get<string>('FRONTEND_OR_PUBLIC_BASE_URL', 'https://flueguard.cl');
+    const baseUrl = this.configService.get<string>(
+      'FRONTEND_OR_PUBLIC_BASE_URL',
+      'https://flueguard.cl',
+    );
     const link = `${baseUrl}/delete-account/confirm?token=${rawToken}`;
 
     await this.mailService.sendAccountDeletionEmail(user.email, link);
@@ -58,7 +67,10 @@ export class AccountDeletionService {
   }
 
   async confirmDeletion(rawToken: string): Promise<void> {
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     const request = await this.requestRepo.findOne({
       where: { tokenHash },
@@ -79,10 +91,14 @@ export class AccountDeletionService {
 
     const user = request.user;
     if (!user) {
-      throw new BadRequestException('El usuario asociado a esta solicitud ya no existe.');
+      throw new BadRequestException(
+        'El usuario asociado a esta solicitud ya no existe.',
+      );
     }
 
-    this.logger.log(`Starting account deletion for user ${user.id} (${user.email})`);
+    this.logger.log(
+      `Starting account deletion for user ${user.id} (${user.email})`,
+    );
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -91,7 +107,7 @@ export class AccountDeletionService {
     try {
       // 1. device_push_tokens WHERE user_id = user.id
       await queryRunner.manager.delete(DevicePushToken, { user_id: user.id });
-      
+
       // 2. auth_tokens WHERE user_id = user.id
       await queryRunner.manager.delete(Token, { user_id: user.id });
 
@@ -108,13 +124,20 @@ export class AccountDeletionService {
       await queryRunner.manager.delete(User, { id: user.id });
 
       request.usedAt = new Date();
-      await queryRunner.manager.update(AccountDeletionRequest, request.id, { usedAt: request.usedAt });
+      await queryRunner.manager.update(AccountDeletionRequest, request.id, {
+        usedAt: request.usedAt,
+      });
 
       await queryRunner.commitTransaction();
-      this.logger.log(`Account deletion completed successfully for user ${user.id}`);
+      this.logger.log(
+        `Account deletion completed successfully for user ${user.id}`,
+      );
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to delete account for user ${user.id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to delete account for user ${user.id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     } finally {
       await queryRunner.release();

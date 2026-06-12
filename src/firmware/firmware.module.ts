@@ -9,4 +9,4 @@ import { DevicesModule } from '../devices/devices.module';
   providers: [FirmwareService],
   exports: [FirmwareService],
 })
-export class FirmwareModule { }
+export class FirmwareModule {}

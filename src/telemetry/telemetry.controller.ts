@@ -1,4 +1,14 @@
-import { Controller, Post, Body, Get, Param, Query, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { TelemetryService } from './telemetry.service';
 import { CreateTelemetryDto } from './dto/create-telemetry.dto';
 import { GetTelemetryQueryDto } from './dto/get-telemetry-query.dto';
@@ -31,7 +41,11 @@ export class TelemetryController {
     @Req() req: any,
   ) {
     const userId = req.user.id;
-    return this.telemetryService.getDeviceHistory(userId, deviceId, view || 'hour');
+    return this.telemetryService.getDeviceHistory(
+      userId,
+      deviceId,
+      view || 'hour',
+    );
   }
 
   @UseGuards(JwtAuthGuard)

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Query, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Query,
+  Headers,
+} from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { GooglePlayVerifyDto } from './dto/google-play-verify.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

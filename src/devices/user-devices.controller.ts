@@ -1,4 +1,13 @@
-import { Controller, Get, Put, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateUserDeviceNotificationsDto } from './dto/update-user-device-notifications.dto';
@@ -11,7 +20,7 @@ export class UserDevicesController {
   @Get(':deviceId/notifications')
   getNotificationsStatus(
     @Param('deviceId', ParseIntPipe) deviceId: number,
-    @Req() req: any
+    @Req() req: any,
   ) {
     const userId = req.user.id;
     return this.devicesService.getNotificationsStatus(deviceId, userId);
@@ -21,9 +30,13 @@ export class UserDevicesController {
   updateNotifications(
     @Param('deviceId', ParseIntPipe) deviceId: number,
     @Body() updateDto: UpdateUserDeviceNotificationsDto,
-    @Req() req: any
+    @Req() req: any,
   ) {
     const userId = req.user.id;
-    return this.devicesService.updateNotifications(deviceId, userId, updateDto.notifications_enabled);
+    return this.devicesService.updateNotifications(
+      deviceId,
+      userId,
+      updateDto.notifications_enabled,
+    );
   }
 }

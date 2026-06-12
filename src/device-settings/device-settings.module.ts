@@ -9,10 +9,10 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([DeviceSetting]), 
+    TypeOrmModule.forFeature([DeviceSetting]),
     DevicesModule,
     DeviceFirmwareUpdatesModule,
-    SubscriptionsModule
+    SubscriptionsModule,
   ],
   controllers: [DeviceSettingsController],
   providers: [DeviceSettingsService],

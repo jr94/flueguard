@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { calculatePredictiveCurveAlert } from './predictive-alert.utils';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -26,7 +30,7 @@ export class TelemetryService {
     private readonly pushNotificationsService: PushNotificationsService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly metricsService: MetricsService,
-  ) { }
+  ) {}
 
   async processTelemetry(createTelemetryDto: CreateTelemetryDto) {
     const { serial_number, temperature } = createTelemetryDto;
@@ -34,7 +38,9 @@ export class TelemetryService {
     // 1. Find device by serial number
     const device = await this.devicesService.findBySerialNumber(serial_number);
     if (!device) {
-      throw new NotFoundException(`Device with serial number ${serial_number} not found`);
+      throw new NotFoundException(
+        `Device with serial number ${serial_number} not found`,
+      );
     }
 
     // 2. Save register in temperature_logs
@@ -48,16 +54,24 @@ export class TelemetryService {
     await this.devicesService.updateLastConnection(device.id);
 
     // 3.1. Process metrics in background (don't block telemetry flow)
-    this.metricsService.processTelemetryForMetrics(device.id, temperature, log.created_at)
-      .catch(e => console.error('[Metrics] Error processing telemetry metrics:', e));
+    this.metricsService
+      .processTelemetryForMetrics(device.id, temperature, log.created_at)
+      .catch((e) =>
+        console.error('[Metrics] Error processing telemetry metrics:', e),
+      );
 
     // 3.2. Confirm predictions if needed
-    this.metricsService.confirmPredictionIfNeeded(device.id, temperature, log.created_at)
-      .catch(e => console.error('[Metrics] Error confirming predictions:', e));
+    this.metricsService
+      .confirmPredictionIfNeeded(device.id, temperature, log.created_at)
+      .catch((e) =>
+        console.error('[Metrics] Error confirming predictions:', e),
+      );
 
     // 4. Calcular el nivel de alerta basándonos en los ajustes de umbral
     try {
-      const settings = await this.deviceSettingsService.findByDeviceId(device.id);
+      const settings = await this.deviceSettingsService.findByDeviceId(
+        device.id,
+      );
 
       if (settings && settings.notifications_enabled) {
         let finalLevel: string | null = null;
@@ -94,17 +108,19 @@ export class TelemetryService {
             finalLevel = '3';
             message = `Riesgo de incendio: la temperatura alcanzó ${temperature}°C. Revisa la estufa de inmediato.`;
           }
-        }
-        else if (t2 !== null && logTemp >= t2) {
+        } else if (t2 !== null && logTemp >= t2) {
           if (diff <= 0) {
             // Se desactiva la alerta si comienza a bajar con diferencia <=0
           } else {
             finalLevel = '2';
             message = `Temperatura alta ${temperature}°C. Reduce la combustión o revisa la estufa.`;
           }
-        }
-        else if (t1 !== null && settings.sound_alarm_temp_low) {
-          const eligibleLowTempUsers = await this.subscriptionsService.getEligibleNotificationUsersForFeature(device.id, 'low_temperature_alert');
+        } else if (t1 !== null && settings.sound_alarm_temp_low) {
+          const eligibleLowTempUsers =
+            await this.subscriptionsService.getEligibleNotificationUsersForFeature(
+              device.id,
+              'low_temperature_alert',
+            );
           const hasLowTempFeature = eligibleLowTempUsers.length > 0;
 
           if (hasLowTempFeature) {
@@ -135,12 +151,21 @@ export class TelemetryService {
         // 5. Aplicar limitación de frecuencia para alertas Nivel 2 reales (máximo cada 3 minutos)
         let isRateLimited = false;
         if (finalLevel === '2') {
-          const hasRecent = await this.alertsService.hasRecentAlert(device.id, '2', 3, 'NORMAL_LEVEL_2');
+          const hasRecent = await this.alertsService.hasRecentAlert(
+            device.id,
+            '2',
+            3,
+            'NORMAL_LEVEL_2',
+          );
           if (hasRecent) {
-            console.log(`[ALERTS] Nivel 2 real omitida para device ${device.id}: ya fue notificada hace menos de 3 minutos.`);
+            console.log(
+              `[ALERTS] Nivel 2 real omitida para device ${device.id}: ya fue notificada hace menos de 3 minutos.`,
+            );
             isRateLimited = true;
           } else {
-            console.log(`[ALERTS] Nivel 2 real enviada para device ${device.id}: no existía alerta reciente.`);
+            console.log(
+              `[ALERTS] Nivel 2 real enviada para device ${device.id}: no existía alerta reciente.`,
+            );
           }
         }
 
@@ -155,17 +180,34 @@ export class TelemetryService {
           });
 
           // 6.1. Enviar notificación push de forma independiente
-          this.pushNotificationsService.sendAlertNotification(device.id, newAlert, serial_number)
-            .catch((e) => console.error('Error en ejecución background de push notification:', e));
+          this.pushNotificationsService
+            .sendAlertNotification(device.id, newAlert, serial_number)
+            .catch((e) =>
+              console.error(
+                'Error en ejecución background de push notification:',
+                e,
+              ),
+            );
 
           // 6.2. Actualizar métricas de alertas
-          this.metricsService.updateMetricsFromAlert(device.id, Number(finalLevel), newAlert.created_at)
-            .catch(e => console.error('[Metrics] Error updating metrics from alert:', e));
+          this.metricsService
+            .updateMetricsFromAlert(
+              device.id,
+              Number(finalLevel),
+              newAlert.created_at,
+            )
+            .catch((e) =>
+              console.error('[Metrics] Error updating metrics from alert:', e),
+            );
         }
 
         // 7. Lógica Predictiva
         if (t2 !== null && t3 !== null) {
-          const eligiblePredictiveUsers = await this.subscriptionsService.getEligibleNotificationUsersForFeature(device.id, 'predictive_curve_alerts');
+          const eligiblePredictiveUsers =
+            await this.subscriptionsService.getEligibleNotificationUsersForFeature(
+              device.id,
+              'predictive_curve_alerts',
+            );
           const canUsePredictive = eligiblePredictiveUsers.length > 0;
 
           if (canUsePredictive) {
@@ -180,21 +222,38 @@ export class TelemetryService {
               take: 20,
             });
 
-            const points = historyLogs.map(log => ({
-              temperature: Number(log.temperature),
-              createdAt: new Date(log.created_at)
-            })).reverse();
+            const points = historyLogs
+              .map((log) => ({
+                temperature: Number(log.temperature),
+                createdAt: new Date(log.created_at),
+              }))
+              .reverse();
 
-            const prediction = calculatePredictiveCurveAlert(points, t2, t3, 10);
+            const prediction = calculatePredictiveCurveAlert(
+              points,
+              t2,
+              t3,
+              10,
+            );
 
-            if (prediction.canPredict && (prediction.alertLevel === 2 || prediction.alertLevel === 3)) {
+            if (
+              prediction.canPredict &&
+              (prediction.alertLevel === 2 || prediction.alertLevel === 3)
+            ) {
               const predLevelStr = String(prediction.alertLevel);
 
               // Si la temperatura actual ya genera alerta normal 3, o si genera normal 2 y la predicción es 2, no predecimos
-              const skipPredictive = (finalLevel === '3') || (finalLevel === '2' && predLevelStr === '2');
+              const skipPredictive =
+                finalLevel === '3' ||
+                (finalLevel === '2' && predLevelStr === '2');
 
               if (!skipPredictive) {
-                const hasRecent = await this.alertsService.hasRecentPredictiveAlert(device.id, predLevelStr, 10);
+                const hasRecent =
+                  await this.alertsService.hasRecentPredictiveAlert(
+                    device.id,
+                    predLevelStr,
+                    10,
+                  );
 
                 if (!hasRecent) {
                   const newPredictiveAlert = await this.alertsService.create({
@@ -202,28 +261,49 @@ export class TelemetryService {
                     temperature: prediction.predictedMax,
                     alert_level: predLevelStr,
                     alert_type: `PREDICTIVE_LEVEL_${predLevelStr}`,
-                    message: prediction.notificationMessage || prediction.reason,
+                    message:
+                      prediction.notificationMessage || prediction.reason,
                   });
 
-                  this.pushNotificationsService.sendAlertNotification(device.id, newPredictiveAlert, serial_number)
-                    .catch((e) => console.error('Error en ejecución background de push notification predictiva:', e));
+                  this.pushNotificationsService
+                    .sendAlertNotification(
+                      device.id,
+                      newPredictiveAlert,
+                      serial_number,
+                    )
+                    .catch((e) =>
+                      console.error(
+                        'Error en ejecución background de push notification predictiva:',
+                        e,
+                      ),
+                    );
 
                   // Guardar métrica de predicción
-                  this.metricsService.savePredictionMetric({
-                    device_id: device.id,
-                    predicted_at: new Date(),
-                    current_temperature: temperature,
-                    predicted_temperature: prediction.predictedMax,
-                    target_threshold: prediction.alertLevel === 3 ? t3 : t2,
-                    predicted_minutes_to_threshold: prediction.minutesToThreshold,
-                    slope: prediction.slope,
-                    alert_id: newPredictiveAlert.id,
-                  }).catch(e => console.error('[Metrics] Error saving prediction metric:', e));
+                  this.metricsService
+                    .savePredictionMetric({
+                      device_id: device.id,
+                      predicted_at: new Date(),
+                      current_temperature: temperature,
+                      predicted_temperature: prediction.predictedMax,
+                      target_threshold: prediction.alertLevel === 3 ? t3 : t2,
+                      predicted_minutes_to_threshold:
+                        prediction.minutesToThreshold,
+                      slope: prediction.slope,
+                      alert_id: newPredictiveAlert.id,
+                    })
+                    .catch((e) =>
+                      console.error(
+                        '[Metrics] Error saving prediction metric:',
+                        e,
+                      ),
+                    );
                 }
               }
             }
           } else {
-            console.log(`[PREDICTIVE] Skipped for device ${device.id}: predictive_curve_alerts not enabled`);
+            console.log(
+              `[PREDICTIVE] Skipped for device ${device.id}: predictive_curve_alerts not enabled`,
+            );
           }
         }
       }
@@ -239,7 +319,10 @@ export class TelemetryService {
     };
   }
 
-  async getDeviceTelemetry(deviceId: number, hours: number): Promise<TemperatureLog[]> {
+  async getDeviceTelemetry(
+    deviceId: number,
+    hours: number,
+  ): Promise<TemperatureLog[]> {
     // Verificar si el dispositivo existe. findOne lanza NotFoundException si no existe.
     await this.devicesService.findOne(deviceId);
 
@@ -259,13 +342,18 @@ export class TelemetryService {
   }
 
   async getDeviceHistory(userId: number, deviceId: number, view: string) {
-    console.log(`[Telemetry] History request: deviceId=${deviceId}, userId=${userId}, view=${view}`);
+    console.log(
+      `[Telemetry] History request: deviceId=${deviceId}, userId=${userId}, view=${view}`,
+    );
     // 1. Validar acceso al dispositivo
     await this.subscriptionsService.validateUserDeviceAccess(userId, deviceId);
 
     // 2. Obtener features de suscripción del usuario
-    const featuresInfo = await this.subscriptionsService.getUserPlanFeatures(userId);
-    const historyDays = Number(featuresInfo.features?.extended_history_days || 0);
+    const featuresInfo =
+      await this.subscriptionsService.getUserPlanFeatures(userId);
+    const historyDays = Number(
+      featuresInfo.features?.extended_history_days || 0,
+    );
 
     // 3. Validar permisos según la vista solicitada
     this.validateHistoryAccess(view, historyDays);
@@ -279,14 +367,18 @@ export class TelemetryService {
 
     if (view === 'day' || view === 'week') {
       if (historyDays < 7) {
-        throw new ForbiddenException('Esta vista de historial requiere un plan superior.');
+        throw new ForbiddenException(
+          'Esta vista de historial requiere un plan superior.',
+        );
       }
       return;
     }
 
     if (view === 'month') {
       if (historyDays < 30) {
-        throw new ForbiddenException('Esta vista de historial requiere un plan superior.');
+        throw new ForbiddenException(
+          'Esta vista de historial requiere un plan superior.',
+        );
       }
       return;
     }
@@ -331,7 +423,9 @@ export class TelemetryService {
     const buckets = new Map<string, any>();
 
     for (const log of logs) {
-      const local = DateTime.fromJSDate(log.created_at, { zone: 'utc' }).setZone(timezone);
+      const local = DateTime.fromJSDate(log.created_at, {
+        zone: 'utc',
+      }).setZone(timezone);
       let bucketLocal: DateTime;
 
       if (grouping === 'hour') bucketLocal = local.startOf('hour');
@@ -340,7 +434,7 @@ export class TelemetryService {
 
       const key = bucketLocal.toISO();
       if (!key) continue;
-      
+
       const temp = Number(log.temperature);
 
       if (!buckets.has(key)) {
@@ -363,7 +457,7 @@ export class TelemetryService {
       }
     }
 
-    const results = Array.from(buckets.values()).map(b => ({
+    const results = Array.from(buckets.values()).map((b) => ({
       created_at: b.bucket,
       temperature: Number((b.temperature_sum / b.sample_count).toFixed(2)),
       avg_temperature: Number((b.temperature_sum / b.sample_count).toFixed(2)),
@@ -384,16 +478,28 @@ export class TelemetryService {
     const hasActive = subStatus?.is_active === true;
     const premium = {
       hasActiveSubscription: hasActive,
-      planCode: hasActive ? (subStatus.plan?.code || 'plus') : 'basic',
-      planName: hasActive ? (subStatus.plan?.name || 'FlueGuard Plus') : 'FlueGuard Basic',
-      status: hasActive ? (subStatus.status || 'active') : 'inactive',
-      provider: hasActive ? (subStatus.provider || null) : null,
-      providerProductId: hasActive ? (subStatus.provider_product_id || null) : null,
-      providerBasePlanId: hasActive ? (subStatus.provider_base_plan_id || null) : null,
-      providerProductDisplayName: hasActive ? (subStatus.provider_product_display_name || null) : null,
-      providerProductSlot: hasActive ? (subStatus.provider_product_slot || null) : null,
-      manageSubscriptionUrl: hasActive ? (subStatus.manage_subscription_url || null) : null,
-      currentPeriodEnd: hasActive ? (subStatus.current_period_end || null) : null,
+      planCode: hasActive ? subStatus.plan?.code || 'plus' : 'basic',
+      planName: hasActive
+        ? subStatus.plan?.name || 'FlueGuard Plus'
+        : 'FlueGuard Basic',
+      status: hasActive ? subStatus.status || 'active' : 'inactive',
+      provider: hasActive ? subStatus.provider || null : null,
+      providerProductId: hasActive
+        ? subStatus.provider_product_id || null
+        : null,
+      providerBasePlanId: hasActive
+        ? subStatus.provider_base_plan_id || null
+        : null,
+      providerProductDisplayName: hasActive
+        ? subStatus.provider_product_display_name || null
+        : null,
+      providerProductSlot: hasActive
+        ? subStatus.provider_product_slot || null
+        : null,
+      manageSubscriptionUrl: hasActive
+        ? subStatus.manage_subscription_url || null
+        : null,
+      currentPeriodEnd: hasActive ? subStatus.current_period_end || null : null,
     };
 
     return {
@@ -425,8 +531,12 @@ export class TelemetryService {
         const recentLogs = lastLogs.slice(0, count);
         const olderLogs = lastLogs.slice(count, count * 2);
 
-        const recentAvg = recentLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
-        const olderAvg = olderLogs.reduce((sum, log) => sum + Number(log.temperature), 0) / count;
+        const recentAvg =
+          recentLogs.reduce((sum, log) => sum + Number(log.temperature), 0) /
+          count;
+        const olderAvg =
+          olderLogs.reduce((sum, log) => sum + Number(log.temperature), 0) /
+          count;
         const diff = recentAvg - olderAvg;
 
         if (diff < -1) diffTemp = 0;
@@ -442,7 +552,9 @@ export class TelemetryService {
       let threshold_3: number | null = null;
 
       try {
-        const settings = await this.deviceSettingsService.findByDeviceId(device.id);
+        const settings = await this.deviceSettingsService.findByDeviceId(
+          device.id,
+        );
         alarmLowTemp = settings.sound_alarm_temp_low;
         threshold_1 = settings.threshold_1;
         threshold_2 = settings.threshold_2;
@@ -464,7 +576,6 @@ export class TelemetryService {
         last_log_time: lastLog ? lastLog.created_at : null,
       });
     }
-
 
     return results;
   }

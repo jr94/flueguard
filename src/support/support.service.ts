@@ -12,14 +12,20 @@ export class SupportService {
     private readonly configService: ConfigService,
   ) {}
 
-  async sendSupportRequest(userId: number, createSupportRequestDto: CreateSupportRequestDto) {
+  async sendSupportRequest(
+    userId: number,
+    createSupportRequestDto: CreateSupportRequestDto,
+  ) {
     try {
       const user = await this.usersService.findOne(userId);
       const userEmail = user?.email || 'No disponible';
       const firstName = user?.first_name || 'No disponible';
       const lastName = user?.last_name || '';
-      
-      const envUrl = this.configService.get<string>('BASE_URL') || this.configService.get<string>('PORTAL_URL') || '';
+
+      const envUrl =
+        this.configService.get<string>('BASE_URL') ||
+        this.configService.get<string>('PORTAL_URL') ||
+        '';
 
       await this.mailService.sendSupportEmail(
         userEmail,
@@ -39,7 +45,8 @@ export class SupportService {
       console.error('Error enviando solicitud de soporte:', error);
       throw new InternalServerErrorException({
         success: false,
-        message: 'No se pudo enviar la solicitud de soporte. Intenta nuevamente más tarde.',
+        message:
+          'No se pudo enviar la solicitud de soporte. Intenta nuevamente más tarde.',
       });
     }
   }

@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Device } from '../../devices/entities/device.entity';
 
 @Entity('device_settings')
@@ -34,7 +42,12 @@ export class DeviceSetting {
   @Column({ name: 'alarm_low_temp', default: true })
   sound_alarm_temp_low: boolean;
 
-  @Column({ name: 'timezone', type: 'varchar', length: 64, default: 'America/Santiago' })
+  @Column({
+    name: 'timezone',
+    type: 'varchar',
+    length: 64,
+    default: 'America/Santiago',
+  })
   timezone: string;
 
   @CreateDateColumn({ name: 'created_at' })

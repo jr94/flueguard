@@ -18,7 +18,7 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    
+
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -28,19 +28,19 @@ export class AuthService {
     }
 
     const isMatch = await bcrypt.compare(pass, user.password_hash);
-    
+
     if (isMatch) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password_hash, ...result } = user;
       return result;
     }
-    
+
     throw new UnauthorizedException('Invalid credentials');
   }
 
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
-    
+
     const payload = { email: user.email, sub: user.id };
     const accessToken = this.jwtService.sign(payload);
 
@@ -51,8 +51,10 @@ export class AuthService {
     const deviceType = loginDto.device_type || 'android';
 
     // Find if a token already exists for the user AND device_type
-    let tokenRecord = await this.tokenRepository.findOne({ where: { user_id: user.id, device_type: deviceType } });
-    
+    let tokenRecord = await this.tokenRepository.findOne({
+      where: { user_id: user.id, device_type: deviceType },
+    });
+
     if (tokenRecord) {
       // Update existing token
       tokenRecord.token = accessToken;
@@ -66,7 +68,7 @@ export class AuthService {
         expires_at: expiresAt,
       });
     }
-    
+
     await this.tokenRepository.save(tokenRecord);
 
     return {

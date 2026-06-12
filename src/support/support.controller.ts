@@ -14,6 +14,9 @@ export class SupportController {
     @Body() createSupportRequestDto: CreateSupportRequestDto,
   ) {
     const userId = req.user.id;
-    return this.supportService.sendSupportRequest(userId, createSupportRequestDto);
+    return this.supportService.sendSupportRequest(
+      userId,
+      createSupportRequestDto,
+    );
   }
 }

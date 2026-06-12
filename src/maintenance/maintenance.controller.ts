@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, UseGuards, Req, Headers, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+  Req,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { MaintenanceService } from './maintenance.service';
 import { SystemMaintenanceService } from './system-maintenance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -14,7 +26,10 @@ export class MaintenanceController {
   async runCleanup(@Headers('authorization') authHeader: string) {
     const expectedToken = 'token-clean-123456789';
     // Permitir el token tanto enviándolo directamente o como Bearer token
-    if (!authHeader || (authHeader !== expectedToken && authHeader !== `Bearer ${expectedToken}`)) {
+    if (
+      !authHeader ||
+      (authHeader !== expectedToken && authHeader !== `Bearer ${expectedToken}`)
+    ) {
       throw new UnauthorizedException('Invalid or missing generic token');
     }
     return this.systemMaintenanceService.runCleanup();
@@ -22,13 +37,19 @@ export class MaintenanceController {
 
   @Get('device/:deviceId')
   @UseGuards(JwtAuthGuard)
-  async getStatus(@Param('deviceId', ParseIntPipe) deviceId: number, @Req() req: any) {
+  async getStatus(
+    @Param('deviceId', ParseIntPipe) deviceId: number,
+    @Req() req: any,
+  ) {
     return this.maintenanceService.getStatus(deviceId, req.user.id);
   }
 
   @Post('device/:deviceId/reset')
   @UseGuards(JwtAuthGuard)
-  async reset(@Param('deviceId', ParseIntPipe) deviceId: number, @Req() req: any) {
+  async reset(
+    @Param('deviceId', ParseIntPipe) deviceId: number,
+    @Req() req: any,
+  ) {
     return this.maintenanceService.resetMaintenance(deviceId, req.user.id);
   }
 
@@ -39,6 +60,10 @@ export class MaintenanceController {
     @Body('threshold_hours', ParseIntPipe) thresholdHours: number,
     @Req() req: any,
   ) {
-    return this.maintenanceService.updateThreshold(deviceId, thresholdHours, req.user.id);
+    return this.maintenanceService.updateThreshold(
+      deviceId,
+      thresholdHours,
+      req.user.id,
+    );
   }
 }

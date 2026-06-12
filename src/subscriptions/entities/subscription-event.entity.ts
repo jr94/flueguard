@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { UserSubscription } from './user-subscription.entity';
 import { SubscriptionPlan } from './subscription-plan.entity';
 
@@ -31,7 +38,9 @@ export class SubscriptionEvent {
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 
-  @ManyToOne(() => UserSubscription, sub => sub.events, { onDelete: 'SET NULL' })
+  @ManyToOne(() => UserSubscription, (sub) => sub.events, {
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'user_subscription_id' })
   userSubscription: UserSubscription;
 

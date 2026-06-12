@@ -15,6 +15,6 @@ export class Region {
   @Column({ length: 64 })
   capital: string;
 
-  @OneToMany(() => Provincia, provincia => provincia.region)
+  @OneToMany(() => Provincia, (provincia) => provincia.region)
   provincias: Provincia[];
 }

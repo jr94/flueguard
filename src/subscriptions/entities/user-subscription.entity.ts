@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { SubscriptionPlan } from './subscription-plan.entity';
 import { SubscriptionEvent } from './subscription-event.entity';
 import { User } from '../../users/entities/user.entity';
@@ -14,7 +23,11 @@ export class UserSubscription {
   @Column({ name: 'plan_id' })
   plan_id: number;
 
-  @Column({ type: 'enum', enum: ['active', 'trialing', 'past_due', 'canceled', 'expired'], default: 'active' })
+  @Column({
+    type: 'enum',
+    enum: ['active', 'trialing', 'past_due', 'canceled', 'expired'],
+    default: 'active',
+  })
   status: string;
 
   @Column({ type: 'varchar', length: 50, default: 'manual' })
@@ -23,13 +36,28 @@ export class UserSubscription {
   @Column({ type: 'varchar', length: 255, nullable: true })
   provider_product_id: string | null;
 
-  @Column({ name: 'provider_base_plan_id', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'provider_base_plan_id',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   provider_base_plan_id: string | null;
 
-  @Column({ name: 'provider_subscription_id', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'provider_subscription_id',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   provider_subscription_id: string | null;
 
-  @Column({ name: 'provider_order_id', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'provider_order_id',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   provider_order_id: string | null;
 
   @Column({ type: 'text', nullable: true })
@@ -64,6 +92,6 @@ export class UserSubscription {
   @JoinColumn({ name: 'plan_id' })
   plan: SubscriptionPlan;
 
-  @OneToMany(() => SubscriptionEvent, event => event.userSubscription)
+  @OneToMany(() => SubscriptionEvent, (event) => event.userSubscription)
   events: SubscriptionEvent[];
 }

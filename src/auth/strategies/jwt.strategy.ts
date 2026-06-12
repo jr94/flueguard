@@ -21,7 +21,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'super_secret_jwt_key_here',
+      secretOrKey:
+        configService.get<string>('JWT_SECRET') || 'super_secret_jwt_key_here',
       passReqToCallback: true,
     });
   }
@@ -35,7 +36,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       if (!portalUser || !portalUser.is_active) {
         throw new UnauthorizedException('Portal user not found or inactive');
       }
-      return { id: payload.sub, email: payload.email, scope: 'portal', role: payload.role };
+      return {
+        id: payload.sub,
+        email: payload.email,
+        scope: 'portal',
+        role: payload.role,
+      };
     }
 
     // ── Mobile / app token ────────────────────────────────────────────────────
@@ -55,7 +61,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!dbToken) {
-      throw new UnauthorizedException('Token is no longer valid. Another session is active.');
+      throw new UnauthorizedException(
+        'Token is no longer valid. Another session is active.',
+      );
     }
 
     if (dbToken.expires_at && new Date() > new Date(dbToken.expires_at)) {

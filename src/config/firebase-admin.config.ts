@@ -8,7 +8,9 @@ export const initializeFirebaseAdmin = () => {
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   if (!projectId || !clientEmail || !privateKey) {
-    console.warn('Firebase Admin no está inicializado. Faltan variables de entorno.');
+    console.warn(
+      'Firebase Admin no está inicializado. Faltan variables de entorno.',
+    );
     return;
   }
 

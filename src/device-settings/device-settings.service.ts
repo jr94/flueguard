@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,7 +14,6 @@ import { DeviceFirmwareUpdatesService } from '../device-firmware-updates/device-
 import { Device } from '../devices/entities/device.entity';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { compareVersion } from '../firmware/utils/compare-version.util';
-
 
 @Injectable()
 export class DeviceSettingsService {
@@ -22,9 +26,13 @@ export class DeviceSettingsService {
   ) {}
 
   async findByDeviceId(deviceId: number): Promise<any> {
-    const setting = await this.deviceSettingRepository.findOne({ where: { device_id: deviceId } });
+    const setting = await this.deviceSettingRepository.findOne({
+      where: { device_id: deviceId },
+    });
     if (!setting) {
-      throw new NotFoundException(`Settings for device ID ${deviceId} not found`);
+      throw new NotFoundException(
+        `Settings for device ID ${deviceId} not found`,
+      );
     }
 
     const device = await this.devicesService.findOne(deviceId);
@@ -42,19 +50,29 @@ export class DeviceSettingsService {
     // 1. Find device by serial number
     const device = await this.devicesService.findBySerialNumber(serialNumber);
     if (!device) {
-      throw new NotFoundException(`Device with serial number ${serialNumber} not found`);
+      throw new NotFoundException(
+        `Device with serial number ${serialNumber} not found`,
+      );
     }
 
     // 2. Find and return the settings
-    const setting = await this.deviceSettingRepository.findOne({ where: { device_id: device.id } });
+    const setting = await this.deviceSettingRepository.findOne({
+      where: { device_id: device.id },
+    });
     if (!setting) {
-      throw new NotFoundException(`Settings for device with serial number ${serialNumber} not found`);
+      throw new NotFoundException(
+        `Settings for device with serial number ${serialNumber} not found`,
+      );
     }
 
     // 3. Find pending OTA request if any
-    const otaRequest = await this.deviceFirmwareUpdatesService.getPendingOtaForDevice(device.id);
+    const otaRequest =
+      await this.deviceFirmwareUpdatesService.getPendingOtaForDevice(device.id);
 
-    const hasAlreadyUpdated = otaRequest && device.firmware_version && compareVersion(device.firmware_version, otaRequest.target_version) >= 0;
+    const hasAlreadyUpdated =
+      otaRequest &&
+      device.firmware_version &&
+      compareVersion(device.firmware_version, otaRequest.target_version) >= 0;
 
     if (hasAlreadyUpdated) {
       await this.deviceFirmwareUpdatesService.autoCompleteOta(otaRequest.id);
@@ -66,34 +84,50 @@ export class DeviceSettingsService {
       region_id: device.region_id,
       comuna_id: device.comuna_id,
       direccion: device.direccion,
-      firmware_update: (otaRequest && !hasAlreadyUpdated) ? {
-        requested: true,
-        status: otaRequest.status,
-        request_id: otaRequest.request_id,
-        version: otaRequest.target_version,
-        file: otaRequest.file_url,
-        sha256: otaRequest.sha256,
-        size_bytes: otaRequest.size_bytes,
-        mandatory: otaRequest.mandatory,
-        notes: otaRequest.notes || ''
-      } : {
-        requested: false
-      }
+      firmware_update:
+        otaRequest && !hasAlreadyUpdated
+          ? {
+              requested: true,
+              status: otaRequest.status,
+              request_id: otaRequest.request_id,
+              version: otaRequest.target_version,
+              file: otaRequest.file_url,
+              sha256: otaRequest.sha256,
+              size_bytes: otaRequest.size_bytes,
+              mandatory: otaRequest.mandatory,
+              notes: otaRequest.notes || '',
+            }
+          : {
+              requested: false,
+            },
     } as any;
   }
 
-  async findBySerialNumberWithUserPermissions(serialNumber: string, userId: number): Promise<any> {
+  async findBySerialNumberWithUserPermissions(
+    serialNumber: string,
+    userId: number,
+  ): Promise<any> {
     const setting = await this.findBySerialNumber(serialNumber);
-    const link = await this.devicesService.getUserDeviceLink(setting.device_id, userId);
+    const link = await this.devicesService.getUserDeviceLink(
+      setting.device_id,
+      userId,
+    );
 
     if (!link) {
-      throw new NotFoundException(`User has no access to device with serial number ${serialNumber}`);
+      throw new NotFoundException(
+        `User has no access to device with serial number ${serialNumber}`,
+      );
     }
 
-    const planInfo = await this.subscriptionsService.getEffectivePlanByUserId(userId);
+    const planInfo =
+      await this.subscriptionsService.getEffectivePlanByUserId(userId);
 
-    console.log(`[DeviceSettings] DeviceID: ${setting.device_id}, UserID: ${userId}`);
-    console.log(`[DeviceSettings] Plan ID: ${planInfo.id}, Code: ${planInfo.code}, Name: ${planInfo.name}`);
+    console.log(
+      `[DeviceSettings] DeviceID: ${setting.device_id}, UserID: ${userId}`,
+    );
+    console.log(
+      `[DeviceSettings] Plan ID: ${planInfo.id}, Code: ${planInfo.code}, Name: ${planInfo.name}`,
+    );
     console.log(`[DeviceSettings] planName final: ${planInfo.code}`);
 
     return {
@@ -105,20 +139,38 @@ export class DeviceSettingsService {
     };
   }
 
-  async update(deviceId: number, updateDto: UpdateDeviceSettingDto, userId: number): Promise<any> {
+  async update(
+    deviceId: number,
+    updateDto: UpdateDeviceSettingDto,
+    userId: number,
+  ): Promise<any> {
     const link = await this.devicesService.getUserDeviceLink(deviceId, userId);
     if (!link || (!link.owner && !link.edit)) {
-      throw new ForbiddenException('No tienes permisos para modificar la configuración de este equipo.');
+      throw new ForbiddenException(
+        'No tienes permisos para modificar la configuración de este equipo.',
+      );
     }
 
     if (updateDto.sound_alarm_temp_low !== undefined) {
-      const hasFeature = await this.subscriptionsService.userHasFeature(userId, 'low_temperature_alert');
+      const hasFeature = await this.subscriptionsService.userHasFeature(
+        userId,
+        'low_temperature_alert',
+      );
       if (!hasFeature.has_feature) {
-        throw new ForbiddenException('Esta funcionalidad requiere plan Plus o Pro.');
+        throw new ForbiddenException(
+          'Esta funcionalidad requiere plan Plus o Pro.',
+        );
       }
     }
 
-    const { device_name, region_id, comuna_id, direccion, timezone: rawTimezone, ...settingsDto } = updateDto;
+    const {
+      device_name,
+      region_id,
+      comuna_id,
+      direccion,
+      timezone: rawTimezone,
+      ...settingsDto
+    } = updateDto;
 
     const timezone = this.validateTimezone(rawTimezone);
 
@@ -141,10 +193,15 @@ export class DeviceSettingsService {
     }
 
     if (Object.keys(deviceUpdatePayload).length > 0) {
-      await this.devicesService.updateDevicePartial(deviceId, deviceUpdatePayload);
+      await this.devicesService.updateDevicePartial(
+        deviceId,
+        deviceUpdatePayload,
+      );
     }
 
-    let setting = await this.deviceSettingRepository.findOne({ where: { device_id: deviceId } });
+    let setting = await this.deviceSettingRepository.findOne({
+      where: { device_id: deviceId },
+    });
 
     if (setting) {
       // 2. Si existe: actualizar los campos

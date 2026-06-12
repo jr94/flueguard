@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -30,7 +34,9 @@ export class PortalAuthService {
       }
 
       if (!user.is_active) {
-        throw new UnauthorizedException('Usuario inactivo. Contacte al administrador.');
+        throw new UnauthorizedException(
+          'Usuario inactivo. Contacte al administrador.',
+        );
       }
 
       // 2. Verify password
@@ -39,7 +45,7 @@ export class PortalAuthService {
         isMatch = await bcrypt.compare(dto.password, user.password);
       } catch (e) {
         // Fallback for plain text
-        isMatch = (dto.password === user.password);
+        isMatch = dto.password === user.password;
       }
 
       if (!isMatch) {
@@ -62,7 +68,7 @@ export class PortalAuthService {
         scope: 'portal',
         role: user.role,
       };
-      
+
       let accessToken;
       try {
         accessToken = this.jwtService.sign(payload);
@@ -95,7 +101,10 @@ export class PortalAuthService {
     });
   }
 
-  async updateProfile(userId: number, updates: { first_name?: string; last_name?: string; password?: string }) {
+  async updateProfile(
+    userId: number,
+    updates: { first_name?: string; last_name?: string; password?: string },
+  ) {
     if (updates.password) {
       updates.password = await bcrypt.hash(updates.password, 10);
     }
@@ -120,7 +129,7 @@ export class PortalAuthService {
       ...userData,
       password: hashedPassword,
     });
-    const savedUser = await this.portalUserRepository.save(newUser) as any;
+    const savedUser = (await this.portalUserRepository.save(newUser)) as any;
 
     const newPermissions = this.portalPermissionRepository.create({
       ...permissions,
@@ -133,7 +142,7 @@ export class PortalAuthService {
 
   async updatePortalUser(id: number, dto: any) {
     const { permissions, password, ...userData } = dto;
-    
+
     if (password) {
       userData.password = await bcrypt.hash(password, 10);
     }
@@ -148,9 +157,14 @@ export class PortalAuthService {
       }
 
       // Check if permission record exists
-      const existingPerm = await this.portalPermissionRepository.findOne({ where: { portal_user_id: id } });
+      const existingPerm = await this.portalPermissionRepository.findOne({
+        where: { portal_user_id: id },
+      });
       if (existingPerm) {
-        await this.portalPermissionRepository.update({ portal_user_id: id }, cleanPermissions);
+        await this.portalPermissionRepository.update(
+          { portal_user_id: id },
+          cleanPermissions,
+        );
       } else {
         const newPerm = this.portalPermissionRepository.create({
           ...cleanPermissions,

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlueGuard - Enlaces de interés</title>
+    <meta name="description" content="Página oficial de enlaces de FlueGuard. Monitorea tu estufa a leña y recibe alertas tempranas ante posibles sobrecalentamientos." />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #070b14;
+            --bg-soft: #0f172a;
+            --card: #111c31;
+            --card-2: #0b1220;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --muted-2: #64748b;
+            --primary: #38bdf8;
+            --primary-2: #2563eb;
+            --accent: #f97316;
+            --border: rgba(255, 255, 255, .09);
+            --shadow: 0 24px 80px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 50% 10%, rgba(56, 189, 248, .12), transparent 45%),
+                radial-gradient(circle at 50% 90%, rgba(249, 115, 22, .08), transparent 45%),
+                var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            margin-bottom: 2.5rem;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(56, 189, 248, .15), rgba(249, 115, 22, .15));
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            margin: 0 auto 1.2rem;
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .avatar:hover {
+            transform: scale(1.05) rotate(5deg);
+        }
+
+        .logo {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            background: linear-gradient(135deg, #38bdf8, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.95rem;
+            max-width: 380px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        .links-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .link-btn {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 1.1rem 1.5rem;
+            border-radius: 1rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .025));
+            border: 1px solid var(--border);
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .link-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, .08);
+            border-color: rgba(56, 189, 248, .4);
+            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.15);
+        }
+
+        .link-btn:active {
+            transform: translateY(0);
+        }
+
+        .link-btn svg {
+            margin-right: 1.2rem;
+            flex-shrink: 0;
+            transition: transform 0.25s ease;
+        }
+
+        .link-btn:hover svg {
+            transform: scale(1.1);
+        }
+
+        /* Específico para el sitio oficial (destacado) */
+        .link-btn-featured {
+            background: linear-gradient(135deg, var(--primary-2), var(--primary));
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, .25);
+        }
+
+        .link-btn-featured:hover {
+            background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+            border-color: rgba(56, 189, 248, 0.6);
+            box-shadow: 0 14px 35px rgba(56, 189, 248, .35);
+        }
+
+        .link-btn-featured svg {
+            stroke: #fff;
+        }
+
+        .footer {
+            color: var(--muted-2);
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* Ajustes responsive */
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.9rem;
+            }
+            .link-btn {
+                padding: 1rem 1.2rem;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Encabezado con logotipo y texto de bienvenida -->
+        <header class="header">
+            <div class="avatar" aria-hidden="true">🔥</div>
+            <h1 class="logo">FlueGuard</h1>
+            <p class="subtitle">Monitorea la temperatura de tu estufa a leña y recibe alertas tempranas ante posibles sobrecalentamientos.</p>
+        </header>
+
+        <!-- Contenedor de enlaces -->
+        <nav class="links-wrapper" role="navigation" aria-label="Enlaces en bio de FlueGuard">
+            <!-- Botón 1: Sitio web oficial -->
+            <a id="btn-sitio" href="/" class="link-btn link-btn-featured">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Visitar sitio web
+            </a>
+
+            <!-- Botón 2: Descargar app -->
+            <a id="btn-app" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                Descargar app
+            </a>
+
+            <!-- Botón 3: Instagram -->
+            <a id="btn-instagram" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                Instagram
+            </a>
+
+            <!-- Botón 4: WhatsApp -->
+            <a id="btn-whatsapp" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                Hablar por WhatsApp
+            </a>
+
+            <!-- Botón 5: Correo -->
+            <a id="btn-correo" href="#" class="link-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Enviar correo
+            </a>
+        </nav>
+
+        <!-- Pie de página -->
+        <footer class="footer">
+            &copy; 2026 FlueGuard. Todos los derechos reservados.
+        </footer>
+    </div>
+
+    <!-- Script de configuración de enlaces al inicio del cuerpo del documento para fácil acceso -->
+    <script>
+        // CONFIGURACIÓN DE ENLACES: Modifique los valores a continuación para cambiar las URL de destino.
+        const CONFIG = {
+            sitioWeb: "/",
+            descargarApp: "https://play.google.com/store/apps/details?id=cl.flueguard.app",
+            instagram: "https://www.instagram.com/flueguard",
+            whatsapp: "https://wa.me/569XXXXXXXX", // Reemplazar con el número telefónico real (ejemplo: 56912345678)
+            correo: "mailto:contacto@flueguard.cl"
+        };
+
+        // Asignación automática de los enlaces de la configuración a los botones del DOM
+        document.addEventListener("DOMContentLoaded", () => {
+            if (CONFIG.sitioWeb) document.getElementById("btn-sitio").setAttribute("href", CONFIG.sitioWeb);
+            if (CONFIG.descargarApp) document.getElementById("btn-app").setAttribute("href", CONFIG.descargarApp);
+            if (CONFIG.instagram) document.getElementById("btn-instagram").setAttribute("href", CONFIG.instagram);
+            if (CONFIG.whatsapp) document.getElementById("btn-whatsapp").setAttribute("href", CONFIG.whatsapp);
+            if (CONFIG.correo) document.getElementById("btn-correo").setAttribute("href", CONFIG.correo);
+        });
+    </script>
+</body>
+</html>

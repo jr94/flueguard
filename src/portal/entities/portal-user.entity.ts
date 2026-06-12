@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToOne,
+} from 'typeorm';
 import { PortalPermission } from './portal-permission.entity';
 
 @Entity('portal_users')
@@ -33,6 +40,8 @@ export class PortalUser {
   @UpdateDateColumn({ name: 'updated_at' })
   updated_at: Date;
 
-  @OneToOne(() => PortalPermission, (permission) => permission.portalUser, { cascade: true })
+  @OneToOne(() => PortalPermission, (permission) => permission.portalUser, {
+    cascade: true,
+  })
   permissions: PortalPermission;
 }

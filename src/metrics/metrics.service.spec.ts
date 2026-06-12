@@ -41,7 +41,7 @@ describe('MetricsService', () => {
       level3: number,
       t2: number,
       t3: number,
-      maintenanceHours: number
+      maintenanceHours: number,
     ) => {
       return (service as any).calculateRiskScore(
         maxTemp,
@@ -51,7 +51,7 @@ describe('MetricsService', () => {
         level3,
         t2,
         t3,
-        maintenanceHours
+        maintenanceHours,
       );
     };
 
@@ -92,7 +92,7 @@ describe('MetricsService', () => {
       expect(score).toBeGreaterThan(75);
       expect(score).toBe(100);
     });
-    
+
     it('should maintain higher score if it was already above 45 for preventive maintenance', () => {
       // maintenanceHours = 250 forces 45
       // score = 50 * 1.5 = 75

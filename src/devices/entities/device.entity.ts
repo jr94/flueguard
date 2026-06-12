@@ -1,10 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 @Entity('devices')
 export class Device {
   @PrimaryGeneratedColumn()
   id: number;
-
-
 
   @Column({ name: 'serial_number', length: 100, unique: true })
   serial_number: string;
@@ -32,7 +36,6 @@ export class Device {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   direccion: string | null;
-
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;

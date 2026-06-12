@@ -11,9 +11,13 @@ export class PushNotificationsService {
     @InjectRepository(DevicePushToken)
     private readonly pushTokenRepository: Repository<DevicePushToken>,
     private readonly subscriptionsService: SubscriptionsService,
-  ) { }
+  ) {}
 
-  async sendAlertNotification(deviceId: number, alert: any, serialNumber: string = ''): Promise<void> {
+  async sendAlertNotification(
+    deviceId: number,
+    alert: any,
+    serialNumber: string = '',
+  ): Promise<void> {
     try {
       // 1. Obtener tokens activos para todos los usuarios asociados al dispositivo, incluyendo dirección
       const activeTokens = await this.pushTokenRepository.query(
@@ -28,17 +32,19 @@ export class PushNotificationsService {
         LEFT JOIN regiones r ON r.id = d.region_id
         WHERE ud.device_id = ?
           AND pt.is_active = 1`,
-        [deviceId]
+        [deviceId],
       );
 
       if (!activeTokens || activeTokens.length === 0) {
-        console.log(`[PUSH] No hay tokens activos para usuarios vinculados al device_id ${deviceId}`);
+        console.log(
+          `[PUSH] No hay tokens activos para usuarios vinculados al device_id ${deviceId}`,
+        );
         return; // Si no hay tokens activos para los usuarios de este dispositivo, salimos
       }
 
       const firstRecord = activeTokens[0];
       const deviceName = firstRecord.device_name || 'Dispositivo';
-      
+
       // Construir dirección legible
       const addressParts: string[] = [];
       if (firstRecord.direccion) addressParts.push(firstRecord.direccion);
@@ -97,26 +103,39 @@ export class PushNotificationsService {
 
       for (const record of activeTokens) {
         if (!isCriticalAlert && !record.notifications_enabled) {
-          console.log(`[PUSH] Usuario ${record.user_id} tiene notificaciones desactivadas para device_id ${deviceId}`);
+          console.log(
+            `[PUSH] Usuario ${record.user_id} tiene notificaciones desactivadas para device_id ${deviceId}`,
+          );
           continue;
         }
 
         if (isCriticalAlert && !record.notifications_enabled) {
-          console.log(`[PUSH] Alerta crítica nivel 3: se ignora switch desactivado del usuario ${record.user_id} para device_id ${deviceId}`);
+          console.log(
+            `[PUSH] Alerta crítica nivel 3: se ignora switch desactivado del usuario ${record.user_id} para device_id ${deviceId}`,
+          );
         }
 
         if (featureCode) {
-          const hasFeature = await this.subscriptionsService.userHasFeature(record.user_id, featureCode);
+          const hasFeature = await this.subscriptionsService.userHasFeature(
+            record.user_id,
+            featureCode,
+          );
           if (!hasFeature.has_feature) {
-            console.log(`[PUSH] Omitting premium alert (${alertType}) for user ${record.user_id} due to plan restrictions (feature ${featureCode} not enabled).`);
+            console.log(
+              `[PUSH] Omitting premium alert (${alertType}) for user ${record.user_id} due to plan restrictions (feature ${featureCode} not enabled).`,
+            );
             continue;
           } else {
-            console.log(`[PUSH] Sending premium alert (${alertType}) to eligible user ${record.user_id} (feature ${featureCode} is enabled).`);
+            console.log(
+              `[PUSH] Sending premium alert (${alertType}) to eligible user ${record.user_id} (feature ${featureCode} is enabled).`,
+            );
           }
         }
 
         tokensEnviados++;
-        console.log(`[PUSH] Enviando alerta nivel ${alertLevel} a usuario ${record.user_id} para device_id ${deviceId}`);
+        console.log(
+          `[PUSH] Enviando alerta nivel ${alertLevel} a usuario ${record.user_id} para device_id ${deviceId}`,
+        );
         try {
           // Verify we have Firebase mapped properly
           if (admin.apps.length > 0) {
@@ -125,12 +144,18 @@ export class PushNotificationsService {
               android: messagePayload.android,
               data: messagePayload.data,
             });
-            console.log(`FCM enviado correctamente a device ID ${deviceId} (Token: ...${record.fcm_token.slice(-5)})`);
+            console.log(
+              `FCM enviado correctamente a device ID ${deviceId} (Token: ...${record.fcm_token.slice(-5)})`,
+            );
           } else {
-            console.warn('Firebase Admin no está inicializado. Se omite envío de push.');
+            console.warn(
+              'Firebase Admin no está inicializado. Se omite envío de push.',
+            );
           }
         } catch (error: any) {
-          console.error(`Error enviando FCM para device ${deviceId}: ${error.message}`);
+          console.error(
+            `Error enviando FCM para device ${deviceId}: ${error.message}`,
+          );
 
           // 3. Mark broken token as inactive
           if (
@@ -144,11 +169,16 @@ export class PushNotificationsService {
       }
 
       if (tokensEnviados === 0 && activeTokens.length > 0) {
-        console.log(`[PUSH] No hay usuarios con notificaciones habilitadas para device_id ${deviceId}`);
+        console.log(
+          `[PUSH] No hay usuarios con notificaciones habilitadas para device_id ${deviceId}`,
+        );
       }
     } catch (err) {
       // Bloque general que encapsula y prohíbe explícitamente cualquier crasheo exterior
-      console.error('Error crítico no manejado en PushNotificationsService:', err);
+      console.error(
+        'Error crítico no manejado en PushNotificationsService:',
+        err,
+      );
     }
   }
 }

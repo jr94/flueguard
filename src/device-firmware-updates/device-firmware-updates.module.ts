@@ -10,10 +10,10 @@ import { FirmwareModule } from '../firmware/firmware.module';
   imports: [
     TypeOrmModule.forFeature([DeviceFirmwareUpdate]),
     DevicesModule,
-    FirmwareModule
+    FirmwareModule,
   ],
   controllers: [DeviceFirmwareUpdatesController],
   providers: [DeviceFirmwareUpdatesService],
-  exports: [DeviceFirmwareUpdatesService]
+  exports: [DeviceFirmwareUpdatesService],
 })
 export class DeviceFirmwareUpdatesModule {}

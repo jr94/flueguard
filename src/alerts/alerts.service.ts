@@ -28,10 +28,12 @@ export class AlertsService {
       order: { created_at: 'DESC' },
     });
 
-    const device = await this.deviceRepository.findOne({ where: { id: deviceId } });
+    const device = await this.deviceRepository.findOne({
+      where: { id: deviceId },
+    });
     const deviceName = device?.device_name || 'Desconocido';
 
-    return alerts.map(alert => ({
+    return alerts.map((alert) => ({
       id: alert.id,
       device_id: alert.device_id,
       temperature: alert.temperature,
@@ -40,11 +42,15 @@ export class AlertsService {
       message: alert.message,
       is_read: alert.is_read,
       created_at: alert.created_at,
-      device_name: deviceName
+      device_name: deviceName,
     }));
   }
 
-  async hasRecentPredictiveAlert(deviceId: number, alertLevel: string, minutes: number = 10): Promise<boolean> {
+  async hasRecentPredictiveAlert(
+    deviceId: number,
+    alertLevel: string,
+    minutes: number = 10,
+  ): Promise<boolean> {
     const pastDate = new Date();
     pastDate.setMinutes(pastDate.getMinutes() - minutes);
 
@@ -52,16 +58,21 @@ export class AlertsService {
       where: {
         device_id: deviceId,
         alert_level: alertLevel,
-        alert_type: `PREDICTIVE_LEVEL_${alertLevel}`
+        alert_type: `PREDICTIVE_LEVEL_${alertLevel}`,
       },
-      order: { created_at: 'DESC' }
+      order: { created_at: 'DESC' },
     });
 
     if (!alert) return false;
     return new Date(alert.created_at) >= pastDate;
   }
 
-  async hasRecentAlert(deviceId: number, alertLevel: string, minutes: number, alertType?: string): Promise<boolean> {
+  async hasRecentAlert(
+    deviceId: number,
+    alertLevel: string,
+    minutes: number,
+    alertType?: string,
+  ): Promise<boolean> {
     const pastDate = new Date();
     pastDate.setMinutes(pastDate.getMinutes() - minutes);
 
@@ -85,7 +96,7 @@ export class AlertsService {
 
   async markAsRead(id: number): Promise<Alert> {
     const alert = await this.alertRepository.findOne({ where: { id } });
-    
+
     if (!alert) {
       throw new NotFoundException(`Alert with ID ${id} not found`);
     }

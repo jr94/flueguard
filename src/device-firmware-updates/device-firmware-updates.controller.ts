@@ -10,7 +10,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('device-firmware-updates')
 export class DeviceFirmwareUpdatesController {
-  constructor(private readonly deviceFirmwareUpdatesService: DeviceFirmwareUpdatesService) {}
+  constructor(
+    private readonly deviceFirmwareUpdatesService: DeviceFirmwareUpdatesService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('request')

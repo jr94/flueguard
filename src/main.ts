@@ -25,11 +25,12 @@ async function bootstrap() {
       { path: 'firmware/(.*)', method: RequestMethod.ALL },
       { path: 'delete-account', method: RequestMethod.GET },
       { path: 'delete-account/confirm', method: RequestMethod.GET },
+      { path: 'links', method: RequestMethod.GET },
       { path: 'manuales', method: RequestMethod.GET },
       { path: 'manuales/(.*)', method: RequestMethod.GET },
     ],
   });
-  
+
   // Enable CORS for mobile app
   app.enableCors();
 

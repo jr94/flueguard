@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Device } from '../../devices/entities/device.entity';
 
 @Entity('device_maintenance')
@@ -13,7 +21,11 @@ export class DeviceMaintenance {
   @JoinColumn({ name: 'device_id' })
   device: Device;
 
-  @Column({ type: 'bigint', default: 0, transformer: { to: (v) => v, from: (v) => Number(v) } })
+  @Column({
+    type: 'bigint',
+    default: 0,
+    transformer: { to: (v) => v, from: (v) => Number(v) },
+  })
   usage_seconds_accumulated: number;
 
   @Column({ type: 'int', default: 80 })

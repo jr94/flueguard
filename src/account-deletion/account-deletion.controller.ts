@@ -8,7 +8,9 @@ import { ConfirmDeletionDto } from './dto/confirm-deletion.dto';
 // @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour
 @Controller('account-deletion')
 export class AccountDeletionController {
-  constructor(private readonly accountDeletionService: AccountDeletionService) {}
+  constructor(
+    private readonly accountDeletionService: AccountDeletionService,
+  ) {}
 
   @Post('request')
   @HttpCode(HttpStatus.OK)
@@ -17,7 +19,8 @@ export class AccountDeletionController {
     // Siempre retorna el mismo mensaje genérico para no exponer existencia del usuario
     return {
       success: true,
-      message: 'Si el correo existe, recibirás un enlace para confirmar la eliminación de tu cuenta.',
+      message:
+        'Si el correo existe, recibirás un enlace para confirmar la eliminación de tu cuenta.',
     };
   }
 

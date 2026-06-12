@@ -8,7 +8,7 @@ export class DeviceStaticTokenGuard extends AuthGuard('jwt') {
     const authHeader = request.headers.authorization;
 
     const expectedToken = 'getSetting-token-29071994';
-    
+
     // Check if the auth token is our static token
     if (
       authHeader &&
