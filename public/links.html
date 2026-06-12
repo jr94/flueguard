@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlueGuard - Enlaces de interés</title>
-    <meta name="description" content="Página oficial de enlaces de FlueGuard. Monitorea tu estufa a leña y recibe alertas tempranas ante posibles sobrecalentamientos." />
+    <meta name="description"
+        content="Página oficial de enlaces de FlueGuard. Monitorea tu estufa a leña y recibe alertas tempranas ante posibles sobrecalentamientos." />
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
 
     <style>
         :root {
@@ -59,34 +62,18 @@
             margin-bottom: 2.5rem;
         }
 
-        .avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(56, 189, 248, .15), rgba(249, 115, 22, .15));
-            border: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.2rem;
-            margin: 0 auto 1.2rem;
-            box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+        .logo-img {
+            max-height: 80px;
+            max-width: 260px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            margin-bottom: 1.5rem;
             transition: transform 0.3s ease;
         }
 
-        .avatar:hover {
-            transform: scale(1.05) rotate(5deg);
-        }
-
-        .logo {
-            font-size: 2.2rem;
-            font-weight: 900;
-            letter-spacing: -0.05em;
-            background: linear-gradient(135deg, #38bdf8, #2563eb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.75rem;
-            display: inline-block;
+        .logo-img:hover {
+            transform: scale(1.03);
         }
 
         .subtitle {
@@ -167,9 +154,11 @@
 
         /* Ajustes responsive */
         @media (max-width: 480px) {
-            .logo {
-                font-size: 1.9rem;
+            .logo-img {
+                max-height: 65px;
+                max-width: 220px;
             }
+
             .link-btn {
                 padding: 1rem 1.2rem;
                 font-size: 0.95rem;
@@ -177,45 +166,75 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="container">
         <!-- Encabezado con logotipo y texto de bienvenida -->
         <header class="header">
-            <div class="avatar" aria-hidden="true">🔥</div>
+            <img src="/FlueGuard.png" alt="FlueGuard" class="logo-img" />
             <h1 class="logo">FlueGuard</h1>
-            <p class="subtitle">Monitorea la temperatura de tu estufa a leña y recibe alertas tempranas ante posibles sobrecalentamientos.</p>
+            <p class="subtitle">Monitorea la temperatura de tu estufa a leña y recibe alertas tempranas ante posibles
+                sobrecalentamientos.</p>
         </header>
 
         <!-- Contenedor de enlaces -->
         <nav class="links-wrapper" role="navigation" aria-label="Enlaces en bio de FlueGuard">
             <!-- Botón 1: Sitio web oficial -->
             <a id="btn-sitio" href="/" class="link-btn link-btn-featured">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path
+                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
                 Visitar sitio web
             </a>
 
             <!-- Botón 2: Descargar app -->
             <a id="btn-app" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                    <line x1="12" y1="18" x2="12.01" y2="18" />
+                </svg>
                 Descargar app
             </a>
 
             <!-- Botón 3: Instagram -->
             <a id="btn-instagram" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                </svg>
                 Instagram
             </a>
 
             <!-- Botón 4: WhatsApp -->
             <a id="btn-whatsapp" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <path
+                        d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
                 Hablar por WhatsApp
             </a>
 
             <!-- Botón 5: Correo -->
             <a id="btn-correo" href="#" class="link-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                </svg>
                 Enviar correo
             </a>
         </nav>
@@ -247,4 +266,5 @@
         });
     </script>
 </body>
+
 </html>
