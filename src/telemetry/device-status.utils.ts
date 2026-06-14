@@ -9,6 +9,7 @@ export function calculateDeviceOperationalStatus(params: {
   now?: Date;
 }): DeviceOperationalStatus {
   const current = params.now || new Date();
+
   if (!params.lastLogAt) {
     return 'disconnected';
   }
@@ -17,15 +18,9 @@ export function calculateDeviceOperationalStatus(params: {
     typeof params.lastLogAt === 'string'
       ? new Date(params.lastLogAt)
       : params.lastLogAt;
+
   if (isNaN(logTime.getTime())) {
     return 'disconnected';
-  }
-
-  const diffMs = current.getTime() - logTime.getTime();
-  const diffMinutes = diffMs / (60 * 1000);
-
-  if (diffMinutes < 10) {
-    return 'connected';
   }
 
   if (params.lastTemperature === null || params.lastTemperature === undefined) {
@@ -40,6 +35,13 @@ export function calculateDeviceOperationalStatus(params: {
 
   if (temp < 30) {
     return 'cold_idle';
+  }
+
+  const diffMs = current.getTime() - logTime.getTime();
+  const diffMinutes = diffMs / (60 * 1000);
+
+  if (diffMinutes < 10) {
+    return 'connected';
   }
 
   return 'disconnected';

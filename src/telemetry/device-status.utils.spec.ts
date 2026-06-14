@@ -3,10 +3,30 @@ import { calculateDeviceOperationalStatus } from './device-status.utils';
 describe('calculateDeviceOperationalStatus', () => {
   const now = new Date('2026-06-14T18:00:00.000Z');
 
-  it('should return connected if last log was 5 minutes ago and temperature is 20°C', () => {
+  it('should return cold_idle if last log was 5 minutes ago and temperature is 20°C', () => {
     const lastLogAt = new Date('2026-06-14T17:55:00.000Z');
     const status = calculateDeviceOperationalStatus({
       lastTemperature: 20,
+      lastLogAt,
+      now,
+    });
+    expect(status).toBe('cold_idle');
+  });
+
+  it('should return cold_idle if last log was 15 minutes ago and temperature is 25°C', () => {
+    const lastLogAt = new Date('2026-06-14T17:45:00.000Z');
+    const status = calculateDeviceOperationalStatus({
+      lastTemperature: 25,
+      lastLogAt,
+      now,
+    });
+    expect(status).toBe('cold_idle');
+  });
+
+  it('should return connected if last log was 5 minutes ago and temperature is 30°C', () => {
+    const lastLogAt = new Date('2026-06-14T17:55:00.000Z');
+    const status = calculateDeviceOperationalStatus({
+      lastTemperature: 30,
       lastLogAt,
       now,
     });
@@ -21,16 +41,6 @@ describe('calculateDeviceOperationalStatus', () => {
       now,
     });
     expect(status).toBe('connected');
-  });
-
-  it('should return cold_idle if last log was 15 minutes ago and temperature is 25°C', () => {
-    const lastLogAt = new Date('2026-06-14T17:45:00.000Z');
-    const status = calculateDeviceOperationalStatus({
-      lastTemperature: 25,
-      lastLogAt,
-      now,
-    });
-    expect(status).toBe('cold_idle');
   });
 
   it('should return disconnected if last log was 15 minutes ago and temperature is 30°C', () => {

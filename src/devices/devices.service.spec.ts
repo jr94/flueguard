@@ -78,7 +78,7 @@ describe('DevicesService (operational status enrichment)', () => {
       {
         id: 1,
         device_id: 123,
-        temperature: 22.0,
+        temperature: 32.0,
         created_at: lastLogTime,
       },
     ]);
@@ -88,7 +88,7 @@ describe('DevicesService (operational status enrichment)', () => {
     expect(result).toHaveLength(1);
     expect(result[0].connection_state).toBe('connected');
     expect(result[0].minutes_since_last_log).toBeLessThanOrEqual(3);
-    expect(result[0].last_temperature).toBe(22.0);
+    expect(result[0].last_temperature).toBe(32.0);
     expect(result[0].last_log_time).toEqual(lastLogTime);
   });
 

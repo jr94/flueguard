@@ -80,9 +80,9 @@ describe('TelemetryService (operational status integration)', () => {
     // 5 minutes ago
     const lastLogTime = new Date(Date.now() - 5 * 60 * 1000);
     temperatureLogRepository.find.mockResolvedValue([
-      { temperature: 25.5, created_at: lastLogTime },
+      { temperature: 35.5, created_at: lastLogTime },
       {
-        temperature: 24.0,
+        temperature: 34.0,
         created_at: new Date(lastLogTime.getTime() - 60000),
       },
     ]);
@@ -98,7 +98,7 @@ describe('TelemetryService (operational status integration)', () => {
     expect(item.device_id).toBe(mockDevice.id);
     expect(item.serial_number).toBe(mockDevice.serial_number);
     expect(item.device_name).toBe(mockDevice.device_name);
-    expect(item.temperature).toBe(25.5);
+    expect(item.temperature).toBe(35.5);
     expect(item.last_log_at).toEqual(lastLogTime);
     expect(item.status).toBe('online');
 
