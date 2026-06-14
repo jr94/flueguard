@@ -238,6 +238,17 @@
                 Instagram
             </a>
 
+            <!-- Botón de YouTube -->
+            <a id="btn-youtube" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+                    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+                </svg>
+                YouTube
+            </a>
+
             <!-- Botón 4: WhatsApp -->
             <a id="btn-whatsapp" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -274,6 +285,7 @@
             sitioWeb: "/",
             descargarApp: "https://play.google.com/store/apps/details?id=cl.flueguard.app",
             instagram: "https://www.instagram.com/flueguard",
+            youtube: "https://www.youtube.com/@flueguard",
             whatsapp: "https://wa.me/569XXXXXXXX", // Reemplazar con el número telefónico real (ejemplo: 56912345678)
             correo: "mailto:contacto@flueguard.cl"
         };
@@ -283,6 +295,7 @@
             if (CONFIG.sitioWeb) document.getElementById("btn-sitio").setAttribute("href", CONFIG.sitioWeb);
             if (CONFIG.descargarApp) document.getElementById("btn-app").setAttribute("href", CONFIG.descargarApp);
             if (CONFIG.instagram) document.getElementById("btn-instagram").setAttribute("href", CONFIG.instagram);
+            if (CONFIG.youtube) document.getElementById("btn-youtube").setAttribute("href", CONFIG.youtube);
             if (CONFIG.whatsapp) document.getElementById("btn-whatsapp").setAttribute("href", CONFIG.whatsapp);
             if (CONFIG.correo) document.getElementById("btn-correo").setAttribute("href", CONFIG.correo);
         });
