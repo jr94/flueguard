@@ -27,14 +27,17 @@ export class ForgotPasswordService {
   async requestPasswordReset(
     dto: ForgotPasswordRequestDto,
   ): Promise<{ success: boolean; message: string }> {
-    this.logger.log(`Solicitud de recuperación de contraseña recibida para: ${dto.email}`);
+    this.logger.log(
+      `Solicitud de recuperación de contraseña recibida para: ${dto.email}`,
+    );
 
     const user = await this.userRepository.findOne({
       where: { email: dto.email },
     });
     const genericResponse = {
       success: true,
-      message: 'Si el correo está registrado, recibirás las instrucciones para recuperar tu contraseña.',
+      message:
+        'Si el correo está registrado, recibirás las instrucciones para recuperar tu contraseña.',
     };
 
     if (!user) {
@@ -42,14 +45,18 @@ export class ForgotPasswordService {
       return genericResponse;
     }
 
-    this.logger.log(`Usuario encontrado para el correo: ${dto.email}. ID de usuario: ${user.id}`);
+    this.logger.log(
+      `Usuario encontrado para el correo: ${dto.email}. ID de usuario: ${user.id}`,
+    );
 
     // Delete existing resets for user to prevent clutter
     await this.passwordResetRepository.delete({ user_id: user.id });
 
     // Generate 6 digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    this.logger.log(`Código de recuperación de 6 dígitos generado para: ${dto.email}`);
+    this.logger.log(
+      `Código de recuperación de 6 dígitos generado para: ${dto.email}`,
+    );
 
     const minutes = Number(
       this.configService.get<number>('FORGOT_PASSWORD_CODE_EXP_MINUTES') || 10,
@@ -65,12 +72,16 @@ export class ForgotPasswordService {
     });
 
     await this.passwordResetRepository.save(resetRecord);
-    this.logger.log(`Registro de recuperación de contraseña guardado en base de datos.`);
+    this.logger.log(
+      `Registro de recuperación de contraseña guardado en base de datos.`,
+    );
 
     try {
       await this.mailService.sendForgotPasswordCode(user.email, code);
     } catch (error) {
-      this.logger.error(`No se pudo enviar el correo de recuperación a ${user.email} debido a un error en el servicio de correo.`);
+      this.logger.error(
+        `No se pudo enviar el correo de recuperación a ${user.email} debido a un error en el servicio de correo.`,
+      );
     }
 
     return genericResponse;
@@ -80,7 +91,9 @@ export class ForgotPasswordService {
     dto: VerifyCodeDto,
   ): Promise<{ success: boolean; reset_token: string }> {
     const { email, code } = dto;
-    this.logger.log(`Verificando código de recuperación para el correo: ${email}`);
+    this.logger.log(
+      `Verificando código de recuperación para el correo: ${email}`,
+    );
 
     const resetRecord = await this.passwordResetRepository.findOne({
       where: { email },
@@ -92,7 +105,9 @@ export class ForgotPasswordService {
       resetRecord.code !== code ||
       new Date() > new Date(resetRecord.code_expires_at)
     ) {
-      this.logger.warn(`Código de recuperación inválido o expirado para: ${email}`);
+      this.logger.warn(
+        `Código de recuperación inválido o expirado para: ${email}`,
+      );
       throw new BadRequestException('Código inválido o expirado.');
     }
 
@@ -115,7 +130,9 @@ export class ForgotPasswordService {
     resetRecord.token_expires_at = tokenExpiresAt;
 
     await this.passwordResetRepository.save(resetRecord);
-    this.logger.log(`Token de recuperación guardado con éxito. Respondiendo al cliente.`);
+    this.logger.log(
+      `Token de recuperación guardado con éxito. Respondiendo al cliente.`,
+    );
 
     return { success: true, reset_token };
   }
@@ -124,10 +141,14 @@ export class ForgotPasswordService {
     dto: ResetPasswordDto,
   ): Promise<{ success: boolean; message: string }> {
     const { reset_token, password, confirm_password } = dto;
-    this.logger.log(`Solicitud recibida para restablecer contraseña usando token.`);
+    this.logger.log(
+      `Solicitud recibida para restablecer contraseña usando token.`,
+    );
 
     if (password !== confirm_password) {
-      this.logger.warn(`Intento de cambio de contraseña falló: las contraseñas no coinciden.`);
+      this.logger.warn(
+        `Intento de cambio de contraseña falló: las contraseñas no coinciden.`,
+      );
       throw new BadRequestException('Las contraseñas no coinciden.');
     }
 
@@ -136,7 +157,9 @@ export class ForgotPasswordService {
     });
 
     if (!resetRecord || !resetRecord.verified) {
-      this.logger.warn(`Intento de cambio de contraseña falló: token inválido o no verificado.`);
+      this.logger.warn(
+        `Intento de cambio de contraseña falló: token inválido o no verificado.`,
+      );
       throw new BadRequestException('Token inválido o no verificado.');
     }
 
@@ -144,7 +167,9 @@ export class ForgotPasswordService {
       resetRecord.token_expires_at &&
       new Date() > new Date(resetRecord.token_expires_at)
     ) {
-      this.logger.warn(`Intento de cambio de contraseña falló: el token ha expirado para el correo: ${resetRecord.email}`);
+      this.logger.warn(
+        `Intento de cambio de contraseña falló: el token ha expirado para el correo: ${resetRecord.email}`,
+      );
       throw new BadRequestException('El token ha expirado.');
     }
 
@@ -152,7 +177,9 @@ export class ForgotPasswordService {
       where: { id: resetRecord.user_id },
     });
     if (!user) {
-      this.logger.warn(`Intento de cambio de contraseña falló: el usuario asociado al token no existe.`);
+      this.logger.warn(
+        `Intento de cambio de contraseña falló: el usuario asociado al token no existe.`,
+      );
       throw new BadRequestException('Usuario no válido.');
     }
 
@@ -160,7 +187,9 @@ export class ForgotPasswordService {
     user.password_hash = await bcrypt.hash(password, saltRounds);
 
     await this.userRepository.save(user);
-    this.logger.log(`Contraseña actualizada con éxito para el usuario ID: ${user.id} (${user.email}).`);
+    this.logger.log(
+      `Contraseña actualizada con éxito para el usuario ID: ${user.id} (${user.email}).`,
+    );
 
     await this.passwordResetRepository.delete({ id: resetRecord.id });
     this.logger.log(`Registro de recuperación eliminado tras uso exitoso.`);
@@ -168,4 +197,3 @@ export class ForgotPasswordService {
     return { success: true, message: 'Contraseña actualizada correctamente.' };
   }
 }
-

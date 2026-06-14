@@ -33,8 +33,9 @@ export class DevicesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.devicesService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const device = await this.devicesService.findOne(id);
+    return this.devicesService.enrichDeviceWithStatus(device);
   }
 
   @Post('shared/add')

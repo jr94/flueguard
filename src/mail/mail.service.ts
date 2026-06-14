@@ -9,10 +9,17 @@ export class MailService {
   constructor(private readonly configService: ConfigService) {}
 
   async sendForgotPasswordCode(email: string, code: string): Promise<void> {
-    const apiKey = this.configService.get<string>('BREVO_API_KEY') || this.configService.get<string>('BREVO_SMTP_PASS');
-    const senderEmail = this.configService.get<string>('BREVO_SENDER_EMAIL') || 'no-reply@flueguard.cl';
-    const senderName = this.configService.get<string>('BREVO_SENDER_NAME') || 'FlueGuard';
-    const resetPasswordUrl = this.configService.get<string>('FRONTEND_RESET_PASSWORD_URL') || 'https://flueguard.cl/reset-password';
+    const apiKey =
+      this.configService.get<string>('BREVO_API_KEY') ||
+      this.configService.get<string>('BREVO_SMTP_PASS');
+    const senderEmail =
+      this.configService.get<string>('BREVO_SENDER_EMAIL') ||
+      'no-reply@flueguard.cl';
+    const senderName =
+      this.configService.get<string>('BREVO_SENDER_NAME') || 'FlueGuard';
+    const resetPasswordUrl =
+      this.configService.get<string>('FRONTEND_RESET_PASSWORD_URL') ||
+      'https://flueguard.cl/reset-password';
     const link = `${resetPasswordUrl}?email=${encodeURIComponent(email)}&code=${code}`;
 
     this.logger.log(`Intentando enviar correo de recuperación a: ${email}`);
@@ -56,22 +63,37 @@ export class MailService {
           },
         },
       );
-      this.logger.log(`Correo enviado con éxito a ${email}. Respuesta de Brevo status: ${response.status}. Message ID: ${response.data?.messageId}`);
+      this.logger.log(
+        `Correo enviado con éxito a ${email}. Respuesta de Brevo status: ${response.status}. Message ID: ${response.data?.messageId}`,
+      );
     } catch (error) {
       const status = error.response?.status;
       const data = error.response?.data;
-      const message = data ? (typeof data === 'object' ? JSON.stringify(data) : data) : error.message;
-      this.logger.error(`Error de Brevo al enviar correo a ${email}. Status Code: ${status}. Detalle: ${message}`);
+      const message = data
+        ? typeof data === 'object'
+          ? JSON.stringify(data)
+          : data
+        : error.message;
+      this.logger.error(
+        `Error de Brevo al enviar correo a ${email}. Status Code: ${status}. Detalle: ${message}`,
+      );
       throw error;
     }
   }
 
   async sendAccountDeletionEmail(email: string, link: string): Promise<void> {
-    const apiKey = this.configService.get<string>('BREVO_API_KEY') || this.configService.get<string>('BREVO_SMTP_PASS');
-    const senderEmail = this.configService.get<string>('BREVO_SENDER_EMAIL') || 'no-reply@flueguard.cl';
-    const senderName = this.configService.get<string>('BREVO_SENDER_NAME') || 'FlueGuard';
+    const apiKey =
+      this.configService.get<string>('BREVO_API_KEY') ||
+      this.configService.get<string>('BREVO_SMTP_PASS');
+    const senderEmail =
+      this.configService.get<string>('BREVO_SENDER_EMAIL') ||
+      'no-reply@flueguard.cl';
+    const senderName =
+      this.configService.get<string>('BREVO_SENDER_NAME') || 'FlueGuard';
 
-    this.logger.log(`Intentando enviar correo de eliminación de cuenta a: ${email}`);
+    this.logger.log(
+      `Intentando enviar correo de eliminación de cuenta a: ${email}`,
+    );
 
     try {
       const response = await axios.post(
@@ -107,12 +129,20 @@ export class MailService {
           },
         },
       );
-      this.logger.log(`Correo de eliminación de cuenta enviado con éxito a ${email}. ID de mensaje: ${response.data?.messageId}`);
+      this.logger.log(
+        `Correo de eliminación de cuenta enviado con éxito a ${email}. ID de mensaje: ${response.data?.messageId}`,
+      );
     } catch (error) {
       const status = error.response?.status;
       const data = error.response?.data;
-      const message = data ? (typeof data === 'object' ? JSON.stringify(data) : data) : error.message;
-      this.logger.error(`Error de Brevo al enviar correo de eliminación de cuenta a ${email}. Status Code: ${status}. Detalle: ${message}`);
+      const message = data
+        ? typeof data === 'object'
+          ? JSON.stringify(data)
+          : data
+        : error.message;
+      this.logger.error(
+        `Error de Brevo al enviar correo de eliminación de cuenta a ${email}. Status Code: ${status}. Detalle: ${message}`,
+      );
       throw error;
     }
   }
@@ -126,11 +156,19 @@ export class MailService {
     message: string,
     environmentUrl: string,
   ): Promise<void> {
-    const apiKey = this.configService.get<string>('BREVO_API_KEY') || this.configService.get<string>('BREVO_SMTP_PASS');
-    const senderEmail = this.configService.get<string>('BREVO_SENDER_EMAIL') || 'no-reply@flueguard.cl';
-    const senderName = this.configService.get<string>('BREVO_SENDER_NAME') || 'FlueGuard Soporte';
+    const apiKey =
+      this.configService.get<string>('BREVO_API_KEY') ||
+      this.configService.get<string>('BREVO_SMTP_PASS');
+    const senderEmail =
+      this.configService.get<string>('BREVO_SENDER_EMAIL') ||
+      'no-reply@flueguard.cl';
+    const senderName =
+      this.configService.get<string>('BREVO_SENDER_NAME') ||
+      'FlueGuard Soporte';
 
-    this.logger.log(`Intentando enviar correo de soporte de: ${userEmail} (${firstName} ${lastName})`);
+    this.logger.log(
+      `Intentando enviar correo de soporte de: ${userEmail} (${firstName} ${lastName})`,
+    );
 
     try {
       const response = await axios.post(
@@ -228,12 +266,20 @@ export class MailService {
           },
         },
       );
-      this.logger.log(`Correo de soporte enviado con éxito. ID de mensaje: ${response.data?.messageId}`);
+      this.logger.log(
+        `Correo de soporte enviado con éxito. ID de mensaje: ${response.data?.messageId}`,
+      );
     } catch (error) {
       const status = error.response?.status;
       const data = error.response?.data;
-      const message = data ? (typeof data === 'object' ? JSON.stringify(data) : data) : error.message;
-      this.logger.error(`Error de Brevo al enviar correo de soporte. Status Code: ${status}. Detalle: ${message}`);
+      const message = data
+        ? typeof data === 'object'
+          ? JSON.stringify(data)
+          : data
+        : error.message;
+      this.logger.error(
+        `Error de Brevo al enviar correo de soporte. Status Code: ${status}. Detalle: ${message}`,
+      );
       throw error;
     }
   }

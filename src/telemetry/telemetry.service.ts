@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { calculatePredictiveCurveAlert } from './predictive-alert.utils';
+import { calculateDeviceOperationalStatus } from './device-status.utils';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { TemperatureLog } from './entities/temperature-log.entity';
@@ -563,6 +564,21 @@ export class TelemetryService {
         // keep default
       }
 
+      const now = new Date();
+      const lastTemp = lastLog ? Number(lastLog.temperature) : null;
+      const lastLogAt = lastLog ? lastLog.created_at : null;
+      const connection_state = calculateDeviceOperationalStatus({
+        lastTemperature: lastTemp,
+        lastLogAt,
+        now,
+      });
+
+      let minutes_since_last_log: number | null = null;
+      if (lastLogAt) {
+        const diffMs = now.getTime() - new Date(lastLogAt).getTime();
+        minutes_since_last_log = Math.max(0, Math.floor(diffMs / (60 * 1000)));
+      }
+
       results.push({
         device: {
           ...device,
@@ -571,9 +587,21 @@ export class TelemetryService {
           threshold_2,
           threshold_3,
           diffTemp,
+          connection_state,
+          minutes_since_last_log,
         },
         last_temperature: lastLog ? lastLog.temperature : null,
         last_log_time: lastLog ? lastLog.created_at : null,
+
+        // Compatibility flat aliases at root level
+        device_id: device.id,
+        serial_number: device.serial_number,
+        device_name: device.device_name,
+        temperature: lastLog ? Number(lastLog.temperature) : null,
+        last_log_at: lastLog ? lastLog.created_at : null,
+        status: device.status,
+        connection_state,
+        minutes_since_last_log,
       });
     }
 

@@ -15,6 +15,8 @@ import { ShareDeviceDto } from './dto/share-device.dto';
 import { UpdateShareDeviceDto } from './dto/update-share-device.dto';
 import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { calculateDeviceOperationalStatus } from '../telemetry/device-status.utils';
+import { TemperatureLog } from '../telemetry/entities/temperature-log.entity';
 
 @Injectable()
 export class DevicesService {
@@ -107,12 +109,95 @@ export class DevicesService {
       .orderBy('device.id', 'ASC')
       .getMany();
 
-    return devices.map((device) => {
-      return {
+    const deviceIds = devices.map((d) => d.id);
+    let lastLogs: TemperatureLog[] = [];
+    if (deviceIds.length > 0) {
+      lastLogs = await this.dataSource
+        .getRepository(TemperatureLog)
+        .createQueryBuilder('log')
+        .innerJoin(
+          (qb) =>
+            qb
+              .select('sub.device_id', 'device_id')
+              .addSelect('MAX(sub.id)', 'max_id')
+              .from(TemperatureLog, 'sub')
+              .where('sub.device_id IN (:...deviceIds)', { deviceIds })
+              .groupBy('sub.device_id'),
+          'grouped',
+          'log.id = grouped.max_id',
+        )
+        .getMany();
+    }
+
+    const logsMap = new Map<number, TemperatureLog>();
+    for (const log of lastLogs) {
+      logsMap.set(log.device_id, log);
+    }
+
+    const results: any[] = [];
+    const now = new Date();
+
+    for (const device of devices) {
+      const lastLog = logsMap.get(device.id) || null;
+      const lastTemp = lastLog ? Number(lastLog.temperature) : null;
+      const lastLogAt = lastLog ? lastLog.created_at : null;
+
+      const connection_state = calculateDeviceOperationalStatus({
+        lastTemperature: lastTemp,
+        lastLogAt,
+        now,
+      });
+
+      let minutes_since_last_log: number | null = null;
+      if (lastLogAt) {
+        const diffMs = now.getTime() - new Date(lastLogAt).getTime();
+        minutes_since_last_log = Math.max(0, Math.floor(diffMs / (60 * 1000)));
+      }
+
+      results.push({
         ...device,
         user_id: userId,
-      };
+        connection_state,
+        minutes_since_last_log,
+        last_temperature: lastTemp,
+        last_log_time: lastLogAt,
+      });
+    }
+
+    return results;
+  }
+
+  async enrichDeviceWithStatus(device: Device): Promise<any> {
+    const lastLog = await this.dataSource
+      .getRepository(TemperatureLog)
+      .findOne({
+        where: { device_id: device.id },
+        order: { created_at: 'DESC' },
+      });
+
+    const lastTemp = lastLog ? Number(lastLog.temperature) : null;
+    const lastLogAt = lastLog ? lastLog.created_at : null;
+    const now = new Date();
+
+    const connection_state = calculateDeviceOperationalStatus({
+      lastTemperature: lastTemp,
+      lastLogAt,
+      now,
     });
+
+    let minutes_since_last_log: number | null = null;
+    if (lastLogAt) {
+      const diffMs = now.getTime() - new Date(lastLogAt).getTime();
+      minutes_since_last_log = Math.max(0, Math.floor(diffMs / (60 * 1000)));
+    }
+
+    return {
+      ...device,
+      connection_state,
+      minutes_since_last_log,
+      last_temperature: lastTemp,
+      last_log_time: lastLogAt,
+    };
   }
 
   async findAll(): Promise<Device[]> {
