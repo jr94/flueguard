@@ -1,13 +1,21 @@
 {
   "latest": {
-    "version": "2.0.4",
-    "file": "https://flueguard.cl/firmware/flueguard_v2_0_4.bin",
+    "version": "2.0.5",
+    "file": "https://flueguard.cl/firmware/flueguard_v2_0_5.bin",
     "notes": "FIX: Light Wifi, connect BLE",
-    "date": "2026-06-03",
+    "date": "2026-06-14",
     "mandatory": false,
     "sha256": "FlueGuardUpdate2026V1"
   },
   "versions": [
+    {
+      "version": "2.0.5",
+      "file": "https://flueguard.cl/firmware/flueguard_v2_0_5.bin",
+      "notes": "FIX: Light Wifi, connect BLE",
+      "date": "2026-06-14",
+      "mandatory": false,
+      "sha256": "FlueGuardUpdate2026V1"
+    },
     {
       "version": "2.0.4",
       "file": "https://flueguard.cl/firmware/flueguard_v2_0_4.bin",
