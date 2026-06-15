@@ -60,25 +60,45 @@ export class DeviceSettingsService {
     const firmwareVersion = query?.firmware_version;
 
     const updatePayload: Partial<Device> = {};
-    if (model) {
-      updatePayload.model = model;
+
+    const normalizedModel =
+      typeof model === 'string' && model.trim().length > 0
+        ? model.trim()
+        : undefined;
+
+    const normalizedFirmwareVersion =
+      typeof firmwareVersion === 'string' && firmwareVersion.trim().length > 0
+        ? firmwareVersion.trim()
+        : undefined;
+
+    if (
+      normalizedModel !== undefined &&
+      device.model !== normalizedModel
+    ) {
+      updatePayload.model = normalizedModel;
     }
-    if (firmwareVersion) {
-      updatePayload.firmware_version = firmwareVersion;
+
+    if (
+      normalizedFirmwareVersion !== undefined &&
+      device.firmware_version !== normalizedFirmwareVersion
+    ) {
+      updatePayload.firmware_version = normalizedFirmwareVersion;
     }
+
     if (Object.keys(updatePayload).length > 0) {
       await this.devicesService.updateDevicePartial(device.id, updatePayload);
-      if (model) device.model = model;
-      if (firmwareVersion) device.firmware_version = firmwareVersion;
-    } else if (!device.model) {
-      await this.devicesService.updateDevicePartial(device.id, { model: 'FG-TE01' });
-      device.model = 'FG-TE01';
+
+      if (updatePayload.model !== undefined) {
+        device.model = updatePayload.model;
+      }
+
+      if (updatePayload.firmware_version !== undefined) {
+        device.firmware_version = updatePayload.firmware_version;
+      }
     }
 
-    const effectiveModel = device.model || 'FG-TE01';
-
     // Log settings request
-    console.log(`[SettingsRequest] Serial: ${serialNumber}, Model Recibido: ${model || 'N/A'}, Model Efectivo: ${effectiveModel}, Version Recibida: ${firmwareVersion || 'N/A'}, Version Actual: ${device.firmware_version || 'N/A'}`);
+    console.log(`[SettingsRequest] Serial: ${serialNumber}, Model Recibido: ${model || 'N/A'}, Model Efectivo: ${device.model || 'N/A'}, Version Recibida: ${firmwareVersion || 'N/A'}, Version Actual: ${device.firmware_version || 'N/A'}`);
 
     // 2. Find and return the settings
     const setting = await this.deviceSettingRepository.findOne({
@@ -115,7 +135,7 @@ export class DeviceSettingsService {
               requested: true,
               status: otaRequest.status,
               request_id: otaRequest.request_id,
-              model: effectiveModel,
+              model: device.model || null,
               version: otaRequest.target_version,
               file: otaRequest.file_url,
               sha256: otaRequest.sha256,

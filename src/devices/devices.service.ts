@@ -55,7 +55,7 @@ export class DevicesService {
           device_name,
           status: 'offline',
           firmware_version: FW_VERSION,
-          model: model || 'FG-TE01',
+          model: model || null,
         });
         device = await manager.save(Device, device);
         console.log(

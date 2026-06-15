@@ -45,25 +45,45 @@ export class TelemetryService {
     }
 
     const updatePayload: Partial<Device> = {};
-    if (model) {
-      updatePayload.model = model;
+
+    const normalizedModel =
+      typeof model === 'string' && model.trim().length > 0
+        ? model.trim()
+        : undefined;
+
+    const normalizedFirmwareVersion =
+      typeof firmware_version === 'string' && firmware_version.trim().length > 0
+        ? firmware_version.trim()
+        : undefined;
+
+    if (
+      normalizedModel !== undefined &&
+      device.model !== normalizedModel
+    ) {
+      updatePayload.model = normalizedModel;
     }
-    if (firmware_version) {
-      updatePayload.firmware_version = firmware_version;
+
+    if (
+      normalizedFirmwareVersion !== undefined &&
+      device.firmware_version !== normalizedFirmwareVersion
+    ) {
+      updatePayload.firmware_version = normalizedFirmwareVersion;
     }
+
     if (Object.keys(updatePayload).length > 0) {
       await this.devicesService.updateDevicePartial(device.id, updatePayload);
-      if (model) device.model = model;
-      if (firmware_version) device.firmware_version = firmware_version;
-    } else if (!device.model) {
-      await this.devicesService.updateDevicePartial(device.id, { model: 'FG-TE01' });
-      device.model = 'FG-TE01';
+
+      if (updatePayload.model !== undefined) {
+        device.model = updatePayload.model;
+      }
+
+      if (updatePayload.firmware_version !== undefined) {
+        device.firmware_version = updatePayload.firmware_version;
+      }
     }
 
-    const effectiveModel = device.model || 'FG-TE01';
-
     // Log telemetry processing
-    console.log(`[TelemetryReceived] Serial: ${serial_number}, Model Recibido: ${model || 'N/A'}, Model Efectivo: ${effectiveModel}, Version Recibida: ${firmware_version || 'N/A'}, Version Actual: ${device.firmware_version || 'N/A'}, Temp: ${temperature}`);
+    console.log(`[TelemetryReceived] Serial: ${serial_number}, Model Recibido: ${model || 'N/A'}, Model Efectivo: ${device.model || 'N/A'}, Version Recibida: ${firmware_version || 'N/A'}, Version Actual: ${device.firmware_version || 'N/A'}, Temp: ${temperature}`);
 
     // 2. Save register in temperature_logs
     const log = this.temperatureLogRepository.create({

@@ -111,7 +111,7 @@ export class DeviceFirmwareUpdatesService {
           device_id: device.id,
           request_id,
           target_version: targetFirmware.version,
-          model: device.model || 'FG-TE01',
+          model: device.model || null,
           file_url: targetFirmware.file,
           sha256: targetFirmware.sha256 || '',
           size_bytes: targetFirmware.size_bytes || 0,
@@ -200,7 +200,7 @@ export class DeviceFirmwareUpdatesService {
           device_id: device.id,
           request_id,
           target_version: targetFirmware.version,
-          model: device.model || 'FG-TE01',
+          model: device.model || null,
           file_url: targetFirmware.file,
           sha256: targetFirmware.sha256 || '',
           size_bytes: targetFirmware.size_bytes || 0,
@@ -233,16 +233,41 @@ export class DeviceFirmwareUpdatesService {
 
     // Update model and/or firmware_version if provided
     const updatePayload: Partial<Device> = {};
-    if (dto.model) {
-      updatePayload.model = dto.model;
+
+    const normalizedModel =
+      typeof dto.model === 'string' && dto.model.trim().length > 0
+        ? dto.model.trim()
+        : undefined;
+
+    const normalizedFirmwareVersion =
+      typeof dto.firmware_version === 'string' && dto.firmware_version.trim().length > 0
+        ? dto.firmware_version.trim()
+        : undefined;
+
+    if (
+      normalizedModel !== undefined &&
+      device.model !== normalizedModel
+    ) {
+      updatePayload.model = normalizedModel;
     }
-    if (dto.firmware_version) {
-      updatePayload.firmware_version = dto.firmware_version;
+
+    if (
+      normalizedFirmwareVersion !== undefined &&
+      device.firmware_version !== normalizedFirmwareVersion
+    ) {
+      updatePayload.firmware_version = normalizedFirmwareVersion;
     }
+
     if (Object.keys(updatePayload).length > 0) {
       await this.devicesService.updateDevicePartial(device.id, updatePayload);
-      if (dto.model) device.model = dto.model;
-      if (dto.firmware_version) device.firmware_version = dto.firmware_version;
+
+      if (updatePayload.model !== undefined) {
+        device.model = updatePayload.model;
+      }
+
+      if (updatePayload.firmware_version !== undefined) {
+        device.firmware_version = updatePayload.firmware_version;
+      }
     }
 
     const update = await this.updatesRepository.findOne({
@@ -253,13 +278,11 @@ export class DeviceFirmwareUpdatesService {
       throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
     }
 
-    const effectiveModel = device.model || 'FG-TE01';
-
     // Log the event
     console.log(
       `[OTA Report] Serial: ${dto.serial_number}, Model Recibido: ${
         dto.model || 'N/A'
-      }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+      }, Model Efectivo: ${device.model || 'N/A'}, Version Recibida: ${
         dto.firmware_version || 'N/A'
       }, Version Actual: ${device.firmware_version || 'N/A'}, Version Objetivo: ${
         update.target_version
@@ -305,16 +328,41 @@ export class DeviceFirmwareUpdatesService {
 
     // Update model and/or firmware_version if provided
     const updatePayload: Partial<Device> = {};
-    if (dto.model) {
-      updatePayload.model = dto.model;
+
+    const normalizedModel =
+      typeof dto.model === 'string' && dto.model.trim().length > 0
+        ? dto.model.trim()
+        : undefined;
+
+    const normalizedFirmwareVersion =
+      typeof dto.firmware_version === 'string' && dto.firmware_version.trim().length > 0
+        ? dto.firmware_version.trim()
+        : undefined;
+
+    if (
+      normalizedModel !== undefined &&
+      device.model !== normalizedModel
+    ) {
+      updatePayload.model = normalizedModel;
     }
-    if (dto.firmware_version) {
-      updatePayload.firmware_version = dto.firmware_version;
+
+    if (
+      normalizedFirmwareVersion !== undefined &&
+      device.firmware_version !== normalizedFirmwareVersion
+    ) {
+      updatePayload.firmware_version = normalizedFirmwareVersion;
     }
+
     if (Object.keys(updatePayload).length > 0) {
       await this.devicesService.updateDevicePartial(device.id, updatePayload);
-      if (dto.model) device.model = dto.model;
-      if (dto.firmware_version) device.firmware_version = dto.firmware_version;
+
+      if (updatePayload.model !== undefined) {
+        device.model = updatePayload.model;
+      }
+
+      if (updatePayload.firmware_version !== undefined) {
+        device.firmware_version = updatePayload.firmware_version;
+      }
     }
 
     const update = await this.updatesRepository.findOne({
@@ -325,13 +373,11 @@ export class DeviceFirmwareUpdatesService {
       throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
     }
 
-    const effectiveModel = device.model || 'FG-TE01';
-
     // Log the event
     console.log(
       `[OTA Report] Serial: ${dto.serial_number}, Model Recibido: ${
         dto.model || 'N/A'
-      }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+      }, Model Efectivo: ${device.model || 'N/A'}, Version Recibida: ${
         dto.firmware_version || 'N/A'
       }, Version Actual: ${device.firmware_version || 'N/A'}, Version Objetivo: ${
         update.target_version
@@ -413,16 +459,41 @@ export class DeviceFirmwareUpdatesService {
 
     // Update model and/or firmware_version if provided
     const updatePayload: Partial<Device> = {};
-    if (dto.model) {
-      updatePayload.model = dto.model;
+
+    const normalizedModel =
+      typeof dto.model === 'string' && dto.model.trim().length > 0
+        ? dto.model.trim()
+        : undefined;
+
+    const normalizedFirmwareVersion =
+      typeof dto.firmware_version === 'string' && dto.firmware_version.trim().length > 0
+        ? dto.firmware_version.trim()
+        : undefined;
+
+    if (
+      normalizedModel !== undefined &&
+      device.model !== normalizedModel
+    ) {
+      updatePayload.model = normalizedModel;
     }
-    if (dto.firmware_version) {
-      updatePayload.firmware_version = dto.firmware_version;
+
+    if (
+      normalizedFirmwareVersion !== undefined &&
+      device.firmware_version !== normalizedFirmwareVersion
+    ) {
+      updatePayload.firmware_version = normalizedFirmwareVersion;
     }
+
     if (Object.keys(updatePayload).length > 0) {
       await this.devicesService.updateDevicePartial(device.id, updatePayload);
-      if (dto.model) device.model = dto.model;
-      if (dto.firmware_version) device.firmware_version = dto.firmware_version;
+
+      if (updatePayload.model !== undefined) {
+        device.model = updatePayload.model;
+      }
+
+      if (updatePayload.firmware_version !== undefined) {
+        device.firmware_version = updatePayload.firmware_version;
+      }
     }
 
     const update = await this.updatesRepository.findOne({
@@ -433,13 +504,11 @@ export class DeviceFirmwareUpdatesService {
       throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
     }
 
-    const effectiveModel = device.model || 'FG-TE01';
-
     // Log the event
     console.log(
       `[OTA Report] Serial: ${dto.serial_number}, Model Recibido: ${
         dto.model || 'N/A'
-      }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+      }, Model Efectivo: ${device.model || 'N/A'}, Version Recibida: ${
         dto.firmware_version || 'N/A'
       }, Version Actual: ${device.firmware_version || 'N/A'}, Version Objetivo: ${
         update.target_version

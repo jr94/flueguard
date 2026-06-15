@@ -206,18 +206,20 @@ export class FirmwareService {
         effectiveModel = device.model;
       }
     }
-    if (!effectiveModel) {
-      effectiveModel = 'FG-TE01';
-    }
 
     const versions = await this.getVersions();
-    const modelVersions = versions.filter((v) => (v.model || 'FG-TE01') === effectiveModel);
+    const modelVersions = versions.filter((v) => {
+      if (!effectiveModel) {
+        return !v.model;
+      }
+      return v.model === effectiveModel;
+    });
 
     if (modelVersions.length === 0) {
       console.log(
         `[FirmwareCheck] Serial: ${query.serial_number || 'N/A'}, Model Recibido: ${
           query.model || 'N/A'
-        }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+        }, Model Efectivo: ${effectiveModel || 'N/A'}, Version Recibida: ${
           query.version
         }, No compatible versions found`,
       );
@@ -241,7 +243,7 @@ export class FirmwareService {
     console.log(
       `[FirmwareCheck] Serial: ${query.serial_number || 'N/A'}, Model Recibido: ${
         query.model || 'N/A'
-      }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+      }, Model Efectivo: ${effectiveModel || 'N/A'}, Version Recibida: ${
         query.version
       }, Version Objetivo: ${latestForModel.version}, Update: ${cmp > 0}`,
     );
@@ -280,7 +282,7 @@ export class FirmwareService {
     return this.checkUpdate({
       version: currentVersion,
       serial_number: serialNumber,
-      model: device.model || 'FG-TE01',
+      model: device.model || undefined,
     });
   }
 }

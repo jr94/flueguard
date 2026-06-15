@@ -101,12 +101,12 @@ describe('FirmwareService (OTA model filtering)', () => {
       expect(result.update).toBe(false);
     });
 
-    it('should fallback to FG-TE01 if no model is provided', async () => {
+    it('should match versions without model if no model is provided', async () => {
       const result = await service.checkUpdate({
-        version: '2.0.5',
+        version: '2.0.4',
       });
       expect(result.update).toBe(true);
-      expect(result.latest_version).toBe('2.0.6'); // Should get FG-TE01's latest, which is 2.0.6
+      expect(result.latest_version).toBe('2.0.5'); // Matches 2.0.5 which has no model
     });
 
     it('should determine the model from serial number if model is not provided but serial is', async () => {

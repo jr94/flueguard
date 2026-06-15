@@ -74,15 +74,15 @@ describe('DeviceFirmwareUpdatesService', () => {
       const dto = {
         serial_number: 'FG-TE01-1234',
         request_id: 'ota_test_123',
-        model: 'FG-TE01',
-        firmware_version: '2.0.5',
+        model: 'FG-NEW-MODEL',
+        firmware_version: '2.0.6',
       };
 
       const result = await service.startOta(dto);
       expect(result.success).toBe(true);
       expect(devicesService.updateDevicePartial).toHaveBeenCalledWith(mockDevice.id, {
-        model: 'FG-TE01',
-        firmware_version: '2.0.5',
+        model: 'FG-NEW-MODEL',
+        firmware_version: '2.0.6',
       });
       expect(updatesRepository.update).toHaveBeenCalled();
     });

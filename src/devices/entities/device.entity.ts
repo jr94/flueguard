@@ -28,7 +28,7 @@ export class Device {
   @Column({ type: 'varchar', length: 50, nullable: true })
   firmware_version: string | null;
 
-  @Column({ type: 'varchar', length: 50, nullable: true, default: 'FG-TE01' })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   model: string | null;
 
   @Column({ type: 'int', nullable: true })
