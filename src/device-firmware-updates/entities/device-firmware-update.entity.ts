@@ -20,6 +20,9 @@ export class DeviceFirmwareUpdate {
   @Column({ type: 'varchar', length: 50 })
   target_version: string;
 
+  @Column({ type: 'varchar', length: 30, nullable: true, default: 'FG-TE01' })
+  model: string | null;
+
   @Column({ type: 'varchar', length: 255 })
   file_url: string;
 

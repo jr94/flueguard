@@ -14,6 +14,7 @@ import { DeviceFirmwareUpdatesService } from '../device-firmware-updates/device-
 import { Device } from '../devices/entities/device.entity';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { compareVersion } from '../firmware/utils/compare-version.util';
+import { GetDeviceSettingsQueryDto } from './dto/get-device-settings-query.dto';
 
 @Injectable()
 export class DeviceSettingsService {
@@ -46,7 +47,7 @@ export class DeviceSettingsService {
     };
   }
 
-  async findBySerialNumber(serialNumber: string): Promise<any> {
+  async findBySerialNumber(serialNumber: string, query?: GetDeviceSettingsQueryDto): Promise<any> {
     // 1. Find device by serial number
     const device = await this.devicesService.findBySerialNumber(serialNumber);
     if (!device) {
@@ -54,6 +55,30 @@ export class DeviceSettingsService {
         `Device with serial number ${serialNumber} not found`,
       );
     }
+
+    const model = query?.model;
+    const firmwareVersion = query?.firmware_version;
+
+    const updatePayload: Partial<Device> = {};
+    if (model) {
+      updatePayload.model = model;
+    }
+    if (firmwareVersion) {
+      updatePayload.firmware_version = firmwareVersion;
+    }
+    if (Object.keys(updatePayload).length > 0) {
+      await this.devicesService.updateDevicePartial(device.id, updatePayload);
+      if (model) device.model = model;
+      if (firmwareVersion) device.firmware_version = firmwareVersion;
+    } else if (!device.model) {
+      await this.devicesService.updateDevicePartial(device.id, { model: 'FG-TE01' });
+      device.model = 'FG-TE01';
+    }
+
+    const effectiveModel = device.model || 'FG-TE01';
+
+    // Log settings request
+    console.log(`[SettingsRequest] Serial: ${serialNumber}, Model Recibido: ${model || 'N/A'}, Model Efectivo: ${effectiveModel}, Version Recibida: ${firmwareVersion || 'N/A'}, Version Actual: ${device.firmware_version || 'N/A'}`);
 
     // 2. Find and return the settings
     const setting = await this.deviceSettingRepository.findOne({
@@ -90,6 +115,7 @@ export class DeviceSettingsService {
               requested: true,
               status: otaRequest.status,
               request_id: otaRequest.request_id,
+              model: effectiveModel,
               version: otaRequest.target_version,
               file: otaRequest.file_url,
               sha256: otaRequest.sha256,

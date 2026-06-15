@@ -12,4 +12,8 @@ export class CompleteOtaDto {
   @IsString()
   @IsOptional()
   firmware_version?: string;
+
+  @IsString()
+  @IsOptional()
+  model?: string;
 }

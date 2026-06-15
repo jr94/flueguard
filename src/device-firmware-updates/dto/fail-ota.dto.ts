@@ -16,4 +16,8 @@ export class FailOtaDto {
   @IsString()
   @IsOptional()
   firmware_version?: string;
+
+  @IsString()
+  @IsOptional()
+  model?: string;
 }

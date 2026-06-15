@@ -16,4 +16,8 @@ export class CreateDeviceDto {
   @IsString()
   @IsOptional()
   FW_VERSION?: string;
+
+  @IsString()
+  @IsOptional()
+  model?: string;
 }

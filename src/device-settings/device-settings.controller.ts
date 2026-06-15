@@ -7,9 +7,11 @@ import {
   ParseIntPipe,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { DeviceSettingsService } from './device-settings.service';
 import { UpdateDeviceSettingDto } from './dto/update-device-setting.dto';
+import { GetDeviceSettingsQueryDto } from './dto/get-device-settings-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeviceStaticTokenGuard } from '../auth/guards/device-static-token.guard';
 
@@ -25,8 +27,11 @@ export class DeviceSettingsController {
 
   @UseGuards(DeviceStaticTokenGuard)
   @Get('serial/:serialNumber')
-  findBySerialNumber(@Param('serialNumber') serialNumber: string) {
-    return this.deviceSettingsService.findBySerialNumber(serialNumber);
+  findBySerialNumber(
+    @Param('serialNumber') serialNumber: string,
+    @Query() query: GetDeviceSettingsQueryDto,
+  ) {
+    return this.deviceSettingsService.findBySerialNumber(serialNumber, query);
   }
 
   @UseGuards(JwtAuthGuard)

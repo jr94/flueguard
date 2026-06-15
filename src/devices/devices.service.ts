@@ -34,7 +34,7 @@ export class DevicesService {
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
-    const { serial_number, user_id, device_name, FW_VERSION } = createDeviceDto;
+    const { serial_number, user_id, device_name, FW_VERSION, model } = createDeviceDto;
 
     return await this.dataSource.transaction(async (manager) => {
       // 1. Buscar o crear el dispositivo
@@ -45,6 +45,9 @@ export class DevicesService {
         if (FW_VERSION) {
           device.firmware_version = FW_VERSION;
         }
+        if (model) {
+          device.model = model;
+        }
         device = await manager.save(Device, device);
       } else {
         device = manager.create(Device, {
@@ -52,6 +55,7 @@ export class DevicesService {
           device_name,
           status: 'offline',
           firmware_version: FW_VERSION,
+          model: model || 'FG-TE01',
         });
         device = await manager.save(Device, device);
         console.log(

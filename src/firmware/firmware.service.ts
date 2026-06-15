@@ -21,6 +21,7 @@ export interface FirmwareVersion {
   mandatory?: boolean;
   sha256?: string;
   size_bytes?: number;
+  model?: string;
 }
 
 export interface FirmwareManifest {
@@ -198,32 +199,71 @@ export class FirmwareService {
   }
 
   async checkUpdate(query: CheckFirmwareDto): Promise<any> {
-    const data = await this.readLatestJson();
-    const latest = data.latest;
+    let effectiveModel = query.model;
+    if (!effectiveModel && query.serial_number) {
+      const device = await this.devicesService.findBySerialNumber(query.serial_number);
+      if (device && device.model) {
+        effectiveModel = device.model;
+      }
+    }
+    if (!effectiveModel) {
+      effectiveModel = 'FG-TE01';
+    }
 
-    const cmp = compareVersion(latest.version, query.version);
+    const versions = await this.getVersions();
+    const modelVersions = versions.filter((v) => (v.model || 'FG-TE01') === effectiveModel);
+
+    if (modelVersions.length === 0) {
+      console.log(
+        `[FirmwareCheck] Serial: ${query.serial_number || 'N/A'}, Model Recibido: ${
+          query.model || 'N/A'
+        }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+          query.version
+        }, No compatible versions found`,
+      );
+      return {
+        update: false,
+        current_version: query.version,
+        latest_version: '0.0.0',
+        mandatory: false,
+      };
+    }
+
+    let latestForModel = modelVersions[0];
+    for (let i = 1; i < modelVersions.length; i++) {
+      if (compareVersion(modelVersions[i].version, latestForModel.version) > 0) {
+        latestForModel = modelVersions[i];
+      }
+    }
+
+    const cmp = compareVersion(latestForModel.version, query.version);
+
+    console.log(
+      `[FirmwareCheck] Serial: ${query.serial_number || 'N/A'}, Model Recibido: ${
+        query.model || 'N/A'
+      }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+        query.version
+      }, Version Objetivo: ${latestForModel.version}, Update: ${cmp > 0}`,
+    );
 
     if (cmp > 0) {
-      // Validar física y metadata si hay update ANTES de contestarle true al frontend
-      const enrichedLatest = await this.enrichFirmwareMetadata(latest);
-
       return {
         update: true,
         current_version: query.version,
-        latest_version: enrichedLatest.version,
-        mandatory: enrichedLatest.mandatory || false,
-        notes: enrichedLatest.notes || '',
-        date: enrichedLatest.date || '',
-        file: enrichedLatest.file,
-        size_bytes: enrichedLatest.size_bytes, // <- Agregado automáticamente
-        sha256: enrichedLatest.sha256, // <- Validado/Calculado automáticamente
+        latest_version: latestForModel.version,
+        mandatory: latestForModel.mandatory || false,
+        notes: latestForModel.notes || '',
+        date: latestForModel.date || '',
+        file: latestForModel.file,
+        size_bytes: latestForModel.size_bytes,
+        sha256: latestForModel.sha256,
       };
     } else {
       return {
         update: false,
         current_version: query.version,
-        latest_version: latest.version,
-        mandatory: latest.mandatory || false,
+        latest_version: latestForModel.version,
+        mandatory: latestForModel.mandatory || false,
       };
     }
   }
@@ -237,6 +277,10 @@ export class FirmwareService {
     }
 
     const currentVersion = device.firmware_version || '0.0.0';
-    return this.checkUpdate({ version: currentVersion });
+    return this.checkUpdate({
+      version: currentVersion,
+      serial_number: serialNumber,
+      model: device.model || 'FG-TE01',
+    });
   }
 }

@@ -34,7 +34,7 @@ export class TelemetryService {
   ) {}
 
   async processTelemetry(createTelemetryDto: CreateTelemetryDto) {
-    const { serial_number, temperature } = createTelemetryDto;
+    const { serial_number, temperature, model, firmware_version } = createTelemetryDto;
 
     // 1. Find device by serial number
     const device = await this.devicesService.findBySerialNumber(serial_number);
@@ -43,6 +43,27 @@ export class TelemetryService {
         `Device with serial number ${serial_number} not found`,
       );
     }
+
+    const updatePayload: Partial<Device> = {};
+    if (model) {
+      updatePayload.model = model;
+    }
+    if (firmware_version) {
+      updatePayload.firmware_version = firmware_version;
+    }
+    if (Object.keys(updatePayload).length > 0) {
+      await this.devicesService.updateDevicePartial(device.id, updatePayload);
+      if (model) device.model = model;
+      if (firmware_version) device.firmware_version = firmware_version;
+    } else if (!device.model) {
+      await this.devicesService.updateDevicePartial(device.id, { model: 'FG-TE01' });
+      device.model = 'FG-TE01';
+    }
+
+    const effectiveModel = device.model || 'FG-TE01';
+
+    // Log telemetry processing
+    console.log(`[TelemetryReceived] Serial: ${serial_number}, Model Recibido: ${model || 'N/A'}, Model Efectivo: ${effectiveModel}, Version Recibida: ${firmware_version || 'N/A'}, Version Actual: ${device.firmware_version || 'N/A'}, Temp: ${temperature}`);
 
     // 2. Save register in temperature_logs
     const log = this.temperatureLogRepository.create({

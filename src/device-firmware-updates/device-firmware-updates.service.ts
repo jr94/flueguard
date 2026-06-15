@@ -14,6 +14,7 @@ import { CompleteOtaDto } from './dto/complete-ota.dto';
 import { FailOtaDto } from './dto/fail-ota.dto';
 import { CancelOtaDto } from './dto/cancel-ota.dto';
 import { DevicesService } from '../devices/devices.service';
+import { Device } from '../devices/entities/device.entity';
 import { FirmwareService } from '../firmware/firmware.service';
 import { compareVersion } from '../firmware/utils/compare-version.util';
 import * as crypto from 'crypto';
@@ -110,6 +111,7 @@ export class DeviceFirmwareUpdatesService {
           device_id: device.id,
           request_id,
           target_version: targetFirmware.version,
+          model: device.model || 'FG-TE01',
           file_url: targetFirmware.file,
           sha256: targetFirmware.sha256 || '',
           size_bytes: targetFirmware.size_bytes || 0,
@@ -198,6 +200,7 @@ export class DeviceFirmwareUpdatesService {
           device_id: device.id,
           request_id,
           target_version: targetFirmware.version,
+          model: device.model || 'FG-TE01',
           file_url: targetFirmware.file,
           sha256: targetFirmware.sha256 || '',
           size_bytes: targetFirmware.size_bytes || 0,
@@ -223,13 +226,23 @@ export class DeviceFirmwareUpdatesService {
   }
 
   async startOta(dto: StartOtaDto) {
-    const device = await this.devicesService.findBySerialNumber(
-      dto.serial_number,
-    );
+    const device = await this.devicesService.findBySerialNumber(dto.serial_number);
     if (!device) {
-      throw new NotFoundException(
-        `Device with serial number ${dto.serial_number} not found`,
-      );
+      throw new NotFoundException(`Device with serial number ${dto.serial_number} not found`);
+    }
+
+    // Update model and/or firmware_version if provided
+    const updatePayload: Partial<Device> = {};
+    if (dto.model) {
+      updatePayload.model = dto.model;
+    }
+    if (dto.firmware_version) {
+      updatePayload.firmware_version = dto.firmware_version;
+    }
+    if (Object.keys(updatePayload).length > 0) {
+      await this.devicesService.updateDevicePartial(device.id, updatePayload);
+      if (dto.model) device.model = dto.model;
+      if (dto.firmware_version) device.firmware_version = dto.firmware_version;
     }
 
     const update = await this.updatesRepository.findOne({
@@ -237,13 +250,31 @@ export class DeviceFirmwareUpdatesService {
     });
 
     if (!update) {
-      throw new NotFoundException(
-        `OTA request ${dto.request_id} not found for this device`,
-      );
+      throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
     }
+
+    const effectiveModel = device.model || 'FG-TE01';
+
+    // Log the event
+    console.log(
+      `[OTA Report] Serial: ${dto.serial_number}, Model Recibido: ${
+        dto.model || 'N/A'
+      }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+        dto.firmware_version || 'N/A'
+      }, Version Actual: ${device.firmware_version || 'N/A'}, Version Objetivo: ${
+        update.target_version
+      }, RequestId: ${dto.request_id}, Estado Reportado: start (OTA status in DB: ${update.status})`,
+    );
 
     if (update.status === 'in_progress') {
       return { success: true, message: 'OTA ya estaba en curso' };
+    }
+
+    if (update.status === 'completed' || update.status === 'failed' || update.status === 'canceled') {
+      return {
+        success: true,
+        message: `OTA ya estaba finalizada en estado ${update.status}`,
+      };
     }
 
     if (!this.canTransition(update.status, 'in_progress')) {
@@ -267,13 +298,23 @@ export class DeviceFirmwareUpdatesService {
   }
 
   async completeOta(dto: CompleteOtaDto) {
-    const device = await this.devicesService.findBySerialNumber(
-      dto.serial_number,
-    );
+    const device = await this.devicesService.findBySerialNumber(dto.serial_number);
     if (!device) {
-      throw new NotFoundException(
-        `Device with serial number ${dto.serial_number} not found`,
-      );
+      throw new NotFoundException(`Device with serial number ${dto.serial_number} not found`);
+    }
+
+    // Update model and/or firmware_version if provided
+    const updatePayload: Partial<Device> = {};
+    if (dto.model) {
+      updatePayload.model = dto.model;
+    }
+    if (dto.firmware_version) {
+      updatePayload.firmware_version = dto.firmware_version;
+    }
+    if (Object.keys(updatePayload).length > 0) {
+      await this.devicesService.updateDevicePartial(device.id, updatePayload);
+      if (dto.model) device.model = dto.model;
+      if (dto.firmware_version) device.firmware_version = dto.firmware_version;
     }
 
     const update = await this.updatesRepository.findOne({
@@ -281,13 +322,31 @@ export class DeviceFirmwareUpdatesService {
     });
 
     if (!update) {
-      throw new NotFoundException(
-        `OTA request ${dto.request_id} not found for this device`,
-      );
+      throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
     }
+
+    const effectiveModel = device.model || 'FG-TE01';
+
+    // Log the event
+    console.log(
+      `[OTA Report] Serial: ${dto.serial_number}, Model Recibido: ${
+        dto.model || 'N/A'
+      }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+        dto.firmware_version || 'N/A'
+      }, Version Actual: ${device.firmware_version || 'N/A'}, Version Objetivo: ${
+        update.target_version
+      }, RequestId: ${dto.request_id}, Estado Reportado: complete (OTA status in DB: ${update.status})`,
+    );
 
     if (update.status === 'completed') {
       return { success: true, message: 'OTA ya estaba completada' };
+    }
+
+    if (update.status === 'failed' || update.status === 'canceled') {
+      return {
+        success: true,
+        message: `OTA ya estaba finalizada en estado ${update.status}`,
+      };
     }
 
     if (!this.canTransition(update.status, 'completed')) {
@@ -309,11 +368,15 @@ export class DeviceFirmwareUpdatesService {
             `Conflicto de concurrencia: la OTA ya no está en el estado esperado.`,
           );
         }
-        // Use raw query to ensure we use the same transaction connection
-        await em.query('UPDATE devices SET firmware_version = ? WHERE id = ?', [
-          update.target_version,
-          device.id,
-        ]);
+
+        const deviceUpdatePayload: any = {
+          firmware_version: dto.firmware_version || update.target_version,
+        };
+        if (dto.model) {
+          deviceUpdatePayload.model = dto.model;
+        }
+
+        await em.update(Device, device.id, deviceUpdatePayload);
       });
     } catch (error: any) {
       if (error instanceof ConflictException) {
@@ -326,10 +389,13 @@ export class DeviceFirmwareUpdatesService {
           { status: 'completed' },
         );
         if (result.affected && result.affected > 0) {
-          await this.devicesService.updateFirmwareVersion(
-            device.id,
-            update.target_version,
-          );
+          const deviceUpdatePayload: any = {
+            firmware_version: dto.firmware_version || update.target_version,
+          };
+          if (dto.model) {
+            deviceUpdatePayload.model = dto.model;
+          }
+          await this.devicesService.updateDevicePartial(device.id, deviceUpdatePayload);
         }
       } else {
         throw error;
@@ -340,13 +406,23 @@ export class DeviceFirmwareUpdatesService {
   }
 
   async failOta(dto: FailOtaDto) {
-    const device = await this.devicesService.findBySerialNumber(
-      dto.serial_number,
-    );
+    const device = await this.devicesService.findBySerialNumber(dto.serial_number);
     if (!device) {
-      throw new NotFoundException(
-        `Device with serial number ${dto.serial_number} not found`,
-      );
+      throw new NotFoundException(`Device with serial number ${dto.serial_number} not found`);
+    }
+
+    // Update model and/or firmware_version if provided
+    const updatePayload: Partial<Device> = {};
+    if (dto.model) {
+      updatePayload.model = dto.model;
+    }
+    if (dto.firmware_version) {
+      updatePayload.firmware_version = dto.firmware_version;
+    }
+    if (Object.keys(updatePayload).length > 0) {
+      await this.devicesService.updateDevicePartial(device.id, updatePayload);
+      if (dto.model) device.model = dto.model;
+      if (dto.firmware_version) device.firmware_version = dto.firmware_version;
     }
 
     const update = await this.updatesRepository.findOne({
@@ -354,13 +430,31 @@ export class DeviceFirmwareUpdatesService {
     });
 
     if (!update) {
-      throw new NotFoundException(
-        `OTA request ${dto.request_id} not found for this device`,
-      );
+      throw new NotFoundException(`OTA request ${dto.request_id} not found for this device`);
     }
 
-    if (update.status === 'failed' || update.status === 'canceled') {
-      return { success: true, message: 'OTA ya estaba fallida o cancelada' };
+    const effectiveModel = device.model || 'FG-TE01';
+
+    // Log the event
+    console.log(
+      `[OTA Report] Serial: ${dto.serial_number}, Model Recibido: ${
+        dto.model || 'N/A'
+      }, Model Efectivo: ${effectiveModel}, Version Recibida: ${
+        dto.firmware_version || 'N/A'
+      }, Version Actual: ${device.firmware_version || 'N/A'}, Version Objetivo: ${
+        update.target_version
+      }, RequestId: ${dto.request_id}, Estado Reportado: fail (OTA status in DB: ${update.status})`,
+    );
+
+    if (update.status === 'failed') {
+      return { success: true, message: 'OTA ya estaba fallida' };
+    }
+
+    if (update.status === 'completed' || update.status === 'canceled') {
+      return {
+        success: true,
+        message: `OTA ya estaba finalizada en estado ${update.status}`,
+      };
     }
 
     if (!this.canTransition(update.status, 'failed')) {

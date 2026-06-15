@@ -11,4 +11,12 @@ export class CreateTelemetryDto {
 
   @IsOptional()
   alert_level?: string | number;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
+
+  @IsOptional()
+  @IsString()
+  firmware_version?: string;
 }
