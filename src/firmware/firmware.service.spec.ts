@@ -53,6 +53,12 @@ describe('FirmwareService (OTA model filtering)', () => {
       findBySerialNumber: jest.fn().mockImplementation(async (serial) => {
         if (serial === 'FG-TE01-1234') return mockDeviceTe;
         if (serial === 'FG-TB01-5678') return mockDeviceTb;
+        if (serial === 'FG-NULL-9999') return {
+          id: 3,
+          serial_number: 'FG-NULL-9999',
+          model: null,
+          firmware_version: '2.0.5',
+        };
         return null;
       }),
     };
@@ -130,6 +136,21 @@ describe('FirmwareService (OTA model filtering)', () => {
       await expect(service.checkUpdateBySerialNumber('UNKNOWN')).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('Caso 1: should return device_model: "FG-TE01" if device model is "FG-TE01"', async () => {
+      const result = await service.checkUpdateBySerialNumber('FG-TE01-1234');
+      expect(result.device_model).toBe('FG-TE01');
+    });
+
+    it('Caso 2: should return device_model: null if device model is null', async () => {
+      const result = await service.checkUpdateBySerialNumber('FG-NULL-9999');
+      expect(result.device_model).toBeNull();
+    });
+
+    it('Caso 3: should return device_model: null even if latest.json has target model "FG-TE01" but device.model is null', async () => {
+      const result = await service.checkUpdateBySerialNumber('FG-NULL-9999');
+      expect(result.device_model).toBeNull();
     });
   });
 });

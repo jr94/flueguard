@@ -200,8 +200,9 @@ export class FirmwareService {
 
   async checkUpdate(query: CheckFirmwareDto): Promise<any> {
     let effectiveModel = query.model;
-    if (!effectiveModel && query.serial_number) {
-      const device = await this.devicesService.findBySerialNumber(query.serial_number);
+    let device: any = null;
+    if (query.serial_number) {
+      device = await this.devicesService.findBySerialNumber(query.serial_number);
       if (device && device.model) {
         effectiveModel = device.model;
       }
@@ -214,6 +215,8 @@ export class FirmwareService {
       }
       return v.model === effectiveModel;
     });
+
+    const resolvedDeviceModel = device ? (device.model ?? null) : (query.model ?? null);
 
     if (modelVersions.length === 0) {
       console.log(
@@ -228,6 +231,7 @@ export class FirmwareService {
         current_version: query.version,
         latest_version: '0.0.0',
         mandatory: false,
+        device_model: resolvedDeviceModel,
       };
     }
 
@@ -259,6 +263,7 @@ export class FirmwareService {
         file: latestForModel.file,
         size_bytes: latestForModel.size_bytes,
         sha256: latestForModel.sha256,
+        device_model: resolvedDeviceModel,
       };
     } else {
       return {
@@ -266,6 +271,7 @@ export class FirmwareService {
         current_version: query.version,
         latest_version: latestForModel.version,
         mandatory: latestForModel.mandatory || false,
+        device_model: resolvedDeviceModel,
       };
     }
   }
