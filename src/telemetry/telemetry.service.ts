@@ -16,6 +16,7 @@ import { AlertsService } from '../alerts/alerts.service';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { MetricsService } from '../metrics/metrics.service';
+import { Device } from '../devices/entities/device.entity';
 
 @Injectable()
 export class TelemetryService {

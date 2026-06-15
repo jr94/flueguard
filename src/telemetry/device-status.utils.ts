@@ -33,7 +33,7 @@ export function calculateDeviceOperationalStatus(params: {
     return 'disconnected';
   }
 
-  if (temp < 30) {
+  if (temp <= 30) {
     return 'cold_idle';
   }
 
