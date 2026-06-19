@@ -4,28 +4,39 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlueGuard - Enlaces de interés</title>
+    <title>FlueGuard - Enlaces de Interés</title>
     <meta name="description"
-        content="Página oficial de enlaces de FlueGuard. Monitorea tu estufa a leña y recibe alertas tempranas ante posibles sobrecalentamientos." />
+        content="Accede rápido a los enlaces oficiales de FlueGuard. Monitoreo inteligente, alertas preventivas, manuales de usuario y soporte oficial." />
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <style>
         :root {
-            --bg: #070b14;
-            --bg-soft: #0f172a;
-            --card: #111c31;
-            --card-2: #0b1220;
-            --text: #f8fafc;
-            --muted: #94a3b8;
-            --muted-2: #64748b;
+            --bg: #050813;
+            --bg-surface: rgba(13, 20, 38, 0.65);
+            --bg-surface-hover: rgba(22, 33, 62, 0.85);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(56, 189, 248, 0.4);
+            
             --primary: #38bdf8;
-            --primary-2: #2563eb;
+            --primary-gradient: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+            --primary-glow: rgba(56, 189, 248, 0.18);
+            
             --accent: #f97316;
-            --border: rgba(255, 255, 255, .09);
-            --shadow: 0 24px 80px rgba(0, 0, 0, .45);
+            --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+            --accent-glow: rgba(249, 115, 22, 0.15);
+            
+            --whatsapp: #22c55e;
+            --whatsapp-gradient: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+            
+            --instagram: #ec4899;
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            
+            --max-width: 440px;
         }
 
         * {
@@ -33,272 +44,561 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background:
-                radial-gradient(circle at 50% 10%, rgba(56, 189, 248, .12), transparent 45%),
-                radial-gradient(circle at 50% 90%, rgba(249, 115, 22, .08), transparent 45%),
-                var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 50% 100%, rgba(249, 115, 22, 0.06) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2.5rem 1.25rem 1.75rem;
+            overflow-x: hidden;
         }
 
         .container {
             width: 100%;
-            max-width: 480px;
-            text-align: center;
+            max-width: var(--max-width);
             display: flex;
             flex-direction: column;
             align-items: center;
+            gap: 2rem;
+            margin: auto 0;
         }
 
+        /* Encabezado */
         .header {
-            margin-bottom: 2.5rem;
+            width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
+            text-align: center;
+        }
+
+        .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 0.75rem;
         }
 
         .logo-img {
-            max-height: 80px;
-            max-width: 260px;
+            height: 76px;
             width: auto;
-            height: auto;
             object-fit: contain;
-            margin-bottom: 0.6rem;
-            transition: transform 0.3s ease;
+            filter: drop-shadow(0 4px 16px rgba(56, 189, 248, 0.35));
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .logo-img:hover {
-            transform: scale(1.03);
+            transform: scale(1.06) rotate(2deg);
         }
 
         .logo-text-img {
-            max-height: 38px;
-            max-width: 220px;
+            height: 26px;
             width: auto;
-            height: auto;
             object-fit: contain;
-            margin-bottom: 1.2rem;
-            transition: transform 0.3s ease;
+            margin-top: 0.5rem;
+            transition: filter 0.3s ease;
         }
 
-        .logo-text-img:hover {
-            transform: scale(1.03);
-        }
-
-        .subtitle {
-            color: var(--muted);
-            font-size: 0.95rem;
-            max-width: 380px;
-            margin: 0 auto;
+        .tagline {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 400;
             line-height: 1.5;
+            max-width: 320px;
+            margin-top: 0.5rem;
+            opacity: 0.9;
         }
 
+        /* Contenedor de enlaces */
         .links-wrapper {
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 3rem;
+            gap: 0.875rem;
         }
 
-        .link-btn {
+        /* Tarjeta de enlace base */
+        .link-card {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            padding: 1.1rem 1.5rem;
-            border-radius: 1rem;
-            background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .025));
+            width: 100%;
+            min-height: 72px;
+            padding: 0.875rem 1.125rem;
+            background: var(--bg-surface);
             border: 1px solid var(--border);
-            color: var(--text);
+            border-radius: 1.125rem;
             text-decoration: none;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.25s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            color: var(--text-primary);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
         }
 
-        .link-btn:hover {
-            transform: translateY(-2px);
-            background: rgba(255, 255, 255, .08);
-            border-color: rgba(56, 189, 248, .4);
-            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.15);
+        /* Feedback táctil para móviles */
+        .link-card:active {
+            transform: scale(0.97) !important;
+            background: var(--bg-surface-hover);
         }
 
-        .link-btn:active {
-            transform: translateY(0);
+        @media (hover: hover) {
+            .link-card:hover {
+                transform: translateY(-2px);
+                border-color: var(--border-hover);
+                box-shadow: 0 8px 24px rgba(56, 189, 248, 0.08);
+                background: var(--bg-surface-hover);
+            }
         }
 
-        .link-btn svg {
-            margin-right: 1.2rem;
+        /* Icono de la izquierda */
+        .card-icon-wrapper {
+            width: 42px;
+            height: 42px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
             flex-shrink: 0;
-            transition: transform 0.25s ease;
+            transition: transform 0.3s ease;
         }
 
-        .link-btn:hover svg {
-            transform: scale(1.1);
+        .link-card:hover .card-icon-wrapper {
+            transform: scale(1.06);
         }
 
-        /* Específico para el sitio oficial (destacado) */
-        .link-btn-featured {
-            background: linear-gradient(135deg, var(--primary-2), var(--primary));
-            border: 1px solid rgba(56, 189, 248, 0.4);
-            box-shadow: 0 10px 30px rgba(37, 99, 235, .25);
+        /* Contenido de la tarjeta */
+        .card-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
         }
 
-        .link-btn-featured:hover {
-            background: linear-gradient(135deg, #1d4ed8, #38bdf8);
-            border-color: rgba(56, 189, 248, 0.6);
-            box-shadow: 0 14px 35px rgba(56, 189, 248, .35);
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.35;
         }
 
-        .link-btn-featured svg {
-            stroke: #fff;
+        .card-subtitle {
+            font-size: 0.775rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-top: 0.15rem;
+            line-height: 1.3;
         }
 
+        /* Chevron a la derecha */
+        .card-chevron {
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: transform 0.3s ease, color 0.3s ease;
+            margin-left: 0.5rem;
+        }
+
+        .link-card:hover .card-chevron {
+            transform: translateX(3px);
+            color: var(--primary);
+        }
+
+        /* Estilo específico para tarjetas destacadas */
+        .link-card-featured {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%);
+            border: 1.5px solid rgba(56, 189, 248, 0.25);
+            box-shadow: 0 10px 25px var(--primary-glow);
+        }
+
+        .link-card-featured .card-icon-wrapper {
+            background: var(--primary-gradient);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.35);
+        }
+
+        @media (hover: hover) {
+            .link-card-featured:hover {
+                border-color: var(--primary);
+                box-shadow: 0 12px 28px rgba(56, 189, 248, 0.25);
+            }
+        }
+
+        /* Estilo específico para tarjetas de acción secundaria (WhatsApp, Instagram, etc) */
+        .icon-primary {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+        }
+
+        .icon-accent {
+            background: rgba(249, 115, 22, 0.1);
+            color: var(--accent);
+        }
+
+        .icon-whatsapp {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--whatsapp);
+        }
+
+        .whatsapp-card:hover {
+            border-color: rgba(34, 197, 94, 0.4) !important;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.12) !important;
+        }
+
+        .whatsapp-card:hover .card-chevron {
+            color: var(--whatsapp) !important;
+        }
+
+        .icon-instagram {
+            background: rgba(236, 72, 153, 0.1);
+            color: var(--instagram);
+        }
+
+        .instagram-card:hover {
+            border-color: rgba(236, 72, 153, 0.4) !important;
+            box-shadow: 0 8px 24px rgba(236, 72, 153, 0.12) !important;
+        }
+
+        .instagram-card:hover .card-chevron {
+            color: var(--instagram) !important;
+        }
+
+        /* Enlaces secundarios (YouTube, Correo) en fila horizontal */
+        .secondary-links-row {
+            display: flex;
+            justify-content: center;
+            gap: 1.25rem;
+            margin-top: 0.25rem;
+            width: 100%;
+        }
+
+        .secondary-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .secondary-btn:active {
+            transform: scale(0.92) !important;
+        }
+
+        @media (hover: hover) {
+            .secondary-btn:hover {
+                transform: translateY(-2px);
+                color: var(--text-primary);
+                border-color: var(--text-secondary);
+                box-shadow: 0 6px 16px rgba(255, 255, 255, 0.05);
+            }
+            
+            .secondary-btn-youtube:hover {
+                border-color: #ef4444;
+                color: #ef4444;
+                box-shadow: 0 6px 16px rgba(239, 68, 68, 0.2);
+            }
+            
+            .secondary-btn-email:hover {
+                border-color: var(--primary);
+                color: var(--primary);
+                box-shadow: 0 6px 16px rgba(56, 189, 248, 0.2);
+            }
+        }
+
+        /* Footer */
         .footer {
-            color: var(--muted-2);
-            font-size: 0.8rem;
-            letter-spacing: 0.05em;
+            width: 100%;
+            max-width: var(--max-width);
+            text-align: center;
+            margin-top: auto;
+            padding-top: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        /* Ajustes responsive */
-        @media (max-width: 480px) {
-            .logo-img {
-                max-height: 65px;
-                max-width: 220px;
-            }
+        .footer-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
 
-            .logo-text-img {
-                max-height: 30px;
-                max-width: 180px;
-            }
+        .footer-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
 
-            .link-btn {
-                padding: 1rem 1.2rem;
-                font-size: 0.95rem;
+        .footer-link:hover {
+            color: var(--text-primary);
+            text-decoration: underline;
+        }
+
+        .footer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.725rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            margin-top: 0.25rem;
+        }
+
+        /* Animaciones secuenciales de entrada */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
+
+        .animate-fade-in {
+            animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .delay-1 { animation-delay: 0.05s; }
+        .delay-2 { animation-delay: 0.12s; }
+        .delay-3 { animation-delay: 0.19s; }
+        .delay-4 { animation-delay: 0.26s; }
+        .delay-5 { animation-delay: 0.33s; }
+        .delay-6 { animation-delay: 0.40s; }
+        .delay-7 { animation-delay: 0.47s; }
+        .delay-8 { animation-delay: 0.54s; }
+        .delay-9 { animation-delay: 0.61s; }
     </style>
 </head>
 
 <body>
 
     <div class="container">
-        <!-- Encabezado con logotipo y texto de bienvenida -->
-        <header class="header">
-            <img src="/FlueGuard.png" alt="FlueGuard" class="logo-img" />
-            <img src="/FlueGuardText.png" alt="FlueGuard" class="logo-text-img" />
-            <p class="subtitle">Monitorea la temperatura de tu estufa a leña y recibe alertas tempranas ante posibles
-                sobrecalentamientos.</p>
+        <!-- Encabezado -->
+        <header class="header animate-fade-in delay-1">
+            <div class="logo-container">
+                <img src="/FlueGuard.png" alt="FlueGuard Logo" class="logo-img" />
+                <img src="/FlueGuardText.png" alt="FlueGuard" class="logo-text-img" />
+            </div>
+            <p class="tagline">Alertas preventivas para mayor seguridad en tu hogar</p>
         </header>
 
-        <!-- Contenedor de enlaces -->
-        <nav class="links-wrapper" role="navigation" aria-label="Enlaces en bio de FlueGuard">
-            <!-- Botón 1: Sitio web oficial -->
-            <a id="btn-sitio" href="/" class="link-btn link-btn-featured">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="2" y1="12" x2="22" y2="12" />
-                    <path
-                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        <!-- Contenedor principal de enlaces -->
+        <nav class="links-wrapper" role="navigation" aria-label="Enlaces oficiales de FlueGuard">
+            
+            <!-- Botón 1: Descargar App -->
+            <a id="btn-app" href="#" class="link-card link-card-featured animate-fade-in delay-2" target="_blank" rel="noopener noreferrer">
+                <div class="card-icon-wrapper">
+                    <!-- Icono Smartphone -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Descargar Aplicación</span>
+                    <span class="card-subtitle">Monitoreo en tiempo real y alertas</span>
+                </div>
+                <!-- Chevron -->
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
-                Visitar sitio web
             </a>
 
-            <!-- Botón 2: Descargar app -->
-            <a id="btn-app" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                    <line x1="12" y1="18" x2="12.01" y2="18" />
+            <!-- Botón 2: Inicio Rápido -->
+            <a id="btn-inicio" href="/manuales/inicio-rapido" class="link-card animate-fade-in delay-3">
+                <div class="card-icon-wrapper icon-accent">
+                    <!-- Icono Lightning/Rocket -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Guía de Inicio Rápido</span>
+                    <span class="card-subtitle">Instalación y emparejamiento físico</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
-                Descargar app
             </a>
 
-            <!-- Botón 3: Instagram -->
-            <a id="btn-instagram" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+            <!-- Botón 3: Manual de Usuario -->
+            <a id="btn-manual" href="/manuales/manual-usuario" class="link-card animate-fade-in delay-4">
+                <div class="card-icon-wrapper icon-primary">
+                    <!-- Icono Libro -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Manual de Usuario</span>
+                    <span class="card-subtitle">Configuración y recomendaciones</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
-                Instagram
             </a>
 
-            <!-- Botón de YouTube -->
-            <a id="btn-youtube" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <path
-                        d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-                    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+            <!-- Botón 4: Soporte y Garantía -->
+            <a id="btn-soporte" href="/manuales/garantia" class="link-card animate-fade-in delay-5">
+                <div class="card-icon-wrapper icon-accent">
+                    <!-- Icono Escudo -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Garantía y Soporte</span>
+                    <span class="card-subtitle">Términos y canales de servicio técnico</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
-                YouTube
             </a>
 
-            <!-- Botón 4: WhatsApp -->
-            <a id="btn-whatsapp" href="#" class="link-btn" target="_blank" rel="noopener noreferrer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <path
-                        d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            <!-- Botón 5: WhatsApp -->
+            <a id="btn-whatsapp" href="#" class="link-card whatsapp-card animate-fade-in delay-6" target="_blank" rel="noopener noreferrer">
+                <div class="card-icon-wrapper icon-whatsapp">
+                    <!-- Icono WhatsApp -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Hablar por WhatsApp</span>
+                    <span class="card-subtitle">Atención y asistencia directa</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
-                Hablar por WhatsApp
             </a>
 
-            <!-- Botón 5: Correo -->
-            <a id="btn-correo" href="#" class="link-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
+            <!-- Botón 6: Instagram -->
+            <a id="btn-instagram" href="#" class="link-card instagram-card animate-fade-in delay-7" target="_blank" rel="noopener noreferrer">
+                <div class="card-icon-wrapper icon-instagram">
+                    <!-- Icono Instagram -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Síguenos en Instagram</span>
+                    <span class="card-subtitle">Consejos de prevención y novedades</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
-                Enviar correo
             </a>
+
+            <!-- Botón 7: Sitio Web Principal -->
+            <a id="btn-sitio" href="/" class="link-card animate-fade-in delay-8">
+                <div class="card-icon-wrapper icon-primary">
+                    <!-- Icono Globe -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Sitio Web Oficial</span>
+                    <span class="card-subtitle">Conoce el ecosistema FlueGuard</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+            
         </nav>
 
-        <!-- Pie de página -->
-        <footer class="footer">
-            &copy; 2026 FlueGuard. Todos los derechos reservados.
+        <!-- Redes secundarias (YouTube y Correo) en fila horizontal -->
+        <div class="secondary-links-row animate-fade-in delay-9">
+            <!-- YouTube -->
+            <a id="btn-youtube" href="#" class="secondary-btn secondary-btn-youtube" target="_blank" rel="noopener noreferrer" aria-label="Canal de YouTube">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+                    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
+                </svg>
+            </a>
+            <!-- Correo -->
+            <a id="btn-correo" href="#" class="secondary-btn secondary-btn-email" aria-label="Enviar Correo Electrónico">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer animate-fade-in delay-9">
+            <span class="footer-text">&copy; 2026 <a href="/" class="footer-link">FlueGuard</a>. Todos los derechos reservados.</span>
+            <div class="footer-badge">
+                <span>Desarrollado en el sur de Chile 🌲</span>
+            </div>
         </footer>
     </div>
 
-    <!-- Script de configuración de enlaces al inicio del cuerpo del documento para fácil acceso -->
+    <!-- Script de configuración de enlaces dinámicos -->
     <script>
-        // CONFIGURACIÓN DE ENLACES: Modifique los valores a continuación para cambiar las URL de destino.
+        // CONFIGURACIÓN DE ENLACES: Modifica los valores a continuación para cambiar las URL de destino.
         const CONFIG = {
             sitioWeb: "/",
             descargarApp: "https://play.google.com/store/apps/details?id=cl.flueguard.app",
+            manualUsuario: "/manuales/manual-usuario",
+            inicioRapido: "/manuales/inicio-rapido",
+            soporteGarantia: "/manuales/garantia",
             instagram: "https://www.instagram.com/flueguard",
             youtube: "https://www.youtube.com/@flueguardcl",
             whatsapp: "https://wa.me/569XXXXXXXX", // Reemplazar con el número telefónico real (ejemplo: 56912345678)
             correo: "mailto:contacto@flueguard.cl"
         };
 
-        // Asignación automática de los enlaces de la configuración a los botones del DOM
+        // Asignación segura de enlaces del objeto de configuración a los elementos correspondientes del DOM
         document.addEventListener("DOMContentLoaded", () => {
-            if (CONFIG.sitioWeb) document.getElementById("btn-sitio").setAttribute("href", CONFIG.sitioWeb);
-            if (CONFIG.descargarApp) document.getElementById("btn-app").setAttribute("href", CONFIG.descargarApp);
-            if (CONFIG.instagram) document.getElementById("btn-instagram").setAttribute("href", CONFIG.instagram);
-            if (CONFIG.youtube) document.getElementById("btn-youtube").setAttribute("href", CONFIG.youtube);
-            if (CONFIG.whatsapp) document.getElementById("btn-whatsapp").setAttribute("href", CONFIG.whatsapp);
-            if (CONFIG.correo) document.getElementById("btn-correo").setAttribute("href", CONFIG.correo);
+            const setHref = (id, url) => {
+                const el = document.getElementById(id);
+                if (el && url) {
+                    el.setAttribute("href", url);
+                }
+            };
+            
+            setHref("btn-sitio", CONFIG.sitioWeb);
+            setHref("btn-app", CONFIG.descargarApp);
+            setHref("btn-inicio", CONFIG.inicioRapido);
+            setHref("btn-manual", CONFIG.manualUsuario);
+            setHref("btn-soporte", CONFIG.soporteGarantia);
+            setHref("btn-instagram", CONFIG.instagram);
+            setHref("btn-youtube", CONFIG.youtube);
+            setHref("btn-whatsapp", CONFIG.whatsapp);
+            setHref("btn-correo", CONFIG.correo);
         });
     </script>
 </body>
