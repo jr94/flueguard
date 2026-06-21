@@ -33,12 +33,12 @@ export function calculateDeviceOperationalStatus(params: {
     return 'disconnected';
   }
 
-  if (temp <= 30) {
-    return 'cold_idle';
-  }
-
   const diffMs = current.getTime() - logTime.getTime();
   const diffMinutes = diffMs / (60 * 1000);
+
+  if (temp <= 30) {
+    return diffMinutes <= 60 ? 'cold_idle' : 'disconnected';
+  }
 
   if (diffMinutes < 10) {
     return 'connected';
