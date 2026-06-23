@@ -68,8 +68,8 @@ export class ManualesController {
     this.serveFile('garantia.html', res);
   }
 
-  @Get('ficha-tecnica')
+  @Get('ficha-tecnica_FG-TE01')
   getFichaTecnica(@Res() res: Response) {
-    this.serveFile('ficha-tecnica.html', res);
+    this.serveFile('ficha-tecnica_FG-TE01.html', res);
   }
 }
