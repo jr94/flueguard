@@ -67,4 +67,9 @@ export class ManualesController {
   getWarranty(@Res() res: Response) {
     this.serveFile('garantia.html', res);
   }
+
+  @Get('ficha-tecnica')
+  getFichaTecnica(@Res() res: Response) {
+    this.serveFile('ficha-tecnica.html', res);
+  }
 }
