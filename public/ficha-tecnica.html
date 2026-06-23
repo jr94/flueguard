@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ficha Técnica FlueGuard FG-TE01 | Monitoreo de temperatura para estufas a leña</title>
+    <meta name="description"
+        content="Ficha técnica del dispositivo FlueGuard FG-TE01, sistema de monitoreo preventivo de temperatura para cañones de estufas a leña con sensor magnético, alarma sonora y app móvil." />
+    <meta name="keywords"
+        content="FlueGuard, ficha técnica FlueGuard, sensor temperatura estufa a leña, monitoreo cañón estufa, alerta temperatura estufa, seguridad estufa a leña, FG-TE01" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+
+    <style>
+        :root {
+            --bg: #070b14;
+            --bg-soft: #0f172a;
+            --card: #111c31;
+            --card-2: #0b1220;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --muted-2: #64748b;
+            --primary: #38bdf8;
+            --primary-2: #2563eb;
+            --accent: #f97316;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --border: rgba(255, 255, 255, .09);
+            --shadow: 0 24px 80px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 20% 10%, rgba(56, 189, 248, .12), transparent 32%),
+                radial-gradient(circle at 80% 20%, rgba(249, 115, 22, .10), transparent 30%),
+                var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .container {
+            width: min(1180px, 90%);
+            margin: 0 auto;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            backdrop-filter: blur(16px);
+            background: rgba(7, 11, 20, .78);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-inner {
+            width: min(1180px, 90%);
+            margin: 0 auto;
+            height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.3rem;
+            color: var(--muted);
+            font-size: .92rem;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: var(--text);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            border-radius: 999px;
+            padding: .82rem 1.35rem;
+            font-weight: 700;
+            transition: .25s ease;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-2), var(--primary));
+            color: white;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, .32);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 38px rgba(56, 189, 248, .35);
+        }
+
+        .btn-outline {
+            border-color: var(--border);
+            color: var(--text);
+            background: rgba(255, 255, 255, .035);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, .075);
+            transform: translateY(-2px);
+        }
+
+        .hero {
+            min-height: 90vh;
+            display: grid;
+            align-items: center;
+            padding: 130px 0 70px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.05fr .95fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            padding: .45rem .75rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: #bae6fd;
+            background: rgba(56, 189, 248, .08);
+            font-size: .85rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            line-height: .98;
+            letter-spacing: -0.065em;
+            font-weight: 900;
+            margin-bottom: 1.4rem;
+        }
+
+        .hero h1 span {
+            color: var(--primary);
+        }
+
+        .hero p {
+            max-width: 650px;
+            color: var(--muted);
+            font-size: 1.16rem;
+            margin-bottom: 2rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2.2rem;
+        }
+
+        .visual-card {
+            position: relative;
+            border-radius: 2rem;
+            padding: 1.1rem;
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .03));
+            box-shadow: var(--shadow);
+        }
+
+        .visual-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 1.45rem;
+            display: block;
+        }
+
+        .floating-model-badge {
+            position: absolute;
+            right: 25px;
+            bottom: 25px;
+            padding: .6rem 1.2rem;
+            border-radius: 1rem;
+            background: rgba(15, 23, 42, .94);
+            border: 1px solid var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--primary);
+            letter-spacing: 0.05em;
+        }
+
+        section {
+            padding: 90px 0;
+        }
+
+        .section-head {
+            max-width: 760px;
+            margin-bottom: 3.5rem;
+        }
+
+        .section-head.center {
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+
+        .eyebrow {
+            color: var(--primary);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            font-size: .78rem;
+            margin-bottom: .6rem;
+        }
+
+        .section-head h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            line-height: 1.05;
+            letter-spacing: -0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .section-head p {
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        /* Commercial Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            padding: 1.6rem;
+            border-radius: 1.35rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .025));
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .summary-card.featured {
+            border-color: rgba(56, 189, 248, .4);
+            background: linear-gradient(180deg, rgba(56, 189, 248, .12), rgba(255, 255, 255, .03));
+            box-shadow: 0 10px 40px rgba(37, 99, 235, .15);
+        }
+
+        .summary-card span {
+            font-size: .78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: .5rem;
+            display: block;
+        }
+
+        .summary-card strong {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--text);
+        }
+
+        .summary-card .promo-price {
+            font-size: 2.1rem;
+            color: var(--primary);
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .summary-card .old-price {
+            font-size: 1.1rem;
+            text-decoration: line-through;
+            color: var(--muted-2);
+            margin-left: 0.4rem;
+            font-weight: 600;
+        }
+
+        /* Description block */
+        .desc-block {
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            background: rgba(255, 255, 255, .02);
+            border: 1px solid var(--border);
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .desc-block p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-weight: 400;
+        }
+
+        .desc-block p:last-child {
+            margin-bottom: 0;
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        /* Features */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+        }
+
+        .card {
+            padding: 1.6rem;
+            border-radius: 1.35rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .025));
+            border: 1px solid var(--border);
+            transition: transform 0.25s ease, border-color 0.25s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(56, 189, 248, .3);
+        }
+
+        .card .icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 1rem;
+            display: grid;
+            place-items: center;
+            background: rgba(56, 189, 248, .11);
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .card h3 {
+            font-size: 1.12rem;
+            margin-bottom: .55rem;
+            font-weight: 700;
+        }
+
+        .card p {
+            color: var(--muted);
+            font-size: .95rem;
+        }
+
+        /* Responsive Table */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 1.2rem;
+            border: 1px solid var(--border);
+            background: var(--card-2);
+        }
+
+        .specs-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        .specs-table tr {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .specs-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .specs-table td {
+            padding: 1.1rem 1.5rem;
+        }
+
+        .specs-table tr td:first-child {
+            font-weight: 700;
+            color: var(--muted);
+            width: 35%;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .specs-table tr td:last-child {
+            color: var(--text);
+        }
+
+        /* Alert Ranges */
+        .alerts-timeline {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .alert-level {
+            padding: 1.5rem;
+            border-radius: 1.2rem;
+            border: 1px solid var(--border);
+            position: relative;
+            background: var(--card-2);
+        }
+
+        .alert-level::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            border-top-left-radius: 1.2rem;
+            border-top-right-radius: 1.2rem;
+        }
+
+        .level-normal::before { background: var(--success); }
+        .level-elevated::before { background: #facc15; }
+        .level-warning::before { background: var(--accent); }
+        .level-critical::before { background: var(--danger); }
+
+        .level-badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.8rem;
+        }
+
+        .level-normal .level-badge { background: rgba(34, 197, 94, .12); color: var(--success); }
+        .level-elevated .level-badge { background: rgba(250, 204, 21, .12); color: #facc15; }
+        .level-warning .level-badge { background: rgba(249, 115, 22, .12); color: var(--accent); }
+        .level-critical .level-badge { background: rgba(239, 68, 68, .12); color: var(--danger); }
+
+        .alert-level h3 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+        }
+
+        .alert-level h3 span {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--muted);
+            display: block;
+        }
+
+        .alert-level p {
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .alerts-note {
+            text-align: center;
+            font-size: 0.88rem;
+            color: var(--muted-2);
+            font-style: italic;
+        }
+
+        /* Split layouts */
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3.5rem;
+            align-items: center;
+        }
+
+        .split-card {
+            border-radius: 2rem;
+            padding: 1.1rem;
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .03));
+            box-shadow: var(--shadow);
+        }
+
+        .split-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 1.45rem;
+            display: block;
+        }
+
+        .list {
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .list-item {
+            display: grid;
+            grid-template-columns: 34px 1fr;
+            gap: .9rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .check {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: #bbf7d0;
+            background: rgba(34, 197, 94, .12);
+            font-weight: 900;
+        }
+
+        .list-item strong {
+            display: block;
+            margin-bottom: .15rem;
+        }
+
+        .list-item span {
+            color: var(--muted);
+            font-size: .93rem;
+        }
+
+        /* Steps */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .step {
+            padding: 1.4rem;
+            border-radius: 1.2rem;
+            background: var(--card-2);
+            border: 1px solid var(--border);
+        }
+
+        .step-number {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #facc15);
+            color: #111827;
+            font-weight: 900;
+            display: grid;
+            place-items: center;
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+        }
+
+        .step h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .step p {
+            color: var(--muted);
+            font-size: .85rem;
+            line-height: 1.4;
+        }
+
+        /* Box & Requirements section combined */
+        .box-req-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .accent-card {
+            padding: 2.2rem;
+            border-radius: 1.5rem;
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .015));
+        }
+
+        .accent-card h3 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 1.2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.6rem;
+        }
+
+        .box-list, .req-list {
+            list-style: none;
+            display: grid;
+            gap: 0.8rem;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .box-list li::before {
+            content: "📦  ";
+        }
+
+        .req-list li::before {
+            content: "⚙️  ";
+        }
+
+        .accent-card .card-note {
+            margin-top: 1.2rem;
+            font-size: 0.85rem;
+            color: var(--muted-2);
+            font-style: italic;
+        }
+
+        /* Warnings Card */
+        .warning-card {
+            padding: 2.2rem;
+            border-radius: 1.5rem;
+            border: 1px solid rgba(239, 68, 68, .35);
+            background: linear-gradient(180deg, rgba(239, 68, 68, .08), rgba(255, 255, 255, .01));
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.05);
+        }
+
+        .warning-card h3 {
+            color: #fca5a5;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .warning-card p {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .warning-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Footer */
+        footer {
+            padding: 35px 0;
+            color: var(--muted-2);
+            border-top: 1px solid var(--border);
+            background: rgba(0, 0, 0, .18);
+        }
+
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-inner a:hover {
+            color: var(--text);
+            text-decoration: underline;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 980px) {
+            .hero-grid,
+            .split,
+            .box-req-grid {
+                grid-template-columns: 1fr;
+                gap: 2.5rem;
+            }
+
+            .summary-grid,
+            .cards,
+            .alerts-timeline {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .steps {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .summary-grid,
+            .cards,
+            .alerts-timeline,
+            .steps {
+                grid-template-columns: 1fr;
+            }
+
+            section {
+                padding: 65px 0;
+            }
+
+            .hero {
+                padding-top: 115px;
+            }
+
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+            
+            .specs-table tr td:first-child {
+                width: 45%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header Navigation -->
+    <nav>
+        <div class="nav-inner">
+            <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                <img src="/assets/FlueGuard.png" alt="FlueGuard Logo" style="height: 32px; width: auto;" />
+                <img src="/assets/FlueGuardText.png" alt="FlueGuard" style="height: 18px; width: auto;" />
+            </a>
+
+            <div class="nav-links">
+                <a href="#que-es">¿Qué es?</a>
+                <a href="#caracteristicas">Características</a>
+                <a href="#especificaciones">Ficha Técnica</a>
+                <a href="#alertas">Alertas</a>
+                <a href="#instalacion">Instalación</a>
+            </div>
+
+            <a href="/portal" class="btn btn-primary">Ingreso al Portal</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container hero-grid">
+                <div>
+                    <div class="badge">🛡️ FG-TE01 · Ficha Técnica Oficial</div>
+                    <h1>Ficha Técnica <br><span>FlueGuard FG-TE01</span></h1>
+                    <p>
+                        Sistema de monitoreo preventivo de temperatura para cañones de estufas a leña.
+                        FlueGuard FG-TE01 permite monitorear la temperatura del cañón de una estufa a leña,
+                        emitir alertas sonoras locales y visualizar información desde la aplicación móvil,
+                        ayudando a prevenir condiciones de sobrecalentamiento.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="#especificaciones" class="btn btn-primary">Ver especificaciones</a>
+                        <a href="https://wa.me/569XXXXXXXX" target="_blank" rel="noopener" class="btn btn-outline">
+                            <!-- WhatsApp SVG icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;">
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            </svg>
+                            Contactar / Comprar
+                        </a>
+                    </div>
+                </div>
+
+                <div class="visual-card">
+                    <img src="/assets/FlueGuardPromo.png" alt="FlueGuard FG-TE01" />
+                    <div class="floating-model-badge">FG-TE01</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Summary & What is -->
+        <section id="que-es" style="background: rgba(255, 255, 255, 0.01); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+            <div class="container">
+                
+                <!-- Commercial Summary Cards -->
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <span>Producto</span>
+                        <strong>FlueGuard</strong>
+                    </div>
+                    <div class="summary-card">
+                        <span>Modelo</span>
+                        <strong>FG-TE01</strong>
+                    </div>
+                    <div class="summary-card featured">
+                        <span>Precio Lanzamiento</span>
+                        <div>
+                            <span class="promo-price">$49.990</span>
+                            <span class="old-price">$79.990</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <span>Garantía</span>
+                        <strong>1 Año</strong>
+                    </div>
+                </div>
+
+                <!-- Description Block -->
+                <div class="desc-block" style="margin-top: 4rem;">
+                    <div class="eyebrow">Descripción general</div>
+                    <p>
+                        FlueGuard FG-TE01 es un dispositivo IoT diseñado para monitorear la temperatura superficial del cañón de una estufa a leña.
+                        Su objetivo es entregar información clara al usuario y generar alertas preventivas cuando la temperatura alcanza rangos elevados o críticos.
+                    </p>
+                    <p>
+                        El sistema combina medición de temperatura, alarma sonora local, conectividad inalámbrica y visualización desde una aplicación móvil.
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Key Features Grid -->
+        <section id="caracteristicas">
+            <div class="container">
+                <div class="section-head center">
+                    <div class="eyebrow">Características clave</div>
+                    <h2>Diseñado para tu tranquilidad</h2>
+                    <p>Funcionalidades esenciales para monitorear y cuidar la calefacción de tu hogar.</p>
+                </div>
+
+                <div class="cards">
+                    <div class="card">
+                        <div class="icon">🌡️</div>
+                        <h3>Monitoreo de cañón</h3>
+                        <p>Supervisión constante de la temperatura de la superficie metálica del cañón.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon">🧲</div>
+                        <h3>Sensor magnético</h3>
+                        <p>Termopar tipo K de alta sensibilidad, diseñado para acoplarse magnéticamente sin perforaciones.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon">🔊</div>
+                        <h3>Alarma de 90 dB</h3>
+                        <p>Alerta acústica potente emitida directamente por el dispositivo local ante sobrecalentamientos.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon">📶</div>
+                        <h3>Conexión WiFi</h3>
+                        <p>Soporte para redes WiFi 2.4 GHz, permitiendo enviar lecturas en tiempo real y alertas remotas.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon">🌀</div>
+                        <h3>Bluetooth/BLE</h3>
+                        <p>Conectividad de bajo consumo para emparejar y configurar el dispositivo desde el móvil de forma veloz.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon">📱</div>
+                        <h3>Aplicación móvil</h3>
+                        <p>Visualización instantánea de la temperatura actual, alertas automáticas e historial térmico detallado.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon">⚡</div>
+                        <h3>Alertas dinámicas</h3>
+                        <p>Identificación de niveles de temperatura y notificaciones proactivas según el nivel de riesgo.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon">🏠</div>
+                        <h3>Optimizado para estufas</h3>
+                        <p>Diseño y calibración ideales para estufas a leña domésticas con evacuación de ducto metálico.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon">🛠️</div>
+                        <h3>Sin modificaciones</h3>
+                        <p>Instalación no invasiva y magnética que respeta la estructura y garantía de tu estufa.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Specs Table -->
+        <section id="especificaciones" style="background: rgba(255, 255, 255, 0.01); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+            <div class="container">
+                <div class="section-head center">
+                    <div class="eyebrow">Ficha técnica</div>
+                    <h2>Especificaciones técnicas</h2>
+                    <p>Detalle de hardware, dimensiones y capacidades del sistema FG-TE01.</p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="specs-table">
+                        <tr>
+                            <td>Nombre comercial</td>
+                            <td>FlueGuard FG-TE01</td>
+                        </tr>
+                        <tr>
+                            <td>Modelo</td>
+                            <td>FG-TE01</td>
+                        </tr>
+                        <tr>
+                            <td>Tipo de producto</td>
+                            <td>Sistema de monitoreo preventivo de temperatura</td>
+                        </tr>
+                        <tr>
+                            <td>Uso recomendado</td>
+                            <td>Cañones o ductos metálicos de estufas a leña</td>
+                        </tr>
+                        <tr>
+                            <td>Tipo de sensor</td>
+                            <td>Sensor magnético tipo K</td>
+                        </tr>
+                        <tr>
+                            <td>Rango de temperatura del sensor</td>
+                            <td>0°C a 400°C</td>
+                        </tr>
+                        <tr>
+                            <td>Rango de temperatura del dispositivo</td>
+                            <td>-40°C a 70°C</td>
+                        </tr>
+                        <tr>
+                            <td>Alarma sonora</td>
+                            <td>90 dB</td>
+                        </tr>
+                        <tr>
+                            <td>Alimentación</td>
+                            <td>USB Tipo-C (5V)</td>
+                        </tr>
+                        <tr>
+                            <td>Adaptador de corriente</td>
+                            <td>No incluido</td>
+                        </tr>
+                        <tr>
+                            <td>Largo cable sensor</td>
+                            <td>1 metro</td>
+                        </tr>
+                        <tr>
+                            <td>Largo cable USB-C</td>
+                            <td>1,5 metros</td>
+                        </tr>
+                        <tr>
+                            <td>Conectividad</td>
+                            <td>WiFi 2.4 GHz y Bluetooth/BLE para configuración inicial</td>
+                        </tr>
+                        <tr>
+                            <td>Aplicación móvil</td>
+                            <td>Compatible con la aplicación móvil FlueGuard (Android)</td>
+                        </tr>
+                        <tr>
+                            <td>Garantía</td>
+                            <td>1 año</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alert Ranges -->
+        <section id="alertas">
+            <div class="container">
+                <div class="section-head center">
+                    <div class="eyebrow">Rangos térmicos</div>
+                    <h2>Niveles de alerta de temperatura</h2>
+                    <p>El sistema monitorea y divide las lecturas en cuatro estados críticos:</p>
+                </div>
+
+                <div class="alerts-timeline">
+                    <div class="alert-level level-normal">
+                        <span class="level-badge">Normal</span>
+                        <h3>120°C - 200°C <span>Rango habitual</span></h3>
+                        <p>Estado de operación estándar. La estufa funciona a temperatura constante y eficiente.</p>
+                    </div>
+                    <div class="alert-level level-elevated">
+                        <span class="level-badge">Elevada</span>
+                        <h3>200°C - 230°C <span>Observación</span></h3>
+                        <p>Rango superior. Se aconseja observar el tiraje y combustible para evitar sobrecalentamiento.</p>
+                    </div>
+                    <div class="alert-level level-warning">
+                        <span class="level-badge">Advertencia</span>
+                        <h3>&gt; 230°C <span>Alerta preventiva</span></h3>
+                        <p>Sobretemperatura inicial. El sistema emite alertas para que tomes acción preventiva oportuna.</p>
+                    </div>
+                    <div class="alert-level level-critical">
+                        <span class="level-badge">Crítico</span>
+                        <h3>&gt; 350°C <span>Alerta crítica</span></h3>
+                        <p>Condición de alto riesgo. Requiere atención inmediata sobre el fuego, tiraje y seguridad.</p>
+                    </div>
+                </div>
+
+                <p class="alerts-note">
+                    * Los rangos indicados son referenciales y pueden variar según la instalación física, tipo de estufa, leña utilizada, nivel de tiraje, mantención del ducto y condiciones particulares de uso.
+                </p>
+            </div>
+        </section>
+
+        <!-- App Features Split -->
+        <section id="app" style="background: rgba(255, 255, 255, 0.01); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+            <div class="container split">
+                <div>
+                    <div class="section-head">
+                        <div class="eyebrow">Control Total</div>
+                        <h2>Funciones de la aplicación móvil</h2>
+                        <p>Conecta tu dispositivo FG-TE01 a tu red WiFi local y supervisa de manera remota:</p>
+                    </div>
+
+                    <div class="list">
+                        <div class="list-item">
+                            <div class="check">✓</div>
+                            <div>
+                                <strong>Temperatura actual</strong>
+                                <span>Verifica en tiempo real la temperatura actual registrada por el sensor.</span>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div class="check">✓</div>
+                            <div>
+                                <strong>Historial de temperatura</strong>
+                                <span>Consulta gráficos detallados con las lecturas históricas de tus ciclos de calefacción.</span>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div class="check">✓</div>
+                            <div>
+                                <strong>Notificaciones de alertas</strong>
+                                <span>Recibe notificaciones instantáneas push en tu teléfono ante alertas térmicas.</span>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div class="check">✓</div>
+                            <div>
+                                <strong>Configuración personalizada</strong>
+                                <span>Ajusta umbrales térmicos específicos y gestiona el estado de tus sensores vinculados.</span>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div class="check">✓</div>
+                            <div>
+                                <strong>Compatibilidad y Widgets</strong>
+                                <span>Uso de widget interactivo y notificación constante en Android para un acceso más veloz.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="split-card">
+                    <img src="/assets/FlueGuardPromo4.png" alt="Aplicación móvil FlueGuard" />
+                </div>
+            </div>
+        </section>
+
+        <!-- Box Contents & Requirements -->
+        <section>
+            <div class="container box-req-grid">
+                <div class="accent-card">
+                    <h3>Contenido de la caja</h3>
+                    <ul class="box-list">
+                        <li>1 Dispositivo de procesamiento local FlueGuard FG-TE01</li>
+                        <li>1 Sensor magnético tipo K con cable blindado de 1 metro</li>
+                        <li>1 Cable de alimentación USB-C de 1,5 metros</li>
+                    </ul>
+                    <p class="card-note">* Nota: No incluye adaptador de corriente a pared USB de 5V.</p>
+                </div>
+
+                <div class="accent-card">
+                    <h3>Requisitos de uso</h3>
+                    <ul class="req-list">
+                        <li>Estufa a leña con cañón o ducto de evacuación metálico.</li>
+                        <li>Fuente de alimentación eléctrica USB-C de 5V (cargador USB estándar).</li>
+                        <li>Red WiFi local con banda de 2.4 GHz activa (para funciones en la nube).</li>
+                        <li>Smartphone compatible con la aplicación móvil oficial FlueGuard.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Installation Section -->
+        <section id="instalacion" style="background: rgba(255, 255, 255, 0.01); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+            <div class="container">
+                <div class="section-head center">
+                    <div class="eyebrow">Paso a paso</div>
+                    <h2>Instalación recomendada</h2>
+                    <p>Proceso de configuración rápido, seguro y sin herramientas complejas.</p>
+                </div>
+
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Acopla el sensor</h3>
+                        <p>Adhiere el sensor magnético sobre el cañón o ducto metálico de la estufa.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Ubica la caja</h3>
+                        <p>Fija el procesador principal en la pared, lejos de la radiación directa de la estufa.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Conecta energía</h3>
+                        <p>Conecta el cable USB-C suministrado a un adaptador USB de 5V para encender la unidad.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <h3>Empareja la app</h3>
+                        <p>Abre la aplicación móvil FlueGuard y configura los datos de red mediante Bluetooth/BLE.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <h3>Monitorea</h3>
+                        <p>Verifica que el dispositivo local y la aplicación registren temperatura estable y correcta.</p>
+                    </div>
+                </div>
+
+                <div class="split-card" style="max-width: 900px; margin: 3rem auto 0 auto;">
+                    <img src="/assets/FlueGuardPromo3.png" alt="Instalación recomendada FlueGuard" style="filter: invert(1);" />
+                </div>
+                
+                <p class="alerts-note" style="margin-top: 1.5rem;">
+                    ⚠️ Importante: Una correcta instalación física del sensor y del módulo principal es fundamental para garantizar mediciones térmicas consistentes y estables.
+                </p>
+            </div>
+        </section>
+
+        <!-- Safety Warnings -->
+        <section>
+            <div class="container">
+                <div class="warning-card">
+                    <h3>
+                        <!-- Warning Icon SVG -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        Advertencias importantes de seguridad
+                    </h3>
+                    <p>
+                        FlueGuard es un sistema de monitoreo térmico preventivo diseñado para entregar información y soporte. <strong>No reemplaza la mantención periódica</strong> de la estufa ni la limpieza habitual de los cañones de evacuación, no extingue incendios y no sustituye la supervisión constante y responsable por parte del usuario final.
+                    </p>
+                    <p>
+                        La activación correcta de las alertas depende íntegramente de una instalación física precisa, el suministro constante de alimentación eléctrica, la estabilidad de las redes de comunicación inalámbricas y el uso adecuado del sistema según las guías.
+                    </p>
+                    <p>
+                        Ante una condición de sobrecalentamiento crítico de la estufa o un comportamiento peligroso del fuego, se aconseja seguir inmediatamente los protocolos de seguridad locales del hogar y comunicarse de forma urgente con el Cuerpo de Bomberos de su localidad si la situación no puede ser controlada localmente.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section style="background: linear-gradient(180deg, rgba(56, 189, 248, .04), rgba(249, 115, 22, .02)); border-top: 1px solid var(--border);">
+            <div class="container" style="text-align: center; max-width: 800px;">
+                <div class="eyebrow" style="margin-bottom: 1rem;">Protección y Tecnología</div>
+                <h2 style="font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; letter-spacing: -0.06em; line-height: 1.1; margin-bottom: 1.2rem;">
+                    Protege tu hogar con monitoreo preventivo
+                </h2>
+                <p style="color: var(--muted); font-size: 1.2rem; margin-bottom: 2.5rem; line-height: 1.5;">
+                    FlueGuard FG-TE01 ayuda a visualizar la temperatura del cañón de tu estufa a leña y recibir alertas oportunas ante condiciones de riesgo.
+                </p>
+                
+                <div style="display: flex; gap: 1.2rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="https://wa.me/569XXXXXXXX" target="_blank" rel="noopener" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.05rem;">
+                        Comprar / Consultar disponibilidad
+                    </a>
+                    <a href="/links" class="btn btn-outline" style="padding: 1rem 2rem; font-size: 1.05rem;">
+                        Volver a Enlaces
+                    </a>
+                    <a href="/manuales" class="btn btn-outline" style="padding: 1rem 2rem; font-size: 1.05rem;">
+                        Ver Manuales
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-inner">
+            <div>© 2026 FlueGuard. Todos los derechos reservados.</div>
+            <div>
+                <a href="/">Inicio</a> ·
+                <a href="/links">Enlaces</a> ·
+                <a href="/manuales">Manuales</a> ·
+                <a href="/privacy-policy">Privacidad</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>

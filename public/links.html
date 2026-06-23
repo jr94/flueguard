@@ -396,6 +396,7 @@
         .delay-7 { animation-delay: 0.47s; }
         .delay-8 { animation-delay: 0.54s; }
         .delay-9 { animation-delay: 0.61s; }
+        .delay-10 { animation-delay: 0.68s; }
     </style>
 </head>
 
@@ -468,8 +469,29 @@
                 </svg>
             </a>
 
+            <!-- Botón: Ficha Técnica -->
+            <a id="btn-ficha" href="/ficha-tecnica" class="link-card animate-fade-in delay-5">
+                <div class="card-icon-wrapper icon-primary">
+                    <!-- Icono Documento / Ficha Técnica -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Ficha Técnica FG-TE01</span>
+                    <span class="card-subtitle">Especificaciones, características y requisitos</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+
             <!-- Botón 4: Soporte y Garantía -->
-            <a id="btn-soporte" href="/manuales/garantia" class="link-card animate-fade-in delay-5">
+            <a id="btn-soporte" href="/manuales/garantia" class="link-card animate-fade-in delay-6">
                 <div class="card-icon-wrapper icon-accent">
                     <!-- Icono Escudo -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -486,7 +508,7 @@
             </a>
 
             <!-- Botón 5: WhatsApp -->
-            <a id="btn-whatsapp" href="#" class="link-card whatsapp-card animate-fade-in delay-6" target="_blank" rel="noopener noreferrer">
+            <a id="btn-whatsapp" href="#" class="link-card whatsapp-card animate-fade-in delay-7" target="_blank" rel="noopener noreferrer">
                 <div class="card-icon-wrapper icon-whatsapp">
                     <!-- Icono WhatsApp -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -503,7 +525,7 @@
             </a>
 
             <!-- Botón 6: Instagram -->
-            <a id="btn-instagram" href="#" class="link-card instagram-card animate-fade-in delay-7" target="_blank" rel="noopener noreferrer">
+            <a id="btn-instagram" href="#" class="link-card instagram-card animate-fade-in delay-8" target="_blank" rel="noopener noreferrer">
                 <div class="card-icon-wrapper icon-instagram">
                     <!-- Icono Instagram -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -522,7 +544,7 @@
             </a>
 
             <!-- Botón 7: Sitio Web Principal -->
-            <a id="btn-sitio" href="/" class="link-card animate-fade-in delay-8">
+            <a id="btn-sitio" href="/" class="link-card animate-fade-in delay-9">
                 <div class="card-icon-wrapper icon-primary">
                     <!-- Icono Globe -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -543,7 +565,7 @@
         </nav>
 
         <!-- Redes secundarias (YouTube y Correo) en fila horizontal -->
-        <div class="secondary-links-row animate-fade-in delay-9">
+        <div class="secondary-links-row animate-fade-in delay-10">
             <!-- YouTube -->
             <a id="btn-youtube" href="#" class="secondary-btn secondary-btn-youtube" target="_blank" rel="noopener noreferrer" aria-label="Canal de YouTube">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -561,7 +583,7 @@
         </div>
 
         <!-- Footer -->
-        <footer class="footer animate-fade-in delay-9">
+        <footer class="footer animate-fade-in delay-10">
             <span class="footer-text">&copy; 2026 <a href="/" class="footer-link">FlueGuard</a>. Todos los derechos reservados.</span>
             <div class="footer-badge">
                 <span>Desarrollado en el sur de Chile 🌲</span>
@@ -578,6 +600,7 @@
             manualUsuario: "/manuales/manual-usuario",
             inicioRapido: "/manuales/inicio-rapido",
             soporteGarantia: "/manuales/garantia",
+            fichaTecnica: "/ficha-tecnica",
             instagram: "https://www.instagram.com/flueguard",
             youtube: "https://www.youtube.com/@flueguardcl",
             whatsapp: "https://wa.me/569XXXXXXXX", // Reemplazar con el número telefónico real (ejemplo: 56912345678)
@@ -598,6 +621,7 @@
             setHref("btn-inicio", CONFIG.inicioRapido);
             setHref("btn-manual", CONFIG.manualUsuario);
             setHref("btn-soporte", CONFIG.soporteGarantia);
+            setHref("btn-ficha", CONFIG.fichaTecnica);
             setHref("btn-instagram", CONFIG.instagram);
             setHref("btn-youtube", CONFIG.youtube);
             setHref("btn-whatsapp", CONFIG.whatsapp);
