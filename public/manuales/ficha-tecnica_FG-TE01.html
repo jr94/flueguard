@@ -99,6 +99,93 @@
             color: var(--text);
         }
 
+        /* Section offsets for smooth scrolling */
+        section[id] {
+            scroll-margin-top: 90px;
+        }
+
+        /* Menu Toggle Button Style */
+        .menu-toggle {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 24px;
+            height: 18px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1010;
+        }
+
+        .hamburger-bar {
+            width: 100%;
+            height: 2px;
+            background-color: var(--text);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        /* Mobile Menu Drawer */
+        .mobile-menu {
+            display: none;
+            position: absolute;
+            top: 76px;
+            left: 0;
+            width: 100%;
+            background: rgba(7, 11, 20, 0.96);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem min(1180px, 5%);
+            flex-direction: column;
+            gap: 1.2rem;
+            z-index: 999;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+        }
+
+        .mobile-menu.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .mobile-menu a {
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: var(--muted);
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            transition: color 0.2s ease, padding-left 0.2s ease;
+        }
+
+        .mobile-menu a:last-child {
+            border-bottom: none;
+        }
+
+        .mobile-menu a:hover,
+        .mobile-menu a:active {
+            color: var(--text);
+            padding-left: 5px;
+        }
+
+        /* Hamburger active animation */
+        .menu-toggle.active .hamburger-bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+
+        .menu-toggle.active .hamburger-bar:nth-child(2) {
+            opacity: 0;
+        }
+
+        .menu-toggle.active .hamburger-bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -705,6 +792,10 @@
             .nav-links {
                 display: none;
             }
+
+            .menu-toggle {
+                display: flex;
+            }
         }
 
         @media (max-width: 640px) {
@@ -750,9 +841,25 @@
                 <a href="#especificaciones">Ficha Técnica</a>
                 <a href="#alertas">Alertas</a>
                 <a href="#instalacion">Instalación</a>
+                <a href="#validacion-fabrica">Validación de fábrica</a>
             </div>
 
-            <a href="/portal" class="btn btn-primary">Ingreso al Portal</a>
+            <!-- Hamburger Button for Mobile -->
+            <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú de navegación">
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+            </button>
+        </div>
+
+        <!-- Mobile Nav Menu Drawer -->
+        <div class="mobile-menu" id="mobileMenu">
+            <a href="#que-es">¿Qué es?</a>
+            <a href="#caracteristicas">Características</a>
+            <a href="#especificaciones">Ficha Técnica</a>
+            <a href="#alertas">Alertas</a>
+            <a href="#instalacion">Instalación</a>
+            <a href="#validacion-fabrica">Validación de fábrica</a>
         </div>
     </nav>
 
@@ -1007,7 +1114,7 @@
         </section>
 
         <!-- Carta de Certificación Interna Section -->
-        <section id="certificacion" style="background: rgba(255, 255, 255, 0.01); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+        <section id="validacion-fabrica" style="background: rgba(255, 255, 255, 0.01); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
             <div class="container">
                 <div class="section-head center">
                     <div class="eyebrow">Validación de Fábrica</div>
@@ -1422,7 +1529,7 @@
         </div>
     </footer>
 
-    <!-- Script de fecha dinámica -->
+    <!-- Script de fecha dinámica y menú responsive -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const fechaEl = document.getElementById('fecha-emision');
@@ -1430,6 +1537,40 @@
                 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
                 const fecha = new Date();
                 fechaEl.textContent = `${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
+            }
+
+            // Mobile Menu Toggle logic
+            const menuToggle = document.getElementById('menuToggle');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileLinks = mobileMenu.querySelectorAll('a');
+
+            const toggleMenu = () => {
+                const isActive = menuToggle.classList.toggle('active');
+                mobileMenu.classList.toggle('active', isActive);
+                document.body.style.overflow = isActive ? 'hidden' : '';
+            };
+
+            const closeMenu = () => {
+                menuToggle.classList.remove('active');
+                mobileMenu.classList.remove('active');
+                document.body.style.overflow = '';
+            };
+
+            if (menuToggle && mobileMenu) {
+                menuToggle.addEventListener('click', toggleMenu);
+
+                // Close menu when a link is clicked
+                mobileLinks.forEach(link => {
+                    link.addEventListener('click', closeMenu);
+                });
+
+                // Close menu when clicking outside
+                document.addEventListener('click', (event) => {
+                    const isClickInsideNav = menuToggle.contains(event.target) || mobileMenu.contains(event.target);
+                    if (!isClickInsideNav && mobileMenu.classList.contains('active')) {
+                        closeMenu();
+                    }
+                });
             }
         });
     </script>
