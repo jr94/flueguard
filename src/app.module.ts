@@ -1,10 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, Controller, Get, Res } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import type { Response } from 'express';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { DevicesModule } from './devices/devices.module';
@@ -13,6 +12,19 @@ import { AlertsModule } from './alerts/alerts.module';
 import { DeviceSettingsModule } from './device-settings/device-settings.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { PushTokensModule } from './push-tokens/push-tokens.module';
+
+@Controller()
+export class AppController {
+  @Get()
+  getHello(): string {
+    return 'Hello World!';
+  }
+
+  @Get('links')
+  getLinksPage(@Res() res: Response) {
+    res.sendFile(join(process.cwd(), 'public', 'links.html'));
+  }
+}
 import { PushNotificationsModule } from './push-notifications/push-notifications.module';
 import { ForgotPasswordModule } from './auth/forgot-password/forgot-password.module';
 import { MailModule } from './mail/mail.module';
@@ -78,6 +90,6 @@ import { ManualesModule } from './manuales/manuales.module';
     ManualesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [],
 })
 export class AppModule {}
