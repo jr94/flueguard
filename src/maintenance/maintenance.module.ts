@@ -27,7 +27,7 @@ import { MetricsModule } from '../metrics/metrics.module';
       DevicePushToken,
       DevicePredictionMetric,
     ]),
-    DevicesModule,
+    forwardRef(() => DevicesModule),
     AlertsModule,
     PushNotificationsModule,
     SubscriptionsModule,
