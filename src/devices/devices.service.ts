@@ -639,7 +639,7 @@ export class DevicesService {
     };
 
     // 7. Mantención (si aplica)
-    let maintenance = null;
+    let maintenance: any = null;
     if (planCode === 'plus' || planCode === 'pro') {
       try {
         const maintenanceRepo = this.dataSource.getRepository(DeviceMaintenance);
