@@ -4,8 +4,6 @@ import {
   NotFoundException,
   UnauthorizedException,
   ForbiddenException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -19,8 +17,13 @@ import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { calculateDeviceOperationalStatus } from '../telemetry/device-status.utils';
 import { TemperatureLog } from '../telemetry/entities/temperature-log.entity';
-import { MaintenanceService } from '../maintenance/maintenance.service';
 import { performance } from 'perf_hooks';
+import {
+  DEFAULT_MAINTENANCE_THRESHOLD_HOURS,
+  MAINTENANCE_PREVENTIVE_HOURS,
+  MAINTENANCE_URGENT_HOURS,
+} from '../maintenance/constants/maintenance.constants';
+import { DeviceMaintenance } from '../maintenance/entities/device-maintenance.entity';
 
 @Injectable()
 export class DevicesService {
@@ -35,8 +38,6 @@ export class DevicesService {
     private readonly subscriptionsService: SubscriptionsService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
-    @Inject(forwardRef(() => MaintenanceService))
-    private readonly maintenanceService: MaintenanceService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
@@ -641,9 +642,59 @@ export class DevicesService {
     let maintenance = null;
     if (planCode === 'plus' || planCode === 'pro') {
       try {
-        maintenance = await this.maintenanceService.getStatus(id);
+        const maintenanceRepo = this.dataSource.getRepository(DeviceMaintenance);
+        let mEntity = await maintenanceRepo.findOne({
+          where: { device_id: id },
+        });
+
+        if (!mEntity) {
+          mEntity = maintenanceRepo.create({
+            device_id: id,
+            threshold_hours: DEFAULT_MAINTENANCE_THRESHOLD_HOURS,
+            usage_seconds_accumulated: 0,
+          });
+          mEntity = await maintenanceRepo.save(mEntity);
+        }
+
+        const usageHours = Number(
+          (mEntity.usage_seconds_accumulated / 3600).toFixed(2),
+        );
+        const percentage = Math.min(
+          100,
+          Math.round(
+            (mEntity.usage_seconds_accumulated /
+              (mEntity.threshold_hours * 3600)) *
+              100,
+          ),
+        );
+
+        let maintenanceStatus = 'ok';
+        if (usageHours >= MAINTENANCE_URGENT_HOURS) {
+          maintenanceStatus = 'urgent';
+        } else if (usageHours >= MAINTENANCE_PREVENTIVE_HOURS) {
+          maintenanceStatus = 'preventive';
+        }
+
+        maintenance = {
+          device_id: mEntity.device_id,
+          usage_seconds_accumulated: mEntity.usage_seconds_accumulated,
+          usage_hours: usageHours,
+          threshold_hours: mEntity.threshold_hours,
+          preventive_threshold_hours: MAINTENANCE_PREVENTIVE_HOURS,
+          urgent_threshold_hours: MAINTENANCE_URGENT_HOURS,
+          percentage: percentage,
+          maintenance_status: maintenanceStatus,
+          requires_maintenance: percentage >= 100,
+          requires_preventive_maintenance:
+            usageHours >= MAINTENANCE_PREVENTIVE_HOURS,
+          requires_urgent_maintenance: usageHours >= MAINTENANCE_URGENT_HOURS,
+          last_notified_at: mEntity.last_notified_at,
+          last_preventive_notified_at: mEntity.last_preventive_notified_at,
+          last_urgent_notified_at: mEntity.last_urgent_notified_at,
+          last_reset_at: mEntity.last_reset_at,
+        };
       } catch (e) {
-        console.error(`[DevicesService] Error fetching maintenance for device ${id}:`, e);
+        console.error(`[DevicesService] Error calculating maintenance for device ${id}:`, e);
       }
     }
 

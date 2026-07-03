@@ -3,8 +3,6 @@ import {
   NotFoundException,
   ForbiddenException,
   Logger,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
@@ -27,7 +25,6 @@ export class MaintenanceService {
   constructor(
     @InjectRepository(DeviceMaintenance)
     private readonly maintenanceRepository: Repository<DeviceMaintenance>,
-    @Inject(forwardRef(() => DevicesService))
     private readonly devicesService: DevicesService,
     private readonly alertsService: AlertsService,
     private readonly pushNotificationsService: PushNotificationsService,
