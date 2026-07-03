@@ -38,6 +38,15 @@ export class DevicesController {
     return this.devicesService.enrichDeviceWithStatus(device);
   }
 
+  @Get(':id/detail')
+  async getDeviceDetail(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id;
+    return this.devicesService.getDeviceDetail(id, userId);
+  }
+
   @Post('shared/add')
   shareDevice(@Body() shareDeviceDto: ShareDeviceDto) {
     return this.devicesService.shareDevice(shareDeviceDto);

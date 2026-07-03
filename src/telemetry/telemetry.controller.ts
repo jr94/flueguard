@@ -49,6 +49,21 @@ export class TelemetryController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('device/:deviceId/chart')
+  getDeviceChart(
+    @Param('deviceId', ParseIntPipe) deviceId: number,
+    @Query('view') view: string,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id;
+    return this.telemetryService.getDeviceChart(
+      userId,
+      deviceId,
+      view || 'hour',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('lastTemp/user/:userId')
   getLastTempForUserDevices(@Param('userId', ParseIntPipe) userId: number) {
     return this.telemetryService.getLastTempForUserDevices(userId);

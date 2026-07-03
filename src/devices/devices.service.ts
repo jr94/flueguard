@@ -4,6 +4,8 @@ import {
   NotFoundException,
   UnauthorizedException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -17,6 +19,8 @@ import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { calculateDeviceOperationalStatus } from '../telemetry/device-status.utils';
 import { TemperatureLog } from '../telemetry/entities/temperature-log.entity';
+import { MaintenanceService } from '../maintenance/maintenance.service';
+import { performance } from 'perf_hooks';
 
 @Injectable()
 export class DevicesService {
@@ -31,6 +35,8 @@ export class DevicesService {
     private readonly subscriptionsService: SubscriptionsService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    @Inject(forwardRef(() => MaintenanceService))
+    private readonly maintenanceService: MaintenanceService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
@@ -507,6 +513,171 @@ export class DevicesService {
       device_id: deviceId,
       user_id: userId,
       notifications_enabled: userDevice.notifications_enabled,
+    };
+  }
+
+  async getDeviceDetail(id: number, userId: number): Promise<any> {
+    const startTime = performance.now();
+
+    // 1. Validar existencia del dispositivo
+    const device = await this.deviceRepository.findOne({ where: { id } });
+    if (!device) {
+      throw new NotFoundException(`Device with ID ${id} not found`);
+    }
+
+    // 2. Validar acceso del usuario
+    const userDeviceLink = await this.userDeviceRepository.findOne({
+      where: { user_id: userId, device_id: id },
+    });
+    if (!userDeviceLink) {
+      throw new ForbiddenException('No tienes acceso a este dispositivo');
+    }
+
+    // 3. Obtener logs (last_log y recent_logs)
+    const tempLogRepo = this.dataSource.getRepository(TemperatureLog);
+    
+    const lastLog = await tempLogRepo.findOne({
+      where: { device_id: id },
+      order: { id: 'DESC' },
+    });
+
+    const recentLogsDesc = await tempLogRepo.find({
+      where: { device_id: id },
+      order: { id: 'DESC' },
+      take: 10,
+    });
+    const recent_logs = [...recentLogsDesc].reverse();
+
+    // 4. Calcular connection_state y minutes_since_last_log
+    const lastTemp = lastLog ? Number(lastLog.temperature) : null;
+    const lastLogAt = lastLog ? lastLog.created_at : null;
+    const now = new Date();
+
+    const connection_state = calculateDeviceOperationalStatus({
+      lastTemperature: lastTemp,
+      lastLogAt,
+      now,
+    });
+
+    let minutes_since_last_log: number | null = null;
+    if (lastLogAt) {
+      const diffMs = now.getTime() - new Date(lastLogAt).getTime();
+      minutes_since_last_log = Math.max(0, Math.floor(diffMs / (60 * 1000)));
+    }
+
+    const deviceData = {
+      id: device.id,
+      serial_number: device.serial_number,
+      model: device.model,
+      device_name: device.device_name,
+      status: device.status,
+      firmware_version: device.firmware_version,
+      last_connection: device.last_connection,
+      ip_address: device.ip_address,
+      region_id: device.region_id,
+      comuna_id: device.comuna_id,
+      direccion: device.direccion,
+      created_at: device.created_at,
+      updated_at: device.updated_at,
+      connection_state,
+      minutes_since_last_log,
+    };
+
+    // 5. Ajustes del dispositivo
+    const settingsEntity = await this.deviceSettingRepository.findOne({
+      where: { device_id: id },
+    });
+
+    // 6. Suscripción y feature flags
+    const planFeatures = await this.subscriptionsService.getUserPlanFeatures(userId);
+    const activeSub = await this.subscriptionsService.getActiveSubscriptionByUserId(userId);
+    
+    const planCode = planFeatures.plan_code || 'basic';
+    const planName = planFeatures.plan_name || 'FlueGuard Básico';
+    const subStatus = activeSub ? activeSub.status : 'inactive';
+
+    const subscription = {
+      plan_name: planName,
+      plan_code: planCode,
+      status: subStatus,
+    };
+
+    const settings = settingsEntity
+      ? {
+          id: settingsEntity.id,
+          device_id: settingsEntity.device_id,
+          type_device: settingsEntity.type_device,
+          threshold_1: settingsEntity.threshold_1 !== null ? Number(settingsEntity.threshold_1) : null,
+          threshold_2: settingsEntity.threshold_2 !== null ? Number(settingsEntity.threshold_2) : null,
+          threshold_3: settingsEntity.threshold_3 !== null ? Number(settingsEntity.threshold_3) : null,
+          notifications_enabled: settingsEntity.notifications_enabled,
+          sound_alarm_enabled: settingsEntity.sound_alarm_enabled,
+          sound_alarm_temp_low: settingsEntity.sound_alarm_temp_low,
+          timezone: settingsEntity.timezone,
+          created_at: settingsEntity.created_at,
+          updated_at: settingsEntity.updated_at,
+          owner: userDeviceLink.owner ? 1 : 0,
+          edit: userDeviceLink.edit ? 1 : 0,
+          region_id: device.region_id,
+          comuna_id: device.comuna_id,
+          direccion: device.direccion,
+          plan_name: planCode,
+        }
+      : null;
+
+    const feature_flags = {
+      show_metrics_analysis: planCode === 'pro',
+      show_maintenance: planCode === 'plus' || planCode === 'pro',
+      can_use_low_temperature_reminder: planCode === 'plus' || planCode === 'pro',
+      can_use_prediction_curve: planCode === 'plus' || planCode === 'pro',
+      allowed_history_views: planCode === 'pro'
+        ? ['hour', 'day', 'week', 'month']
+        : planCode === 'plus'
+        ? ['hour', 'day', 'week']
+        : ['hour'],
+    };
+
+    // 7. Mantención (si aplica)
+    let maintenance = null;
+    if (planCode === 'plus' || planCode === 'pro') {
+      try {
+        maintenance = await this.maintenanceService.getStatus(id);
+      } catch (e) {
+        console.error(`[DevicesService] Error fetching maintenance for device ${id}:`, e);
+      }
+    }
+
+    // 8. Permisos
+    const permissions = {
+      owner: userDeviceLink.owner ? 1 : 0,
+      edit: userDeviceLink.edit ? 1 : 0,
+      notifications_enabled: userDeviceLink.notifications_enabled ? 1 : 0,
+    };
+
+    const duration = performance.now() - startTime;
+    console.log(`[PERFORMANCE] getDeviceDetail for device ID ${id} took ${duration.toFixed(2)}ms`);
+
+    return {
+      device: deviceData,
+      settings,
+      last_log: lastLog
+        ? {
+            id: lastLog.id,
+            device_id: lastLog.device_id,
+            temperature: Number(lastLog.temperature),
+            created_at: lastLog.created_at,
+          }
+        : null,
+      recent_logs: recent_logs.map((log) => ({
+        id: log.id,
+        device_id: log.device_id,
+        temperature: Number(log.temperature),
+        created_at: log.created_at,
+      })),
+      subscription,
+      feature_flags,
+      maintenance,
+      permissions,
     };
   }
 }

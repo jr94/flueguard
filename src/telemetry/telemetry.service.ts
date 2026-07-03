@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { DateTime } from 'luxon';
+import { performance } from 'perf_hooks';
 import { calculatePredictiveCurveAlert } from './predictive-alert.utils';
 import { calculateDeviceOperationalStatus } from './device-status.utils';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -403,6 +404,16 @@ export class TelemetryService {
 
     // 4. Ejecutar query según la vista
     return this.executeHistoryQuery(deviceId, view);
+  }
+
+  async getDeviceChart(userId: number, deviceId: number, view: string) {
+    const start = performance.now();
+    const result = await this.getDeviceHistory(userId, deviceId, view);
+    const duration = performance.now() - start;
+    console.log(
+      `[PERFORMANCE] GET /telemetry/device/${deviceId}/chart?view=${view} took ${duration.toFixed(2)}ms, returned ${result.length} records`,
+    );
+    return result;
   }
 
   private validateHistoryAccess(view: string, historyDays: number) {
