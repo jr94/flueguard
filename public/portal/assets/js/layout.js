@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const topNav = document.getElementById('top-nav');
         if (topNav) topNav.style.display = 'none';
         
+        const mainWrapper = document.querySelector('.main-wrapper');
+        if (mainWrapper) mainWrapper.style.display = 'none';
+        
         setupLoginHandler();
         return;
     }
@@ -92,6 +95,9 @@ function setupLayoutUI(user) {
     const topNav = document.getElementById('top-nav');
     if (sidebar) sidebar.style.display = 'flex';
     if (topNav) topNav.style.display = 'flex';
+    
+    const mainWrapper = document.querySelector('.main-wrapper');
+    if (mainWrapper) mainWrapper.style.display = 'flex';
     
     // Admin class
     if (user.role === 'admin') {
