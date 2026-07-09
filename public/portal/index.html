@@ -301,7 +301,80 @@
         }
     </script>
 
-    <script src="assets/js/dashboard.js"></script>
+    <script>
+        /*
+        * Carga el dashboard solo si existe una sesión válida.
+        * Evita que al cerrar sesión se pidan métricas sin token.
+        */
+        (function loadDashboardOnlyWhenAuthenticated() {
+            const possibleTokenKeys = [
+                'token',
+                'access_token',
+                'authToken',
+                'jwt',
+                'flueguard_token',
+                'flueguardToken',
+                'admin_token',
+                'portal_token'
+            ];
+
+            function getStoredToken() {
+                for (const key of possibleTokenKeys) {
+                    const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+                    if (value && value !== 'null' && value !== 'undefined') {
+                        return value;
+                    }
+                }
+
+                return null;
+            }
+
+            function isJwtExpired(token) {
+                try {
+                    const payloadBase64 = token.split('.')[1];
+                    if (!payloadBase64) return false;
+
+                    const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+                    const payload = JSON.parse(payloadJson);
+
+                    if (!payload.exp) return false;
+
+                    const nowInSeconds = Math.floor(Date.now() / 1000);
+                    return payload.exp <= nowInSeconds;
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            function showLoginOnly() {
+                const loginView = document.getElementById('login-view');
+                const sidebar = document.getElementById('main-sidebar');
+                const topNav = document.getElementById('top-nav');
+                const metricsGrid = document.getElementById('metrics-grid');
+                const dashboardLoader = document.getElementById('dashboard-loader');
+                const dashboardError = document.getElementById('dashboard-error');
+
+                if (loginView) loginView.style.display = 'block';
+                if (sidebar) sidebar.style.display = 'none';
+                if (topNav) topNav.style.display = 'none';
+                if (metricsGrid) metricsGrid.style.display = 'none';
+                if (dashboardLoader) dashboardLoader.style.display = 'none';
+                if (dashboardError) dashboardError.style.display = 'none';
+            }
+
+            const token = getStoredToken();
+
+            if (!token || isJwtExpired(token)) {
+                showLoginOnly();
+                return;
+            }
+
+            const dashboardScript = document.createElement('script');
+            dashboardScript.src = 'assets/js/dashboard.js';
+            dashboardScript.defer = true;
+            document.body.appendChild(dashboardScript);
+        })();
+    </script>
 </body>
 
 </html>
