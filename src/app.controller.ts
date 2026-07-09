@@ -19,6 +19,12 @@ export class AppController {
 
   @Get('portal/device/:serial')
   getPortalDevicePage(@Res() res: Response) {
-    res.sendFile(join(process.cwd(), 'public', 'portal', 'device', 'index.html'));
+    const filePath = join(process.cwd(), 'public', 'portal', 'device', 'index.html');
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error('Error serving device page:', err);
+        res.status(500).send(err.message);
+      }
+    });
   }
 }
