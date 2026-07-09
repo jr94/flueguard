@@ -270,7 +270,30 @@
                 beforeUpdate(chart) {
                     if (!chart.data || !Array.isArray(chart.data.labels)) return;
 
-                    chart.data.labels = chart.data.labels.map(label => {
+                    const currentLabels = chart.data.labels.map(label => String(label));
+
+                    const formattedPreviousLabels = chart.$fgOriginalLabels
+                        ? chart.$fgOriginalLabels.map(label => String(window.FlueGuardDate.formatChileLabel(label)))
+                        : [];
+
+                    const alreadyFormatted =
+                        chart.$fgOriginalLabels &&
+                        currentLabels.length === formattedPreviousLabels.length &&
+                        currentLabels.every((label, index) => label === formattedPreviousLabels[index]);
+
+                    /*
+                    * Si los labels actuales no son los labels ya convertidos,
+                    * entonces son labels nuevos desde dashboard.js y se guardan como originales.
+                    */
+                    if (!alreadyFormatted) {
+                        chart.$fgOriginalLabels = [...chart.data.labels];
+                    }
+
+                    /*
+                    * Siempre mostramos los labels convertidos desde los originales,
+                    * nunca desde labels ya convertidos.
+                    */
+                    chart.data.labels = chart.$fgOriginalLabels.map(label => {
                         return window.FlueGuardDate.formatChileLabel(label);
                     });
                 }
