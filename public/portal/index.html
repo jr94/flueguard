@@ -304,7 +304,7 @@
     <script>
         /*
         * Carga dashboard.js solo cuando el portal está visible.
-        * No usa offsetParent, porque puede fallar con elementos fixed.
+        * Compatible con dashboard.js que usa DOMContentLoaded.
         */
         (function loadDashboardWhenPortalIsVisible() {
             function isDisplayed(element) {
@@ -335,10 +335,39 @@
                     return;
                 }
 
+                /*
+                * dashboard.js probablemente usa DOMContentLoaded.
+                * Como el script se carga después, interceptamos ese listener
+                * y ejecutamos el callback inmediatamente.
+                */
+                const originalAddEventListener = document.addEventListener.bind(document);
+
+                document.addEventListener = function (type, listener, options) {
+                    if (
+                        type === 'DOMContentLoaded' &&
+                        document.readyState !== 'loading' &&
+                        typeof listener === 'function'
+                    ) {
+                        setTimeout(listener, 0);
+                        return;
+                    }
+
+                    return originalAddEventListener(type, listener, options);
+                };
+
                 const dashboardScript = document.createElement('script');
                 dashboardScript.src = 'assets/js/dashboard.js';
-                dashboardScript.defer = true;
                 dashboardScript.dataset.flueguardDashboard = 'true';
+
+                dashboardScript.onload = function () {
+                    document.addEventListener = originalAddEventListener;
+                };
+
+                dashboardScript.onerror = function () {
+                    document.addEventListener = originalAddEventListener;
+                    console.error('No se pudo cargar assets/js/dashboard.js');
+                };
+
                 document.body.appendChild(dashboardScript);
             }
 
@@ -358,25 +387,16 @@
                 return true;
             }
 
-            /*
-            * Intento inicial.
-            */
             if (tryLoadDashboard()) {
                 return;
             }
 
-            /*
-            * Espera a que auth.js/layout.js muestre el portal.
-            */
             const interval = setInterval(() => {
                 if (tryLoadDashboard()) {
                     clearInterval(interval);
                 }
             }, 200);
 
-            /*
-            * Seguridad para no dejar intervalos eternos.
-            */
             setTimeout(() => {
                 clearInterval(interval);
             }, 15000);
