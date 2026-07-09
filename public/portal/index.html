@@ -303,47 +303,80 @@
 
     <script>
         /*
-        * Carga el dashboard solo si existe una sesión válida.
-        * Evita que al cerrar sesión se pidan métricas sin token.
+        * Carga dashboard.js solo cuando existe una sesión válida.
+        * Además evita que el login quede visible encima del portal.
         */
         (function loadDashboardOnlyWhenAuthenticated() {
-            const possibleTokenKeys = [
-                'token',
-                'access_token',
-                'authToken',
-                'jwt',
-                'flueguard_token',
-                'flueguardToken',
-                'admin_token',
-                'portal_token'
-            ];
+            function isJwtLike(value) {
+                return typeof value === 'string'
+                    && value.split('.').length === 3
+                    && value.length > 40;
+            }
 
-            function getStoredToken() {
-                for (const key of possibleTokenKeys) {
-                    const value = localStorage.getItem(key) || sessionStorage.getItem(key);
-                    if (value && value !== 'null' && value !== 'undefined') {
-                        return value;
+            function decodeJwtPayload(token) {
+                try {
+                    const payloadBase64 = token.split('.')[1];
+                    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+                    return JSON.parse(atob(normalized));
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function isJwtExpired(token) {
+                const payload = decodeJwtPayload(token);
+
+                if (!payload || !payload.exp) {
+                    return false;
+                }
+
+                const nowInSeconds = Math.floor(Date.now() / 1000);
+                return payload.exp <= nowInSeconds;
+            }
+
+            function findValidTokenInStorage() {
+                const storages = [localStorage, sessionStorage];
+
+                for (const storage of storages) {
+                    for (let i = 0; i < storage.length; i++) {
+                        const key = storage.key(i);
+                        const value = storage.getItem(key);
+
+                        /*
+                        * Caso 1: el valor guardado es directamente el JWT.
+                        */
+                        if (isJwtLike(value) && !isJwtExpired(value)) {
+                            return value;
+                        }
+
+                        /*
+                        * Caso 2: el JWT viene dentro de un JSON:
+                        * { access_token: "...", user: {...} }
+                        * { token: "..." }
+                        */
+                        try {
+                            const parsed = JSON.parse(value);
+
+                            const possibleTokens = [
+                                parsed?.token,
+                                parsed?.access_token,
+                                parsed?.accessToken,
+                                parsed?.jwt,
+                                parsed?.authToken
+                            ];
+
+                            for (const token of possibleTokens) {
+                                if (isJwtLike(token) && !isJwtExpired(token)) {
+                                    return token;
+                                }
+                            }
+                        } catch (error) {
+                            // No era JSON, se ignora.
+                        }
                     }
                 }
 
                 return null;
-            }
-
-            function isJwtExpired(token) {
-                try {
-                    const payloadBase64 = token.split('.')[1];
-                    if (!payloadBase64) return false;
-
-                    const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
-                    const payload = JSON.parse(payloadJson);
-
-                    if (!payload.exp) return false;
-
-                    const nowInSeconds = Math.floor(Date.now() / 1000);
-                    return payload.exp <= nowInSeconds;
-                } catch (error) {
-                    return false;
-                }
             }
 
             function showLoginOnly() {
@@ -362,19 +395,42 @@
                 if (dashboardError) dashboardError.style.display = 'none';
             }
 
-            const token = getStoredToken();
+            function showPortalOnly() {
+                const loginView = document.getElementById('login-view');
 
-            if (!token || isJwtExpired(token)) {
+                /*
+                * Esto corrige el problema visual:
+                * si hay sesión válida, nunca debe quedar visible el login.
+                */
+                if (loginView) {
+                    loginView.style.display = 'none';
+                }
+            }
+
+            function loadDashboardScript() {
+                if (document.querySelector('script[data-flueguard-dashboard="true"]')) {
+                    return;
+                }
+
+                const dashboardScript = document.createElement('script');
+                dashboardScript.src = 'assets/js/dashboard.js';
+                dashboardScript.defer = true;
+                dashboardScript.dataset.flueguardDashboard = 'true';
+                document.body.appendChild(dashboardScript);
+            }
+
+            const token = findValidTokenInStorage();
+
+            if (!token) {
                 showLoginOnly();
                 return;
             }
 
-            const dashboardScript = document.createElement('script');
-            dashboardScript.src = 'assets/js/dashboard.js';
-            dashboardScript.defer = true;
-            document.body.appendChild(dashboardScript);
+            showPortalOnly();
+            loadDashboardScript();
         })();
     </script>
+
 </body>
 
 </html>
