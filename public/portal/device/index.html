@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle de Dispositivo | FlueGuard Portal</title>
-    <link rel="stylesheet" href="../assets/css/styles.css">
+    <title>Detalle de Dispositivo - FlueGuard Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/portal/assets/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="../assets/js/auth.js"></script>
+    <script src="/portal/assets/js/auth.js"></script>
     <script>
         Auth.checkAuth();
     </script>
 </head>
 <body>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar" id="main-sidebar" style="display: none;">
         <div class="sidebar-header">
-            <div class="logo">🔥 FlueGuard</div>
+            <span class="nav-brand">FlueGuard Portal</span>
         </div>
-        <nav class="sidebar-menu">
-            <a href="/portal" class="sidebar-item" id="nav-item-dashboard">
-                <span class="sidebar-icon">📊</span> Panel Principal
-            </a>
+        <nav class="sidebar-nav">
             <a href="/portal/devices" class="sidebar-item" id="nav-item-devices">
-                <span class="sidebar-icon">🔥</span> Dispositivos
+                <span class="sidebar-icon">📱</span> Dispositivos
             </a>
             <a href="/portal/user" class="sidebar-item admin-only" id="nav-item-user">
                 <span class="sidebar-icon">👥</span> Usuarios FlueGuard
@@ -40,7 +42,7 @@
         </div>
     </aside>
 
-    <div class="main-wrapper" style="display: none;">
+    <div class="main-wrapper">
         <!-- Top Navbar -->
         <header class="dashboard-nav" id="top-nav" style="display: none;">
             <div class="section-title">
@@ -78,9 +80,6 @@
 
         <!-- Main Content Area -->
         <main class="dashboard-content">
-            <!-- Toast notification -->
-            <div id="toast" class="toast"></div>
-
             <div class="back-link-container">
                 <a href="/portal/devices" class="back-btn">← Volver al listado</a>
             </div>
@@ -279,8 +278,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/layout.js"></script>
-    <script src="device-detail.js"></script>
+    <script src="/portal/assets/js/api.js"></script>
+    <script src="/portal/assets/js/layout.js"></script>
+    <script src="/portal/device/device-detail.js"></script>
 </body>
 </html>

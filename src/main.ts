@@ -29,6 +29,7 @@ async function bootstrap() {
       { path: 'manuales', method: RequestMethod.GET },
       { path: 'manuales/(.*)', method: RequestMethod.GET },
       { path: 'portal/device/:serial', method: RequestMethod.GET },
+      { path: 'portal/device/:serial/', method: RequestMethod.GET },
     ],
   });
 

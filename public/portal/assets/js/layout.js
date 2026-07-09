@@ -166,7 +166,8 @@ function setupLayoutUI(user) {
         const elementId = navItems[path];
         const el = document.getElementById(elementId);
         if (el) {
-            if (pathname.includes(path)) {
+            const isDeviceDetail = (path === '/portal/devices' && pathname.includes('/portal/device/'));
+            if (pathname.includes(path) || isDeviceDetail) {
                 el.classList.add('active');
             } else {
                 el.classList.remove('active');

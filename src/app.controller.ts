@@ -14,7 +14,7 @@ export class AppController {
     res.sendFile(join(process.cwd(), 'public', 'links.html'));
   }
 
-  @Get('portal/device/:serial')
+  @Get(['portal/device/:serial', 'portal/device/:serial/'])
   getPortalDevicePage(@Res() res: Response) {
     const filePath = join(process.cwd(), 'public', 'portal', 'device', 'index.html');
     res.sendFile(filePath, (err) => {
