@@ -48,7 +48,7 @@ import { ManualesModule } from './manuales/manuales.module';
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'public'),
       exclude: [
-        '/api/*',
+        '/api/:path*',
         '/firmware/check',
         '/firmware/latest.json',
         '/firmware/versions.json',
