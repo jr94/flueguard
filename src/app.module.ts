@@ -13,18 +13,7 @@ import { DeviceSettingsModule } from './device-settings/device-settings.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { PushTokensModule } from './push-tokens/push-tokens.module';
 
-@Controller()
-export class AppController {
-  @Get()
-  getHello(): string {
-    return 'Hello World!';
-  }
-
-  @Get('links')
-  getLinksPage(@Res() res: Response) {
-    res.sendFile(join(process.cwd(), 'public', 'links.html'));
-  }
-}
+import { AppController } from './app.controller';
 import { PushNotificationsModule } from './push-notifications/push-notifications.module';
 import { ForgotPasswordModule } from './auth/forgot-password/forgot-password.module';
 import { MailModule } from './mail/mail.module';
