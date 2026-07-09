@@ -4,15 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlueGuard Portal</title>
+    <meta name="description" content="Portal administrativo de FlueGuard — métricas y gestión de dispositivos y usuarios.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="assets/js/auth.js"></script>
 </head>
 <body>
 
     <!-- Notification Toast -->
     <div id="toast" class="toast"></div>
 
-    <!-- Login View -->
+    <!-- Login View (shown only when not authenticated) -->
     <div id="login-view" class="view">
         <div class="login-container">
             <div class="login-header">
@@ -33,9 +36,6 @@
                     <span class="loader" style="display: none;"></span>
                 </button>
             </form>
-            <div class="back-home">
-                <a href="/">← Volver al inicio</a>
-            </div>
         </div>
     </div>
 
@@ -45,6 +45,9 @@
             <span class="nav-brand">FlueGuard Portal</span>
         </div>
         <nav class="sidebar-nav">
+            <a href="/portal" class="sidebar-item" id="nav-item-home">
+                <span class="sidebar-icon">📊</span> Principal
+            </a>
             <a href="/portal/devices" class="sidebar-item" id="nav-item-devices">
                 <span class="sidebar-icon">📱</span> Dispositivos
             </a>
@@ -68,7 +71,7 @@
         <!-- Top Navbar -->
         <header class="dashboard-nav" id="top-nav" style="display: none;">
             <div class="section-title">
-                <h2 id="view-title">Inicio</h2>
+                <h2 id="view-title">Principal</h2>
             </div>
             <div class="nav-actions">
                 <!-- Notifications -->
@@ -79,9 +82,7 @@
                     </button>
                     <div class="notifications-dropdown" id="notifications-dropdown" style="display: none;">
                         <div class="notifications-header">Notificaciones</div>
-                        <div class="notifications-list" id="notifications-list">
-                            <!-- Items dinámicos -->
-                        </div>
+                        <div class="notifications-list" id="notifications-list"></div>
                         <button class="clear-notifications-btn" id="clear-notifications-btn">Limpiar todas</button>
                     </div>
                 </div>
@@ -102,17 +103,78 @@
 
         <!-- Main Content Area -->
         <main class="dashboard-content">
-            <div class="welcome-container" style="text-align: center; margin-top: 10%; color: var(--text-secondary);">
-                <div style="font-size: 4rem; margin-bottom: 1rem;">🔥</div>
-                <h2>Bienvenido al Portal de FlueGuard</h2>
-                <p style="margin-top: 0.5rem;">Utiliza el menú lateral para navegar por las secciones disponibles.</p>
+
+            <!-- Loading State -->
+            <div id="dashboard-loader" class="dashboard-loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Cargando métricas...</p>
             </div>
+
+            <!-- Error State -->
+            <div id="dashboard-error" class="dashboard-error" style="display: none;">
+                <span class="dashboard-error-icon">⚠️</span>
+                <span class="dashboard-error-msg">No se pudieron cargar las métricas del dashboard.</span>
+            </div>
+
+            <!-- Metrics Grid -->
+            <section class="dashboard-metrics-grid" id="metrics-grid" style="display: none;">
+
+                <!-- Card 1: Dispositivos Totales -->
+                <article class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-title">Dispositivos totales</span>
+                        <span class="metric-icon">🔥</span>
+                    </div>
+                    <div class="metric-value" id="metric-total-devices">—</div>
+                    <div class="metric-chart-container">
+                        <canvas id="chart-total-devices"></canvas>
+                    </div>
+                </article>
+
+                <!-- Card 2: Usuarios Totales -->
+                <article class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-title">Usuarios totales</span>
+                        <span class="metric-icon">👥</span>
+                    </div>
+                    <div class="metric-value" id="metric-total-users">—</div>
+                    <div class="metric-chart-container">
+                        <canvas id="chart-total-users"></canvas>
+                    </div>
+                </article>
+
+                <!-- Card 3: Dispositivos Activos -->
+                <article class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-title">Dispositivos activos</span>
+                        <span class="metric-icon">✅</span>
+                    </div>
+                    <div class="metric-value" id="metric-active-devices">—</div>
+                    <div class="metric-chart-container">
+                        <canvas id="chart-active-devices"></canvas>
+                    </div>
+                </article>
+
+                <!-- Card 4: Dispositivos Desconectados -->
+                <article class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-title">Desconectados</span>
+                        <span class="metric-icon">🔌</span>
+                    </div>
+                    <div class="metric-value" id="metric-disconnected-devices">—</div>
+                    <div class="metric-chart-container">
+                        <canvas id="chart-disconnected-devices"></canvas>
+                    </div>
+                </article>
+
+            </section>
+
         </main>
     </div>
 
     <!-- Scripts -->
-    <script src="assets/js/auth.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/layout.js"></script>
+    <script src="assets/js/dashboard.js"></script>
 </body>
 </html>

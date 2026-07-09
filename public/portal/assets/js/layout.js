@@ -156,18 +156,32 @@ function setupLayoutUI(user) {
     
     // Mark active nav items in sidebar
     const pathname = window.location.pathname;
-    const navItems = {
-        '/portal/devices': 'nav-item-devices',
-        '/portal/user': 'nav-item-user',
-        '/portal/admin': 'nav-item-admin'
-    };
-    
-    Object.keys(navItems).forEach(path => {
-        const elementId = navItems[path];
-        const el = document.getElementById(elementId);
+
+    // Principal: active only on exact /portal root
+    const homeEl = document.getElementById('nav-item-home');
+    if (homeEl) {
+        if (pathname === '/portal' || pathname === '/portal/') {
+            homeEl.classList.add('active');
+        } else {
+            homeEl.classList.remove('active');
+        }
+    }
+
+    // Devices: active on /portal/devices AND /portal/device/* (detail)
+    const devicesEl = document.getElementById('nav-item-devices');
+    if (devicesEl) {
+        if (pathname.startsWith('/portal/devices') || pathname.startsWith('/portal/device/')) {
+            devicesEl.classList.add('active');
+        } else {
+            devicesEl.classList.remove('active');
+        }
+    }
+
+    // User / Admin: simple prefix match
+    [{ path: '/portal/user', id: 'nav-item-user' }, { path: '/portal/admin', id: 'nav-item-admin' }].forEach(({ path, id }) => {
+        const el = document.getElementById(id);
         if (el) {
-            const isDeviceDetail = (path === '/portal/devices' && pathname.includes('/portal/device/'));
-            if (pathname.includes(path) || isDeviceDetail) {
+            if (pathname.startsWith(path)) {
                 el.classList.add('active');
             } else {
                 el.classList.remove('active');

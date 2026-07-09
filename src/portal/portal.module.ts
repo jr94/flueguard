@@ -7,6 +7,8 @@ import { PortalUser } from './entities/portal-user.entity';
 import { PortalPermission } from './entities/portal-permission.entity';
 import { PortalAuthService } from './portal-auth.service';
 import { PortalAuthController } from './portal-auth.controller';
+import { PortalDashboardService } from './portal-dashboard.service';
+import { PortalDashboardController } from './portal-dashboard.controller';
 import { AuthModule } from '../auth/auth.module';
 import { DeviceFirmwareUpdatesModule } from '../device-firmware-updates/device-firmware-updates.module';
 import { UsersModule } from '../users/users.module';
@@ -29,8 +31,9 @@ import { UsersModule } from '../users/users.module';
       }),
     }),
   ],
-  providers: [PortalAuthService],
-  controllers: [PortalAuthController],
+  providers: [PortalAuthService, PortalDashboardService],
+  controllers: [PortalAuthController, PortalDashboardController],
   exports: [PortalAuthService],
 })
 export class PortalModule {}
+
