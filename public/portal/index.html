@@ -303,22 +303,28 @@
 
     <script>
         /*
-         * Carga dashboard.js solo cuando el portal ya está visible.
-         * No intenta adivinar el nombre del token.
-         * Evita cargar métricas cuando está visible el login.
-         */
+        * Carga dashboard.js solo cuando el portal está visible.
+        * No usa offsetParent, porque puede fallar con elementos fixed.
+        */
         (function loadDashboardWhenPortalIsVisible() {
-            function isVisible(element) {
+            function isDisplayed(element) {
                 if (!element) return false;
 
                 const style = window.getComputedStyle(element);
+
                 return style.display !== 'none'
                     && style.visibility !== 'hidden'
-                    && element.offsetParent !== null;
+                    && style.opacity !== '0';
             }
 
-            function hideDashboardError() {
+            function hideLoginAndError() {
+                const loginView = document.getElementById('login-view');
                 const dashboardError = document.getElementById('dashboard-error');
+
+                if (loginView) {
+                    loginView.style.display = 'none';
+                }
+
                 if (dashboardError) {
                     dashboardError.style.display = 'none';
                 }
@@ -336,32 +342,44 @@
                 document.body.appendChild(dashboardScript);
             }
 
-            const interval = setInterval(() => {
-                const loginView = document.getElementById('login-view');
+            function tryLoadDashboard() {
                 const sidebar = document.getElementById('main-sidebar');
                 const topNav = document.getElementById('top-nav');
 
-                const loginVisible = isVisible(loginView);
-                const portalVisible = isVisible(sidebar) || isVisible(topNav);
+                const portalVisible = isDisplayed(sidebar) || isDisplayed(topNav);
 
-                /*
-                 * Si el portal está visible y el login no está visible,
-                 * significa que hay sesión iniciada.
-                 */
-                if (portalVisible && !loginVisible) {
-                    hideDashboardError();
-                    loadDashboardScript();
+                if (!portalVisible) {
+                    return false;
+                }
+
+                hideLoginAndError();
+                loadDashboardScript();
+
+                return true;
+            }
+
+            /*
+            * Intento inicial.
+            */
+            if (tryLoadDashboard()) {
+                return;
+            }
+
+            /*
+            * Espera a que auth.js/layout.js muestre el portal.
+            */
+            const interval = setInterval(() => {
+                if (tryLoadDashboard()) {
                     clearInterval(interval);
                 }
             }, 200);
 
             /*
-             * Seguridad: detener la espera después de 10 segundos.
-             * Si no hay sesión, simplemente queda el login.
-             */
+            * Seguridad para no dejar intervalos eternos.
+            */
             setTimeout(() => {
                 clearInterval(interval);
-            }, 10000);
+            }, 15000);
         })();
     </script>
 
