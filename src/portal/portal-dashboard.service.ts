@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class PortalDashboardService {
@@ -12,29 +11,24 @@ export class PortalDashboardService {
     const month = now.getUTCMonth() + 1;
     const day = now.getUTCDate();
 
-    // ISO date strings for month boundaries
     const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
     const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
     // ── CURRENT TOTALS ────────────────────────────────────────────────────
 
-    // 1. Total devices
     const [{ total_devices }] = await this.dataSource.query(
       `SELECT COUNT(*) AS total_devices FROM devices`,
     );
 
-    // 2. Total FlueGuard users (mobile app users)
     const [{ total_users }] = await this.dataSource.query(
       `SELECT COUNT(*) AS total_users FROM users`,
     );
 
-    // 3. Active devices: last log < 10 min ago AND temperature > 30
+    // Active: last log < 10 min AND temperature > 30
     const [{ active_devices }] = await this.dataSource.query(`
       SELECT COUNT(*) AS active_devices
       FROM (
-        SELECT tl.device_id,
-               tl.temperature,
-               tl.created_at
+        SELECT tl.device_id, tl.temperature, tl.created_at
         FROM temperature_logs tl
         INNER JOIN (
           SELECT device_id, MAX(created_at) AS last_log
@@ -46,14 +40,12 @@ export class PortalDashboardService {
         AND TIMESTAMPDIFF(MINUTE, created_at, UTC_TIMESTAMP()) < 10
     `);
 
-    // 4. Disconnected devices: no log, invalid temp, hot+old, or cold+very_old (excludes cold_idle)
+    // Disconnected: no log, invalid temp, hot+stale (≥10min), cold+very_stale (>60min)
     const [{ disconnected_devices }] = await this.dataSource.query(`
       SELECT COUNT(*) AS disconnected_devices
       FROM devices d
       LEFT JOIN (
-        SELECT tl.device_id,
-               tl.temperature,
-               tl.created_at
+        SELECT tl.device_id, tl.temperature, tl.created_at
         FROM temperature_logs tl
         INNER JOIN (
           SELECT device_id, MAX(created_at) AS last_log
@@ -63,19 +55,18 @@ export class PortalDashboardService {
       ) AS last_logs ON d.id = last_logs.device_id
       WHERE last_logs.device_id IS NULL
          OR last_logs.temperature IS NULL
-         OR (last_logs.temperature > 30 AND TIMESTAMPDIFF(MINUTE, last_logs.created_at, UTC_TIMESTAMP()) >= 10)
+         OR (last_logs.temperature > 30  AND TIMESTAMPDIFF(MINUTE, last_logs.created_at, UTC_TIMESTAMP()) >= 10)
          OR (last_logs.temperature <= 30 AND TIMESTAMPDIFF(MINUTE, last_logs.created_at, UTC_TIMESTAMP()) > 60)
     `);
 
-    // ── MONTHLY SERIES (day 1 → today) ────────────────────────────────────
+    // ── MONTHLY SERIES: total_devices & total_users (day 1 → today) ──────
 
-    // Build a calendar series for the current month
-    const labels: string[] = [];
+    const monthLabels: string[] = [];
     for (let d = 1; d <= day; d++) {
-      labels.push(String(d).padStart(2, '0'));
+      monthLabels.push(String(d).padStart(2, '0'));
     }
 
-    // Devices created count per day this month
+    // Devices created this month, per day
     const devicesByDay: Record<string, number> = {};
     const deviceCreatedRows: { day: string; cnt: string }[] =
       await this.dataSource.query(`
@@ -91,14 +82,12 @@ export class PortalDashboardService {
       devicesByDay[label] = Number(r.cnt);
     });
 
-    // Devices total until start of month (for cumulative baseline)
     const [{ baseline_devices }] = await this.dataSource.query(`
-      SELECT COUNT(*) AS baseline_devices
-      FROM devices
+      SELECT COUNT(*) AS baseline_devices FROM devices
       WHERE created_at < '${monthStart} 00:00:00'
     `);
 
-    // Users created count per day this month
+    // Users created this month, per day
     const usersByDay: Record<string, number> = {};
     const userCreatedRows: { day: string; cnt: string }[] =
       await this.dataSource.query(`
@@ -114,73 +103,87 @@ export class PortalDashboardService {
       usersByDay[label] = Number(r.cnt);
     });
 
-    // Users total until start of month (cumulative baseline)
     const [{ baseline_users }] = await this.dataSource.query(`
-      SELECT COUNT(*) AS baseline_users
-      FROM users
+      SELECT COUNT(*) AS baseline_users FROM users
       WHERE created_at < '${monthStart} 00:00:00'
     `);
 
-    // Active devices per day: distinct devices with at least one log > 30°C that day
-    const activeByDay: Record<string, number> = {};
-    const activeRows: { day: string; cnt: string }[] =
-      await this.dataSource.query(`
-        SELECT DATE(created_at) AS day,
-               COUNT(DISTINCT device_id) AS cnt
-        FROM temperature_logs
-        WHERE temperature > 30
-          AND created_at >= '${monthStart} 00:00:00'
-          AND created_at <= '${monthEnd} 23:59:59'
-        GROUP BY DATE(created_at)
-        ORDER BY DATE(created_at)
-      `);
-    activeRows.forEach((r) => {
-      const label = String(new Date(r.day).getUTCDate()).padStart(2, '0');
-      activeByDay[label] = Number(r.cnt);
-    });
-
-    // Cold-idle devices per day: distinct devices with log that day AND temperature <= 30
-    const coldByDay: Record<string, number> = {};
-    const coldRows: { day: string; cnt: string }[] =
-      await this.dataSource.query(`
-        SELECT DATE(created_at) AS day,
-               COUNT(DISTINCT device_id) AS cnt
-        FROM temperature_logs
-        WHERE temperature <= 30
-          AND created_at >= '${monthStart} 00:00:00'
-          AND created_at <= '${monthEnd} 23:59:59'
-        GROUP BY DATE(created_at)
-        ORDER BY DATE(created_at)
-      `);
-    coldRows.forEach((r) => {
-      const label = String(new Date(r.day).getUTCDate()).padStart(2, '0');
-      coldByDay[label] = Number(r.cnt);
-    });
-
-    // Build series arrays
+    // Build monthly cumulative arrays
     const monthTotalDevices: number[] = [];
     const monthTotalUsers: number[] = [];
-    const monthActiveDevices: number[] = [];
-    const monthDisconnectedDevices: number[] = [];
-
     let cumulativeDevices = Number(baseline_devices);
     let cumulativeUsers = Number(baseline_users);
 
-    for (const label of labels) {
+    for (const label of monthLabels) {
       cumulativeDevices += devicesByDay[label] ?? 0;
       cumulativeUsers += usersByDay[label] ?? 0;
-
-      const activeToday = activeByDay[label] ?? 0;
-      const coldToday = coldByDay[label] ?? 0;
-      const disconnectedToday = Math.max(
-        0,
-        cumulativeDevices - activeToday - coldToday,
-      );
-
       monthTotalDevices.push(cumulativeDevices);
       monthTotalUsers.push(cumulativeUsers);
-      monthActiveDevices.push(activeToday);
-      monthDisconnectedDevices.push(disconnectedToday);
+    }
+
+    // ── LAST 24 HOURS: active_devices & disconnected_devices per hour ─────
+
+    // Build 24 hour-bucket labels (UTC), from 25h ago to current completed hour
+    const last24hLabels: string[] = [];
+    const last24hBuckets: string[] = []; // full ISO hour strings for lookup
+
+    for (let h = 23; h >= 0; h--) {
+      const bucketTime = new Date(now.getTime() - h * 60 * 60 * 1000);
+      const hh = String(bucketTime.getUTCHours()).padStart(2, '0');
+      last24hLabels.push(`${hh}:00`);
+      const yyyy = bucketTime.getUTCFullYear();
+      const mm = String(bucketTime.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(bucketTime.getUTCDate()).padStart(2, '0');
+      last24hBuckets.push(`${yyyy}-${mm}-${dd} ${hh}:00:00`);
+    }
+
+    // Active devices per hour: COUNT(DISTINCT device_id) where temp > 30
+    const activeByHour: Record<string, number> = {};
+    const activeHourRows: { hour_bucket: string; total: string }[] =
+      await this.dataSource.query(`
+        SELECT
+          DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') AS hour_bucket,
+          COUNT(DISTINCT device_id) AS total
+        FROM temperature_logs
+        WHERE created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 24 HOUR)
+          AND temperature > 30
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')
+        ORDER BY hour_bucket
+      `);
+    activeHourRows.forEach((r) => {
+      // Normalize key: trim to 'YYYY-MM-DD HH:00:00'
+      activeByHour[r.hour_bucket.substring(0, 19)] = Number(r.total);
+    });
+
+    // Cold-idle devices per hour (temp <= 30)
+    const coldByHour: Record<string, number> = {};
+    const coldHourRows: { hour_bucket: string; total: string }[] =
+      await this.dataSource.query(`
+        SELECT
+          DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') AS hour_bucket,
+          COUNT(DISTINCT device_id) AS total
+        FROM temperature_logs
+        WHERE created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 24 HOUR)
+          AND temperature <= 30
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')
+        ORDER BY hour_bucket
+      `);
+    coldHourRows.forEach((r) => {
+      coldByHour[r.hour_bucket.substring(0, 19)] = Number(r.total);
+    });
+
+    const totalDev = Number(total_devices);
+
+    // Build last24h series
+    const last24hActive: number[] = [];
+    const last24hDisconnected: number[] = [];
+
+    for (const bucket of last24hBuckets) {
+      const active = activeByHour[bucket] ?? 0;
+      const cold = coldByHour[bucket] ?? 0;
+      const disconnected = Math.max(0, totalDev - active - cold);
+      last24hActive.push(active);
+      last24hDisconnected.push(disconnected);
     }
 
     return {
@@ -191,11 +194,14 @@ export class PortalDashboardService {
         disconnected_devices: Number(disconnected_devices),
       },
       month: {
-        labels,
+        labels: monthLabels,
         total_devices: monthTotalDevices,
         total_users: monthTotalUsers,
-        active_devices: monthActiveDevices,
-        disconnected_devices: monthDisconnectedDevices,
+      },
+      last24h: {
+        labels: last24hLabels,
+        active_devices: last24hActive,
+        disconnected_devices: last24hDisconnected,
       },
     };
   }
