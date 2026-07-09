@@ -79,7 +79,7 @@ export class PortalDashboardService {
     const devicesByDay: Record<string, number> = {};
     const deviceCreatedRows: { day: string; cnt: string }[] =
       await this.dataSource.query(`
-        SELECT DATE_FORMAT(created_at, '%d') AS day, COUNT(*) AS cnt
+        SELECT DATE(created_at) AS day, COUNT(*) AS cnt
         FROM devices
         WHERE created_at >= '${monthStart} 00:00:00'
           AND created_at <= '${monthEnd} 23:59:59'
@@ -87,7 +87,8 @@ export class PortalDashboardService {
         ORDER BY DATE(created_at)
       `);
     deviceCreatedRows.forEach((r) => {
-      devicesByDay[r.day] = Number(r.cnt);
+      const label = String(new Date(r.day).getUTCDate()).padStart(2, '0');
+      devicesByDay[label] = Number(r.cnt);
     });
 
     // Devices total until start of month (for cumulative baseline)
@@ -101,7 +102,7 @@ export class PortalDashboardService {
     const usersByDay: Record<string, number> = {};
     const userCreatedRows: { day: string; cnt: string }[] =
       await this.dataSource.query(`
-        SELECT DATE_FORMAT(created_at, '%d') AS day, COUNT(*) AS cnt
+        SELECT DATE(created_at) AS day, COUNT(*) AS cnt
         FROM users
         WHERE created_at >= '${monthStart} 00:00:00'
           AND created_at <= '${monthEnd} 23:59:59'
@@ -109,7 +110,8 @@ export class PortalDashboardService {
         ORDER BY DATE(created_at)
       `);
     userCreatedRows.forEach((r) => {
-      usersByDay[r.day] = Number(r.cnt);
+      const label = String(new Date(r.day).getUTCDate()).padStart(2, '0');
+      usersByDay[label] = Number(r.cnt);
     });
 
     // Users total until start of month (cumulative baseline)
@@ -123,7 +125,7 @@ export class PortalDashboardService {
     const activeByDay: Record<string, number> = {};
     const activeRows: { day: string; cnt: string }[] =
       await this.dataSource.query(`
-        SELECT DATE_FORMAT(created_at, '%d') AS day,
+        SELECT DATE(created_at) AS day,
                COUNT(DISTINCT device_id) AS cnt
         FROM temperature_logs
         WHERE temperature > 30
@@ -133,14 +135,15 @@ export class PortalDashboardService {
         ORDER BY DATE(created_at)
       `);
     activeRows.forEach((r) => {
-      activeByDay[r.day] = Number(r.cnt);
+      const label = String(new Date(r.day).getUTCDate()).padStart(2, '0');
+      activeByDay[label] = Number(r.cnt);
     });
 
     // Cold-idle devices per day: distinct devices with log that day AND temperature <= 30
     const coldByDay: Record<string, number> = {};
     const coldRows: { day: string; cnt: string }[] =
       await this.dataSource.query(`
-        SELECT DATE_FORMAT(created_at, '%d') AS day,
+        SELECT DATE(created_at) AS day,
                COUNT(DISTINCT device_id) AS cnt
         FROM temperature_logs
         WHERE temperature <= 30
@@ -150,7 +153,8 @@ export class PortalDashboardService {
         ORDER BY DATE(created_at)
       `);
     coldRows.forEach((r) => {
-      coldByDay[r.day] = Number(r.cnt);
+      const label = String(new Date(r.day).getUTCDate()).padStart(2, '0');
+      coldByDay[label] = Number(r.cnt);
     });
 
     // Build series arrays
