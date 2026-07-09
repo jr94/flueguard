@@ -303,107 +303,24 @@
 
     <script>
         /*
-        * Carga dashboard.js solo cuando existe una sesión válida.
-        * Además evita que el login quede visible encima del portal.
-        */
-        (function loadDashboardOnlyWhenAuthenticated() {
-            function isJwtLike(value) {
-                return typeof value === 'string'
-                    && value.split('.').length === 3
-                    && value.length > 40;
+         * Carga dashboard.js solo cuando el portal ya está visible.
+         * No intenta adivinar el nombre del token.
+         * Evita cargar métricas cuando está visible el login.
+         */
+        (function loadDashboardWhenPortalIsVisible() {
+            function isVisible(element) {
+                if (!element) return false;
+
+                const style = window.getComputedStyle(element);
+                return style.display !== 'none'
+                    && style.visibility !== 'hidden'
+                    && element.offsetParent !== null;
             }
 
-            function decodeJwtPayload(token) {
-                try {
-                    const payloadBase64 = token.split('.')[1];
-                    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
-                    return JSON.parse(atob(normalized));
-                } catch (error) {
-                    return null;
-                }
-            }
-
-            function isJwtExpired(token) {
-                const payload = decodeJwtPayload(token);
-
-                if (!payload || !payload.exp) {
-                    return false;
-                }
-
-                const nowInSeconds = Math.floor(Date.now() / 1000);
-                return payload.exp <= nowInSeconds;
-            }
-
-            function findValidTokenInStorage() {
-                const storages = [localStorage, sessionStorage];
-
-                for (const storage of storages) {
-                    for (let i = 0; i < storage.length; i++) {
-                        const key = storage.key(i);
-                        const value = storage.getItem(key);
-
-                        /*
-                        * Caso 1: el valor guardado es directamente el JWT.
-                        */
-                        if (isJwtLike(value) && !isJwtExpired(value)) {
-                            return value;
-                        }
-
-                        /*
-                        * Caso 2: el JWT viene dentro de un JSON:
-                        * { access_token: "...", user: {...} }
-                        * { token: "..." }
-                        */
-                        try {
-                            const parsed = JSON.parse(value);
-
-                            const possibleTokens = [
-                                parsed?.token,
-                                parsed?.access_token,
-                                parsed?.accessToken,
-                                parsed?.jwt,
-                                parsed?.authToken
-                            ];
-
-                            for (const token of possibleTokens) {
-                                if (isJwtLike(token) && !isJwtExpired(token)) {
-                                    return token;
-                                }
-                            }
-                        } catch (error) {
-                            // No era JSON, se ignora.
-                        }
-                    }
-                }
-
-                return null;
-            }
-
-            function showLoginOnly() {
-                const loginView = document.getElementById('login-view');
-                const sidebar = document.getElementById('main-sidebar');
-                const topNav = document.getElementById('top-nav');
-                const metricsGrid = document.getElementById('metrics-grid');
-                const dashboardLoader = document.getElementById('dashboard-loader');
+            function hideDashboardError() {
                 const dashboardError = document.getElementById('dashboard-error');
-
-                if (loginView) loginView.style.display = 'block';
-                if (sidebar) sidebar.style.display = 'none';
-                if (topNav) topNav.style.display = 'none';
-                if (metricsGrid) metricsGrid.style.display = 'none';
-                if (dashboardLoader) dashboardLoader.style.display = 'none';
-                if (dashboardError) dashboardError.style.display = 'none';
-            }
-
-            function showPortalOnly() {
-                const loginView = document.getElementById('login-view');
-
-                /*
-                * Esto corrige el problema visual:
-                * si hay sesión válida, nunca debe quedar visible el login.
-                */
-                if (loginView) {
-                    loginView.style.display = 'none';
+                if (dashboardError) {
+                    dashboardError.style.display = 'none';
                 }
             }
 
@@ -419,15 +336,32 @@
                 document.body.appendChild(dashboardScript);
             }
 
-            const token = findValidTokenInStorage();
+            const interval = setInterval(() => {
+                const loginView = document.getElementById('login-view');
+                const sidebar = document.getElementById('main-sidebar');
+                const topNav = document.getElementById('top-nav');
 
-            if (!token) {
-                showLoginOnly();
-                return;
-            }
+                const loginVisible = isVisible(loginView);
+                const portalVisible = isVisible(sidebar) || isVisible(topNav);
 
-            showPortalOnly();
-            loadDashboardScript();
+                /*
+                 * Si el portal está visible y el login no está visible,
+                 * significa que hay sesión iniciada.
+                 */
+                if (portalVisible && !loginVisible) {
+                    hideDashboardError();
+                    loadDashboardScript();
+                    clearInterval(interval);
+                }
+            }, 200);
+
+            /*
+             * Seguridad: detener la espera después de 10 segundos.
+             * Si no hay sesión, simplemente queda el login.
+             */
+            setTimeout(() => {
+                clearInterval(interval);
+            }, 10000);
         })();
     </script>
 
