@@ -153,10 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         items.forEach(item => {
             const device = item.device;
-            const tempVal = item.last_temperature !== null && item.last_temperature !== undefined 
-                ? parseFloat(item.last_temperature).toFixed(1) 
-                : null;
-            const tempText = tempVal !== null ? `${tempVal}°C` : '--';
+            const tempText = formatTemperature(item.last_temperature);
             const trend = getTrendInfo(device.diffTemp);
             
             // Format Last Log Date/Time
@@ -191,6 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             tbodyEl.appendChild(tr);
         });
+    }
+
+    function formatTemperature(temp) {
+        if (temp === null || temp === undefined) {
+            return '-- °C';
+        }
+        const value = parseFloat(temp);
+        if (isNaN(value)) {
+            return '-- °C';
+        }
+        return `${value.toFixed(1)}°C`;
     }
 
     function getTemperatureColor(temp) {

@@ -205,8 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
             trendColor = 'var(--text-secondary)';
         }
 
-        detailTemp.textContent = device.last_temperature ? parseFloat(device.last_temperature).toFixed(1) : '--';
-        detailTemp.style.color = trendColor;
+        detailTemp.textContent = formatTemperature(device.last_temperature);
+        detailTemp.style.color = getTemperatureColor(device.last_temperature);
         detailTrend.textContent = `${trendIcon} ${trendText}`;
         detailTrend.style.color = trendColor;
 
@@ -442,7 +442,34 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             fwInstallBtn.disabled = false;
             if (btnText) btnText.style.display = 'block';
-            if (loader) loader.style.display = 'none';
         }
     });
+
+    function formatTemperature(temp) {
+        if (temp === null || temp === undefined) {
+            return '-- °C';
+        }
+        const value = parseFloat(temp);
+        if (isNaN(value)) {
+            return '-- °C';
+        }
+        return `${value.toFixed(1)}°C`;
+    }
+
+    function getTemperatureColor(temp) {
+        if (temp === null || temp === undefined) {
+            return 'var(--text-secondary)';
+        }
+        const value = parseFloat(temp);
+        if (isNaN(value)) {
+            return 'var(--text-secondary)';
+        }
+        if (value > 300) {
+            return 'var(--danger)';
+        }
+        if (value > 250) {
+            return 'var(--warning)';
+        }
+        return 'var(--success)';
+    }
 });
