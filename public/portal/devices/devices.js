@@ -1,62 +1,27 @@
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
-    const dashboardView = document.getElementById('dashboard-view');
-    const deviceDetailView = document.getElementById('device-detail-view');
-    
     const refreshBtn = document.getElementById('refresh-btn');
     const devicesLoader = document.getElementById('devices-loader');
-    const devicesGrid = document.getElementById('devices-grid');
     const noDevices = document.getElementById('no-devices');
     const deviceSearch = document.getElementById('device-search');
+    const sectionsContainer = document.getElementById('devices-sections-container');
     
-    // Device Detail Elements
-    const detailDeviceName = document.getElementById('detail-device-name');
-    const detailDeviceStatus = document.getElementById('detail-device-status');
-    const detailTemp = document.getElementById('detail-temp');
-    const detailTrend = document.getElementById('detail-trend');
-    const detailLastUpdate = document.getElementById('detail-last-update');
-    const detailSerial = document.getElementById('detail-serial');
-    const detailT1 = document.getElementById('detail-t1');
-    const detailT2 = document.getElementById('detail-t2');
-    const detailT3 = document.getElementById('detail-t3');
-    const ctx = document.getElementById('temperatureChart').getContext('2d');
-    const backToDevicesBtn = document.getElementById('back-to-devices-btn');
+    // Tbodies for each section
+    const listConnected = document.getElementById('devices-list-connected');
+    const listCold = document.getElementById('devices-list-cold');
+    const listDisconnected = document.getElementById('devices-list-disconnected');
 
-    // Settings panel refs
-    const settingsPanel = document.getElementById('settings-panel');
-    const settingsForm = document.getElementById('settings-form');
-    const sDeviceName = document.getElementById('s-device-name');
-    const sTypeDevice = document.getElementById('s-type-device');
-    const sT1 = document.getElementById('s-t1');
-    const sT2 = document.getElementById('s-t2');
-    const sT3 = document.getElementById('s-t3');
-    const sNotificationsEnabled = document.getElementById('s-notifications-enabled');
-    const sSoundAlarm = document.getElementById('s-sound-alarm');
-    const sAlarmTempLow = document.getElementById('s-alarm-temp-low');
-    const saveSettingsBtn = document.getElementById('save-settings-btn');
-
-    // Firmware refs
-    const firmwareSection = document.getElementById('firmware-section');
-    const fwCurrent = document.getElementById('fw-current');
-    const fwLatest = document.getElementById('fw-latest');
-    const fwNotes = document.getElementById('fw-notes');
-    const fwUpdateAvailable = document.getElementById('fw-update-available');
-    const fwUpToDate = document.getElementById('fw-up-to-date');
-    const fwPending = document.getElementById('fw-pending');
-    const fwInstallBtn = document.getElementById('fw-install-btn');
-
-    let tempChart = null;
     let currentDevices = [];
     let pollingInterval = null;
-    let currentOpenDeviceId = null;
-    let currentDeviceSettings = null;
 
     // Check permissions
     if (!Auth.hasPermission('can_view_devices')) {
-        devicesLoader.style.display = 'none';
-        devicesGrid.style.display = 'none';
-        noDevices.style.display = 'block';
-        noDevices.querySelector('p').textContent = 'No tiene permiso para ver dispositivos.';
+        if (devicesLoader) devicesLoader.style.display = 'none';
+        if (sectionsContainer) sectionsContainer.style.display = 'none';
+        if (noDevices) {
+            noDevices.style.display = 'block';
+            noDevices.querySelector('p').textContent = 'No tiene permiso para ver dispositivos.';
+        }
         return;
     }
 
@@ -76,14 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Back to Devices list button
-    if (backToDevicesBtn) {
-        backToDevicesBtn.addEventListener('click', () => {
-            currentOpenDeviceId = null;
-            deviceDetailView.style.display = 'none';
-            dashboardView.style.display = 'block';
-            
-            // Re-render devices to make sure it's fresh
+    // Search input listener
+    if (deviceSearch) {
+        deviceSearch.addEventListener('input', () => {
             renderDevices(currentDevices);
         });
     }
@@ -102,25 +62,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchDevices(silent = false) {
         if (!silent) {
             devicesLoader.style.display = 'flex';
-            devicesGrid.style.display = 'none';
-            noDevices.style.display = 'none';
+            if (sectionsContainer) sectionsContainer.style.display = 'none';
+            if (noDevices) noDevices.style.display = 'none';
         }
 
         try {
             const response = await Api.get('/telemetry/lastTemp/all');
             const data = await response.json();
             currentDevices = data;
-
-            // If we are looking at the list, render it. 
-            // If we are looking at detail, refresh detail.
-            if (dashboardView.style.display !== 'none') {
-                renderDevices(data);
-            } else if (deviceDetailView.style.display !== 'none' && currentOpenDeviceId) {
-                const updatedDevice = data.find(item => item.device.id === currentOpenDeviceId);
-                if (updatedDevice) {
-                    refreshDeviceDetail(updatedDevice);
-                }
-            }
+            renderDevices(data);
         } catch (error) {
             console.error('Fetch devices error:', error);
             if (!silent) Layout.showToast(error.message, 'error');
@@ -128,414 +78,149 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Render Devices Grid
+    // Render Devices Grouped by state
     function renderDevices(devicesData) {
         devicesLoader.style.display = 'none';
-        devicesGrid.innerHTML = '';
 
-        const term = deviceSearch.value.toLowerCase().trim();
-        const filtered = devicesData.filter(item => 
-            item.device.device_name.toLowerCase().includes(term) || 
-            item.device.serial_number.toLowerCase().includes(term)
-        );
+        // Clear existing list rows
+        listConnected.innerHTML = '';
+        listCold.innerHTML = '';
+        listDisconnected.innerHTML = '';
 
-        if (!filtered || filtered.length === 0) {
-            noDevices.style.display = 'block';
+        if (!devicesData || devicesData.length === 0) {
+            if (sectionsContainer) sectionsContainer.style.display = 'none';
+            if (noDevices) noDevices.style.display = 'block';
             return;
         }
 
-        noDevices.style.display = 'none';
-        devicesGrid.style.display = 'grid';
+        if (noDevices) noDevices.style.display = 'none';
+        if (sectionsContainer) sectionsContainer.style.display = 'block';
+
+        // Filtering
+        const term = deviceSearch.value.toLowerCase().trim();
+        const filtered = devicesData.filter(item => {
+            const device = item.device;
+            const matchesId = String(device.id).includes(term);
+            const matchesName = device.device_name.toLowerCase().includes(term);
+            const matchesSerial = device.serial_number.toLowerCase().includes(term);
+            
+            const stateStr = device.connection_state || '';
+            let matchesCategory = false;
+            if (term === 'activo' || term === 'activos') {
+                matchesCategory = (stateStr === 'connected');
+            } else if (term === 'frio' || term === 'frío' || term === 'modo frio' || term === 'modo frío') {
+                matchesCategory = (stateStr === 'cold_idle');
+            } else if (term === 'desconectado' || term === 'desconectados') {
+                matchesCategory = (stateStr === 'disconnected');
+            }
+            
+            return matchesId || matchesName || matchesSerial || matchesCategory;
+        });
+
+        // Group into sections
+        const groupConnected = [];
+        const groupCold = [];
+        const groupDisconnected = [];
 
         filtered.forEach(item => {
-            const device = item.device;
-            const temp = item.last_temperature ? parseFloat(item.last_temperature).toFixed(1) : '--';
-            const statusClass = device.status === 'online' ? 'status-online' : 'status-offline';
-            const statusText = device.status === 'online' ? 'Conectado' : 'Desconectado';
-
-            let trendIcon = '';
-            let trendColor = '';
-            let trendText = '';
-
-            if (device.diffTemp === 0) {
-                trendIcon = '↘';
-                trendColor = 'var(--text-secondary)';
-                trendText = 'Temperatura bajando';
-            } else if (device.diffTemp === 1) {
-                trendIcon = '→';
-                trendColor = 'var(--text-secondary)';
-                trendText = 'Temperatura estable';
-            } else if (device.diffTemp === 2) {
-                trendIcon = '↗';
-                trendColor = 'var(--warning)';
-                trendText = 'Temperatura subiendo';
-            } else if (device.diffTemp === 3) {
-                trendIcon = '↑';
-                trendColor = 'var(--danger)';
-                trendText = 'Subiendo (acelerada)';
-            } else if (device.diffTemp >= 4) {
-                trendIcon = '↑';
-                trendColor = 'var(--danger)';
-                trendText = 'Subiendo (peligrosa)';
+            const state = item.device.connection_state;
+            if (state === 'connected') {
+                groupConnected.push(item);
+            } else if (state === 'cold_idle') {
+                groupCold.push(item);
             } else {
-                trendIcon = '';
-                trendColor = 'var(--text-secondary)';
-                trendText = 'Tendencia desconocida';
+                groupDisconnected.push(item);
             }
+        });
 
-            const card = document.createElement('div');
-            card.className = 'device-card';
-            card.style.cursor = 'pointer';
-            card.innerHTML = `
-                <div class="device-header">
-                    <div class="device-info">
-                        <h3>${escapeHtml(device.device_name)}</h3>
-                        <div class="device-serial">SN: ${escapeHtml(device.serial_number)}</div>
-                    </div>
-                    <div class="device-status ${statusClass}">${statusText}</div>
-                </div>
-                <div class="device-body">
-                    <div class="temp-display" title="Tendencia de temperatura">
-                        <div class="temp-value" style="color: ${trendColor}">${temp}</div>
-                        <div class="temp-unit">°C</div>
-                    </div>
-                    <div class="trend-text" style="color: ${trendColor}; font-size: 0.9rem; margin-top: 0.5rem; text-align: center;">
-                        ${trendIcon} ${trendText}
-                    </div>
-                </div>
+        // Render sections
+        renderSectionRows(listConnected, groupConnected, 'Sin dispositivos activos');
+        renderSectionRows(listCold, groupCold, 'Sin dispositivos en modo frío');
+        renderSectionRows(listDisconnected, groupDisconnected, 'Sin dispositivos desconectados');
+    }
+
+    function renderSectionRows(tbodyEl, items, emptyMessage) {
+        if (items.length === 0) {
+            tbodyEl.innerHTML = `
+                <tr>
+                    <td colspan="7" style="color: var(--text-secondary); text-align: center; padding: 1.5rem; font-style: italic;">
+                        ${emptyMessage}
+                    </td>
+                </tr>
             `;
+            return;
+        }
+
+        items.forEach(item => {
+            const device = item.device;
+            const tempVal = item.last_temperature !== null && item.last_temperature !== undefined 
+                ? parseFloat(item.last_temperature).toFixed(1) 
+                : null;
+            const tempText = tempVal !== null ? `${tempVal}°C` : '--';
+            const trend = getTrendInfo(device.diffTemp);
             
-            card.addEventListener('click', () => {
-                openDeviceDetail(item, trendIcon, trendColor);
-            });
-
-            devicesGrid.appendChild(card);
-        });
-    }
-
-    // Open Device Details
-    async function openDeviceDetail(deviceData, trendIcon, trendColor) {
-        currentOpenDeviceId = deviceData.device.id;
-        dashboardView.style.display = 'none';
-        deviceDetailView.style.display = 'block';
-        
-        const device = deviceData.device;
-        detailDeviceName.textContent = device.device_name;
-        detailSerial.textContent = `SN: ${device.serial_number}`;
-        
-        currentDeviceSettings = null;
-        detailT1.textContent = '--';
-        detailT2.textContent = '--';
-        detailT3.textContent = '--';
-
-        refreshDeviceDetail(deviceData);
-
-        // Show/hide settings based on permissions
-        const canChangeSettings = Auth.hasPermission('can_change_settings');
-        settingsPanel.style.display = canChangeSettings ? 'block' : 'none';
-
-        // Fetch thresholds settings
-        try {
-            const response = await Api.get(`/device-settings/${device.id}`);
-            if (response.ok) {
-                currentDeviceSettings = await response.json();
-                if (currentDeviceSettings.threshold_1) detailT1.textContent = parseFloat(currentDeviceSettings.threshold_1).toFixed(0);
-                if (currentDeviceSettings.threshold_2) detailT2.textContent = parseFloat(currentDeviceSettings.threshold_2).toFixed(0);
-                if (currentDeviceSettings.threshold_3) detailT3.textContent = parseFloat(currentDeviceSettings.threshold_3).toFixed(0);
-                
-                if (canChangeSettings) {
-                    sDeviceName.value = device.device_name || '';
-                    sTypeDevice.value = currentDeviceSettings.type_device != null ? String(currentDeviceSettings.type_device) : '0';
-                    sT1.value = currentDeviceSettings.threshold_1 != null ? parseFloat(currentDeviceSettings.threshold_1) : '';
-                    sT2.value = currentDeviceSettings.threshold_2 != null ? parseFloat(currentDeviceSettings.threshold_2) : '';
-                    sT3.value = currentDeviceSettings.threshold_3 != null ? parseFloat(currentDeviceSettings.threshold_3) : '';
-                    sNotificationsEnabled.checked = !!currentDeviceSettings.notifications_enabled;
-                    sSoundAlarm.checked = !!currentDeviceSettings.sound_alarm_enabled;
-                    sAlarmTempLow.checked = !!currentDeviceSettings.sound_alarm_temp_low;
-                }
-
-                refreshDeviceChart(device.id);
-            }
-        } catch (e) {
-            console.error('Settings fetch error:', e);
-        }
-
-        // Firmware section
-        const canManageDevices = Auth.hasPermission('can_manage_devices');
-        firmwareSection.style.display = canManageDevices ? 'block' : 'none';
-        if (canManageDevices) {
-            loadFirmwareStatus(device);
-        }
-    }
-
-    // Refresh Device Detail Info
-    function refreshDeviceDetail(deviceData) {
-        const device = deviceData.device;
-        
-        detailDeviceStatus.textContent = device.status === 'online' ? 'Conectado' : 'Desconectado';
-        detailDeviceStatus.className = 'device-status ' + (device.status === 'online' ? 'status-online' : 'status-offline');
-        
-        let trendColor = '';
-        if (device.diffTemp === 0) trendColor = 'var(--text-secondary)';
-        else if (device.diffTemp === 1) trendColor = 'var(--text-secondary)';
-        else if (device.diffTemp === 2) trendColor = 'var(--warning)';
-        else if (device.diffTemp === 3) trendColor = 'var(--danger)';
-        else if (device.diffTemp >= 4) trendColor = 'var(--danger)';
-
-        detailTemp.textContent = deviceData.last_temperature ? parseFloat(deviceData.last_temperature).toFixed(1) : '--';
-        detailTemp.style.color = trendColor;
-
-        if (device.diffTemp === 0) detailTrend.textContent = '↘ Temperatura bajando';
-        else if (device.diffTemp === 1) detailTrend.textContent = '→ Temperatura estable';
-        else if (device.diffTemp === 2) detailTrend.textContent = '↗ Temperatura subiendo';
-        else if (device.diffTemp === 3) detailTrend.textContent = '↑ Subiendo (acelerada)';
-        else if (device.diffTemp >= 4) detailTrend.textContent = '↑ Subiendo (peligrosa)';
-        else detailTrend.textContent = 'Tendencia desconocida';
-
-        if (deviceData.last_log_time) {
-            const date = new Date(deviceData.last_log_time);
-            detailLastUpdate.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' - ' + date.toLocaleDateString();
-        } else {
-            detailLastUpdate.textContent = 'Sin registros';
-        }
-
-        refreshDeviceChart(device.id);
-    }
-
-    // Refresh Chart Logs
-    async function refreshDeviceChart(deviceId) {
-        try {
-            const response = await Api.get(`/telemetry/device/${deviceId}?hours=2`);
-            if (response.ok) {
-                const logs = await response.json();
-                renderChart(logs, currentDeviceSettings);
-            }
-        } catch (e) {
-            console.error('Chart fetch error:', e);
-        }
-    }
-
-    // Render Chart.js
-    function renderChart(logs, settings) {
-        if (tempChart) tempChart.destroy();
-        
-        const labels = logs.map(log => {
-            const d = new Date(log.created_at);
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        });
-        const data = logs.map(log => parseFloat(log.temperature));
-
-        let minVal = 0;
-        let maxVal = 100;
-        if (data.length > 0) {
-            minVal = Math.floor(Math.min(...data)) - 20;
-            maxVal = Math.ceil(Math.max(...data)) + 20;
-        }
-
-        const datasets = [{
-            label: 'Temperatura (°C)',
-            data: data,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderWidth: 2,
-            pointRadius: 2,
-            fill: true,
-            tension: 0.3
-        }];
-
-        if (settings) {
-            if (settings.threshold_1) {
-                datasets.push({
-                    label: 'Nivel 1 (Min)',
-                    data: Array(logs.length).fill(parseFloat(settings.threshold_1)),
-                    borderColor: '#3b82f6',
-                    borderWidth: 1,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    fill: false,
-                    tension: 0
-                });
-            }
-            if (settings.threshold_2) {
-                datasets.push({
-                    label: 'Nivel 2 (Max)',
-                    data: Array(logs.length).fill(parseFloat(settings.threshold_2)),
-                    borderColor: '#eab308',
-                    borderWidth: 1,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    fill: false,
-                    tension: 0
-                });
-            }
-            if (settings.threshold_3) {
-                datasets.push({
-                    label: 'Nivel 3 (Crit)',
-                    data: Array(logs.length).fill(parseFloat(settings.threshold_3)),
-                    borderColor: '#ef4444',
-                    borderWidth: 1,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    fill: false,
-                    tension: 0
-                });
-            }
-        }
-
-        tempChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { 
-                        display: true,
-                        onClick: null,
-                        labels: { color: '#94a3b8', font: { size: 11 } }
-                    }
-                },
-                scales: {
-                    y: {
-                        min: minVal,
-                        max: maxVal,
-                        beginAtZero: false,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#94a3b8' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8', maxTicksLimit: 8 }
-                    }
-                }
-            }
-        });
-    }
-
-    // Save Settings Submit Handler
-    settingsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!currentOpenDeviceId) return;
-
-        const payload = {};
-        if (sDeviceName.value.trim()) payload.device_name = sDeviceName.value.trim();
-        payload.type_device = parseInt(sTypeDevice.value);
-        if (sT1.value !== '') payload.threshold_1 = parseFloat(sT1.value);
-        if (sT2.value !== '') payload.threshold_2 = parseFloat(sT2.value);
-        if (sT3.value !== '') payload.threshold_3 = parseFloat(sT3.value);
-        payload.notifications_enabled = sNotificationsEnabled.checked;
-        payload.sound_alarm_enabled = sSoundAlarm.checked;
-        payload.sound_alarm_temp_low = sAlarmTempLow.checked;
-
-        const btnText = saveSettingsBtn.querySelector('.btn-text');
-        const loader = saveSettingsBtn.querySelector('.loader');
-        saveSettingsBtn.disabled = true;
-        if (btnText) btnText.style.display = 'none';
-        if (loader) loader.style.display = 'block';
-
-        try {
-            const response = await Api.put(`/device-settings/${currentOpenDeviceId}`, payload);
-            if (!response.ok) throw new Error('Error al guardar los ajustes');
-
-            const saved = await response.json();
-            currentDeviceSettings = saved;
-
-            if (saved.threshold_1) detailT1.textContent = parseFloat(saved.threshold_1).toFixed(0);
-            if (saved.threshold_2) detailT2.textContent = parseFloat(saved.threshold_2).toFixed(0);
-            if (saved.threshold_3) detailT3.textContent = parseFloat(saved.threshold_3).toFixed(0);
-            if (payload.device_name) detailDeviceName.textContent = payload.device_name;
-
-            refreshDeviceChart(currentOpenDeviceId);
-            Layout.showToast('Ajustes guardados correctamente', 'success');
-        } catch (err) {
-            console.error('Save settings error:', err);
-            Layout.showToast(err.message, 'error');
-        } finally {
-            saveSettingsBtn.disabled = false;
-            if (btnText) btnText.style.display = 'block';
-            if (loader) loader.style.display = 'none';
-        }
-    });
-
-    // Check Firmware Status
-    let currentFirmwareDevice = null;
-    let latestFirmwareVersion = null;
-
-    async function loadFirmwareStatus(device) {
-        currentFirmwareDevice = device;
-        latestFirmwareVersion = null;
-
-        fwUpdateAvailable.style.display = 'none';
-        fwUpToDate.style.display = 'none';
-        fwPending.style.display = 'none';
-        fwCurrent.textContent = device.firmware_version || 'Desconocida';
-        fwLatest.textContent = 'Consultando...';
-        fwNotes.textContent = '--';
-
-        try {
-            // firmware endpoint does not run under /api prefix
-            const res = await fetch(`/firmware/check/serial_number/${device.serial_number}`);
-            if (!res.ok) throw new Error('No se pudo consultar el servidor de firmware');
-            const data = await res.json();
-
-            fwLatest.textContent = data.latest_version || data.current_version || '--';
-            fwNotes.textContent = data.notes || 'Sin notas';
-
-            if (data.update) {
-                latestFirmwareVersion = data.latest_version;
-                fwUpdateAvailable.style.display = 'flex';
+            // Format Last Log Date/Time
+            const timeAgoText = formatTimeAgo(device.minutes_since_last_log, item.last_log_time);
+            
+            // Get Connection State badge
+            let stateBadge = '';
+            if (device.connection_state === 'connected') {
+                stateBadge = '<span class="badge badge-connected">Activo</span>';
+            } else if (device.connection_state === 'cold_idle') {
+                stateBadge = '<span class="badge badge-cold">Modo frío</span>';
             } else {
-                fwUpToDate.style.display = 'block';
+                stateBadge = '<span class="badge badge-disconnected">Desconectado</span>';
             }
-        } catch (e) {
-            console.error('Firmware check error:', e);
-            fwLatest.textContent = 'Error al consultar';
-        }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${device.id}</strong></td>
+                <td><strong>${escapeHtml(device.device_name)}</strong></td>
+                <td>
+                    <span style="color: ${trend.color}; font-weight: 600;">${tempText}</span>
+                    ${trend.icon ? `<span style="color: ${trend.color}; font-size: 0.9rem;" title="${trend.text}">${trend.icon} ${trend.text}</span>` : ''}
+                </td>
+                <td style="color: var(--text-secondary);">${timeAgoText}</td>
+                <td><code style="font-family: monospace;">${escapeHtml(device.serial_number)}</code></td>
+                <td>${stateBadge}</td>
+                <td>
+                    <a href="/portal/device/${device.serial_number}" class="btn outline-btn" style="padding: 0.35rem 0.8rem; font-size: 0.85rem; text-decoration: none; display: inline-block;">
+                        Entrar
+                    </a>
+                </td>
+            `;
+            tbodyEl.appendChild(tr);
+        });
     }
 
-    // Install Firmware update request
-    fwInstallBtn.addEventListener('click', async () => {
-        if (!currentFirmwareDevice || !latestFirmwareVersion) return;
+    function getTrendInfo(diffTemp) {
+        if (diffTemp === 0) return { icon: '↘', text: 'bajando', color: 'var(--text-secondary)' };
+        if (diffTemp === 1) return { icon: '→', text: 'estable', color: 'var(--text-secondary)' };
+        if (diffTemp === 2) return { icon: '↗', text: 'subiendo', color: 'var(--warning)' };
+        if (diffTemp === 3) return { icon: '↑', text: 'subiendo (acelerada)', color: 'var(--danger)' };
+        if (diffTemp >= 4) return { icon: '↑', text: 'subiendo (peligrosa)', color: 'var(--danger)' };
+        return { icon: '', text: 'desconocida', color: 'var(--text-secondary)' };
+    }
 
-        const btnText = fwInstallBtn.querySelector('.btn-text');
-        const loader = fwInstallBtn.querySelector('.loader');
-        fwInstallBtn.disabled = true;
-        if (btnText) btnText.style.display = 'none';
-        if (loader) loader.style.display = 'block';
-
-        try {
-            const res = await Api.post('/portal/auth/firmware/request', {
-                serial_number: currentFirmwareDevice.serial_number,
-                version: latestFirmwareVersion,
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || 'Error al solicitar actualización');
-            }
-
-            fwUpdateAvailable.style.display = 'none';
-            fwPending.style.display = 'block';
-            Layout.showToast('Actualización solicitada. El dispositivo la instalará al reconectarse.', 'success');
-        } catch (e) {
-            console.error('OTA request error:', e);
-            Layout.showToast(e.message, 'error');
-        } finally {
-            fwInstallBtn.disabled = false;
-            if (btnText) btnText.style.display = 'block';
-            if (loader) loader.style.display = 'none';
+    function formatTimeAgo(minutes, rawTime) {
+        if (minutes === null || minutes === undefined || !rawTime) {
+            return 'Sin registros';
         }
-    });
+        if (minutes < 1) {
+            return 'Hace menos de 1 min';
+        }
+        if (minutes < 60) {
+            return `Hace ${minutes} min`;
+        }
+        if (minutes < 1440) {
+            const hrs = Math.floor(minutes / 60);
+            return `Hace ${hrs} ${hrs === 1 ? 'hora' : 'horas'}`;
+        }
+        // Format as general datetime for older
+        const d = new Date(rawTime);
+        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
 
-    // Real-time search filter
-    deviceSearch.addEventListener('input', () => {
-        renderDevices(currentDevices);
-    });
-
-    // Utility HTML Escaper
     function escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe

@@ -16,4 +16,9 @@ export class AppController {
   getLinksPage(@Res() res: Response) {
     res.sendFile(join(process.cwd(), 'public', 'links.html'));
   }
+
+  @Get('portal/device/:serial')
+  getPortalDevicePage(@Res() res: Response) {
+    res.sendFile(join(process.cwd(), 'public', 'portal', 'device', 'index.html'));
+  }
 }

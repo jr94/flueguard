@@ -99,198 +99,90 @@
                     <p>Cargando dispositivos...</p>
                 </div>
 
-                <div id="devices-grid" class="devices-grid" style="display: none;">
-                    <!-- Cards dinámicas -->
+                <div id="devices-sections-container" style="display: none;">
+                    <!-- Activos -->
+                    <div class="devices-section" id="section-connected">
+                        <div class="devices-section-header">
+                            <h3 class="devices-section-title">Activos</h3>
+                            <p class="devices-section-subtitle">Dispositivos con actividad reciente</p>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">ID</th>
+                                        <th>Dispositivo</th>
+                                        <th>Temperatura</th>
+                                        <th>Último registro</th>
+                                        <th>Serial</th>
+                                        <th>Estado</th>
+                                        <th style="width: 120px;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="devices-list-connected">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Modo Frío -->
+                    <div class="devices-section" id="section-cold">
+                        <div class="devices-section-header">
+                            <h3 class="devices-section-title">Modo frío</h3>
+                            <p class="devices-section-subtitle">Dispositivos sin actividad térmica reciente, pero aún reportando</p>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">ID</th>
+                                        <th>Dispositivo</th>
+                                        <th>Temperatura</th>
+                                        <th>Último registro</th>
+                                        <th>Serial</th>
+                                        <th>Estado</th>
+                                        <th style="width: 120px;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="devices-list-cold">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Desconectados -->
+                    <div class="devices-section" id="section-disconnected">
+                        <div class="devices-section-header">
+                            <h3 class="devices-section-title">Desconectados</h3>
+                            <p class="devices-section-subtitle">Dispositivos sin registros recientes</p>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">ID</th>
+                                        <th>Dispositivo</th>
+                                        <th>Temperatura</th>
+                                        <th>Último registro</th>
+                                        <th>Serial</th>
+                                        <th>Estado</th>
+                                        <th style="width: 120px;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="devices-list-disconnected">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
                 
                 <div id="no-devices" class="empty-state" style="display: none;">
                     <div class="empty-icon">📱</div>
                     <h3>Sin dispositivos</h3>
                     <p>Aún no tiene dispositivos vinculados.</p>
-                </div>
-            </div>
-
-            <!-- Device Detail View -->
-            <div id="device-detail-view" class="view" style="display: none;">
-                <div class="back-link-container">
-                    <button id="back-to-devices-btn" class="back-btn">← Volver al listado</button>
-                </div>
-
-                <div class="device-detail-container">
-                    <div class="device-header-large">
-                        <h2 id="detail-device-name">Cargando...</h2>
-                        <span id="detail-device-status" class="device-status">...</span>
-                    </div>
-                    
-                    <div class="detail-stats-grid">
-                        <div class="stat-card" style="flex-direction: row; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h3>Temperatura Actual</h3>
-                                <div class="stat-value">
-                                    <span id="detail-temp">--</span> <span class="stat-unit">°C</span>
-                                </div>
-                                <div id="detail-trend" class="stat-subtitle">Calculando tendencia...</div>
-                            </div>
-                            <div class="thresholds-list" style="text-align: right; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.3rem;">
-                                <div style="color: var(--danger); font-weight: 500;" title="Nivel 3: Riesgo de incendio">Crit: <span id="detail-t3">--</span>°C</div>
-                                <div style="color: var(--warning); font-weight: 500;" title="Nivel 2: Sobretemperatura">Max: <span id="detail-t2">--</span>°C</div>
-                                <div style="color: var(--primary); font-weight: 500;" title="Nivel 1: Alerta inferior">Min: <span id="detail-t1">--</span>°C</div>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Última Actualización</h3>
-                            <div class="stat-value" id="detail-last-update" style="font-size: 1.2rem; margin-top: 0.5rem;">
-                                --
-                            </div>
-                            <div class="stat-subtitle" id="detail-serial">SN: --</div>
-                        </div>
-                    </div>
-
-                    <div class="chart-container">
-                        <h3>Historial (Últimas 2 horas)</h3>
-                        <div class="canvas-wrapper">
-                            <canvas id="temperatureChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Settings Panel — visible según permisos can_change_settings -->
-                    <div id="settings-panel" class="settings-panel" style="display: none;">
-                        <div class="settings-panel-header">
-                            <h3>⚙️ Ajustes del Dispositivo</h3>
-                            <p class="text-secondary" style="font-size:0.9rem; margin-top:0.3rem;">Modifica umbrales y parámetros de alerta</p>
-                        </div>
-
-                        <form id="settings-form" class="settings-form">
-                            <!-- Nombre + tipo de estufa -->
-                            <div class="settings-group">
-                                <h4>Identificación</h4>
-                                <div class="form-row">
-                                    <div class="input-group">
-                                        <label for="s-device-name">Nombre del dispositivo</label>
-                                        <input type="text" id="s-device-name" placeholder="Ej: Estufa Living">
-                                    </div>
-                                    <div class="input-group">
-                                        <label for="s-type-device">Tipo de estufa / calefacción</label>
-                                        <select id="s-type-device">
-                                            <option value="0">🔥 Estufa a leña</option>
-                                            <option value="1">🚿 Calefón a gas</option>
-                                            <option value="2">🏠 Caldera central</option>
-                                            <option value="3">🌡️ Estufa a pellet</option>
-                                            <option value="4">⚡ Estufa eléctrica</option>
-                                            <option value="99">🔧 Otro</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Umbrales de temperatura -->
-                            <div class="settings-group">
-                                <h4>Umbrales de Temperatura</h4>
-                                <div class="form-row">
-                                    <div class="input-group">
-                                        <label for="s-t1">
-                                            <span style="color:var(--primary)">●</span> Nivel 1 — Temp. mínima (°C)
-                                        </label>
-                                        <input type="number" id="s-t1" min="0" max="500" step="1" placeholder="Ej: 60">
-                                        <span class="input-hint">Alerta cuando la temperatura BAJA de este valor</span>
-                                    </div>
-                                    <div class="input-group">
-                                        <label for="s-t2">
-                                            <span style="color:var(--warning)">●</span> Nivel 2 — Temp. alta (°C)
-                                        </label>
-                                        <input type="number" id="s-t2" min="0" max="500" step="1" placeholder="Ej: 300">
-                                        <span class="input-hint">Alerta de sobretemperatura</span>
-                                    </div>
-                                    <div class="input-group">
-                                        <label for="s-t3">
-                                            <span style="color:var(--danger)">●</span> Nivel 3 — Crítico (°C)
-                                        </label>
-                                        <input type="number" id="s-t3" min="0" max="500" step="1" placeholder="Ej: 400">
-                                        <span class="input-hint">Alerta de riesgo de incendio</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Alertas y notificaciones -->
-                            <div class="settings-group">
-                                <h4>Alertas y Notificaciones</h4>
-                                <div class="toggles-grid">
-                                    <div class="toggle-row">
-                                        <div>
-                                            <div class="toggle-label">Notificaciones push</div>
-                                            <div class="toggle-hint">Enviar alertas al móvil del usuario</div>
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="s-notifications-enabled">
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-                                    <div class="toggle-row">
-                                        <div>
-                                            <div class="toggle-label">Alarma sonora</div>
-                                            <div class="toggle-hint">Activar pitido en el dispositivo</div>
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="s-sound-alarm">
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-                                    <div class="toggle-row">
-                                        <div>
-                                            <div class="toggle-label">Alarma por temp. baja</div>
-                                            <div class="toggle-hint">Alertar cuando la temperatura baja del Nivel 1</div>
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="s-alarm-temp-low">
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="settings-actions">
-                                <button type="submit" id="save-settings-btn" class="btn primary-btn" style="max-width:220px;">
-                                    <span class="btn-text">💾 Guardar Cambios</span>
-                                    <span class="loader" style="display:none;"></span>
-                                </button>
-                            </div>
-                        </form>
-
-                        <!-- Firmware Section — visible según permiso can_manage_devices -->
-                        <div id="firmware-section" class="firmware-section" style="display:none;">
-                            <div class="settings-group">
-                                <h4>Actualización de Firmware</h4>
-                                <div class="firmware-info-grid">
-                                    <div class="firmware-info-card">
-                                        <div class="firmware-info-label">Versión instalada</div>
-                                        <div class="firmware-info-value" id="fw-current">--</div>
-                                    </div>
-                                    <div class="firmware-info-card">
-                                        <div class="firmware-info-label">Última versión disponible</div>
-                                        <div class="firmware-info-value" id="fw-latest">Consultando...</div>
-                                    </div>
-                                    <div class="firmware-info-card">
-                                        <div class="firmware-info-label">Notas de versión</div>
-                                        <div class="firmware-info-value" id="fw-notes" style="font-size:0.85rem; color:var(--text-secondary);">--</div>
-                                    </div>
-                                </div>
-
-                                <div id="fw-update-available" style="display:none;" class="fw-alert">
-                                    <span>🆕 Hay una actualización disponible</span>
-                                    <button id="fw-install-btn" class="btn primary-btn" style="max-width:200px;">
-                                        <span class="btn-text">⬆️ Instalar Actualización</span>
-                                        <span class="loader" style="display:none;"></span>
-                                    </button>
-                                </div>
-                                <div id="fw-up-to-date" style="display:none;" class="fw-ok">
-                                    ✅ El firmware está actualizado
-                                </div>
-                                <div id="fw-pending" style="display:none;" class="fw-pending">
-                                    ⏳ Actualización pendiente de instalación en el dispositivo
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
             

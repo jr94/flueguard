@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Req,
+  NotFoundException,
 } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
@@ -35,6 +36,15 @@ export class DevicesController {
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const device = await this.devicesService.findOne(id);
+    return this.devicesService.enrichDeviceWithStatus(device);
+  }
+
+  @Get('serial/:serial')
+  async findBySerial(@Param('serial') serial: string) {
+    const device = await this.devicesService.findBySerialNumber(serial);
+    if (!device) {
+      throw new NotFoundException(`Device with serial number ${serial} not found`);
+    }
     return this.devicesService.enrichDeviceWithStatus(device);
   }
 

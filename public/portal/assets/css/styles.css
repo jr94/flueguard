@@ -1261,3 +1261,53 @@ body.is-admin .admin-only {
     display: flex !important;
 }
 
+/* ── Devices Tabular List Sections & Badges ──────────────────────── */
+.devices-section {
+    margin-bottom: 2.5rem;
+}
+
+.devices-section-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.devices-section-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.devices-section-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    font-weight: normal;
+}
+
+.badge-connected {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.badge-cold {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+}
+
+.badge-disconnected {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.empty-section-message {
+    padding: 1.5rem;
+    background: var(--surface-color);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+
