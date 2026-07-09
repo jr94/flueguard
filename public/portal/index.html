@@ -179,99 +179,89 @@
         </main>
     </div>
 
-    <!-- Scripts -->
     <script src="assets/js/api.js"></script>
     <script src="assets/js/layout.js"></script>
 
     <script>
         /*
-        * Fechas y horas FlueGuard
-        * Convierte timestamps UTC a hora local de Chile.
-        * Usa America/Santiago, por lo que respeta automáticamente
-        * horario de verano e invierno.
+        * Convierte horas UTC/GMT 0 a hora local de Chile.
+        * Soporta:
+        * - Fechas ISO: 2026-07-09T17:00:00.000Z
+        * - Horas simples del gráfico: 17:00
+        *
+        * America/Santiago aplica automáticamente horario de verano/invierno.
         */
         window.FlueGuardDate = {
             timeZone: 'America/Santiago',
 
-            parseUtc(value) {
-                if (!value) return null;
+            formatChileTimeFromUtcHourLabel(label) {
+                if (typeof label !== 'string') return label;
 
-                if (value instanceof Date) {
-                    return value;
+                const match = label.match(/^(\d{1,2}):(\d{2})$/);
+                if (!match) return label;
+
+                const utcHour = Number(match[1]);
+                const utcMinute = Number(match[2]);
+
+                if (isNaN(utcHour) || isNaN(utcMinute)) return label;
+
+                const now = new Date();
+
+                const utcDate = new Date(Date.UTC(
+                    now.getUTCFullYear(),
+                    now.getUTCMonth(),
+                    now.getUTCDate(),
+                    utcHour,
+                    utcMinute,
+                    0
+                ));
+
+                return new Intl.DateTimeFormat('es-CL', {
+                    timeZone: this.timeZone,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }).format(utcDate);
+            },
+
+            formatChileLabel(value) {
+                if (!value) return '—';
+
+                /*
+                * Caso 1: label simple del gráfico, por ejemplo "17:00"
+                */
+                if (typeof value === 'string' && /^\d{1,2}:\d{2}$/.test(value.trim())) {
+                    return this.formatChileTimeFromUtcHourLabel(value.trim());
                 }
 
-                if (typeof value === 'number') {
-                    return new Date(value);
-                }
-
+                /*
+                * Caso 2: fecha ISO UTC completa
+                */
                 if (typeof value === 'string') {
                     const trimmed = value.trim();
-
-                    /*
-                    * Si viene como ISO sin zona horaria:
-                    * 2026-03-18T12:20:00.000
-                    * se interpreta como UTC agregando Z.
-                    *
-                    * Si ya viene con Z o con offset:
-                    * 2026-03-18T12:20:00.000Z
-                    * 2026-03-18T12:20:00-03:00
-                    * se respeta tal cual.
-                    */
                     const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(trimmed);
                     const normalized = hasTimezone ? trimmed : `${trimmed}Z`;
 
                     const date = new Date(normalized);
-                    return isNaN(date.getTime()) ? null : date;
+                    if (isNaN(date.getTime())) return value;
+
+                    return new Intl.DateTimeFormat('es-CL', {
+                        timeZone: this.timeZone,
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    }).format(date);
                 }
 
-                return null;
-            },
-
-            formatDateTime(value) {
-                const date = this.parseUtc(value);
-                if (!date) return '—';
-
-                return new Intl.DateTimeFormat('es-CL', {
-                    timeZone: this.timeZone,
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                }).format(date);
-            },
-
-            formatTime(value) {
-                const date = this.parseUtc(value);
-                if (!date) return '—';
-
-                return new Intl.DateTimeFormat('es-CL', {
-                    timeZone: this.timeZone,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                }).format(date);
-            },
-
-            formatChartLabel(value) {
-                const date = this.parseUtc(value);
-                if (!date) return value;
-
-                return new Intl.DateTimeFormat('es-CL', {
-                    timeZone: this.timeZone,
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                }).format(date);
+                return value;
             }
         };
 
         /*
         * Plugin global para Chart.js.
-        * Convierte labels UTC del gráfico a hora local de Chile.
+        * Guarda los labels originales UTC y muestra labels en hora Chile.
         */
         if (window.Chart) {
             Chart.register({
@@ -280,8 +270,12 @@
                 beforeUpdate(chart) {
                     if (!chart.data || !Array.isArray(chart.data.labels)) return;
 
-                    chart.data.labels = chart.data.labels.map(label => {
-                        return window.FlueGuardDate.formatChartLabel(label);
+                    if (!chart.$fgOriginalLabels) {
+                        chart.$fgOriginalLabels = [...chart.data.labels];
+                    }
+
+                    chart.data.labels = chart.$fgOriginalLabels.map(label => {
+                        return window.FlueGuardDate.formatChileLabel(label);
                     });
                 }
             });
