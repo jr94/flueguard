@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><strong>${device.id}</strong></td>
                 <td><strong>${escapeHtml(device.device_name)}</strong></td>
                 <td>
-                    <span style="color: ${getTemperatureColor(item.last_temperature)}; font-weight: 600;">${tempText}</span>
+                    <span class="${getTemperatureLevelClass(item.last_temperature)}" style="font-weight: 600;">${tempText}</span>
                     ${trend.icon ? `<span style="color: ${trend.color}; font-size: 0.9rem;" title="${trend.text}">${trend.icon} ${trend.text}</span>` : ''}
                 </td>
                 <td style="color: var(--text-secondary);">${timeAgoText}</td>
@@ -201,21 +201,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${value.toFixed(1)}°C`;
     }
 
-    function getTemperatureColor(temp) {
+    function getTemperatureLevelClass(temp) {
         if (temp === null || temp === undefined) {
-            return 'var(--text-secondary)';
+            return 'temp-neutral';
         }
         const value = parseFloat(temp);
         if (isNaN(value)) {
-            return 'var(--text-secondary)';
+            return 'temp-neutral';
         }
         if (value > 300) {
-            return 'var(--danger)';
+            return 'temp-danger';
         }
         if (value > 250) {
-            return 'var(--warning)';
+            return 'temp-warning';
         }
-        return 'var(--success)';
+        return 'temp-safe';
     }
 
     function getTrendInfo(diffTemp) {

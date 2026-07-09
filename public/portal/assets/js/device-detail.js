@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         detailTemp.textContent = formatTemperature(device.last_temperature);
-        detailTemp.style.color = getTemperatureColor(device.last_temperature);
+        detailTemp.className = getTemperatureLevelClass(device.last_temperature);
         detailTrend.textContent = `${trendIcon} ${trendText}`;
         detailTrend.style.color = trendColor;
 
@@ -456,20 +456,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${value.toFixed(1)}°C`;
     }
 
-    function getTemperatureColor(temp) {
+    function getTemperatureLevelClass(temp) {
         if (temp === null || temp === undefined) {
-            return 'var(--text-secondary)';
+            return 'temp-neutral';
         }
         const value = parseFloat(temp);
         if (isNaN(value)) {
-            return 'var(--text-secondary)';
+            return 'temp-neutral';
         }
         if (value > 300) {
-            return 'var(--danger)';
+            return 'temp-danger';
         }
         if (value > 250) {
-            return 'var(--warning)';
+            return 'temp-warning';
         }
-        return 'var(--success)';
+        return 'temp-safe';
     }
 });

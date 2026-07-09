@@ -1310,4 +1310,18 @@ body.is-admin .admin-only {
     font-size: 0.95rem;
 }
 
+/* Temperature Level Classes */
+.temp-danger {
+    color: var(--danger) !important;
+}
+.temp-warning {
+    color: var(--warning) !important;
+}
+.temp-safe {
+    color: var(--success) !important;
+}
+.temp-neutral {
+    color: var(--text-secondary) !important;
+}
+
 
