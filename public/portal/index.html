@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlueGuard Portal</title>
-    <meta name="description" content="Portal administrativo de FlueGuard — métricas y gestión de dispositivos y usuarios.">
+    <meta name="description"
+        content="Portal administrativo de FlueGuard — métricas y gestión de dispositivos y usuarios.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="assets/js/auth.js"></script>
 </head>
+
 <body>
 
     <!-- Notification Toast -->
@@ -179,6 +182,113 @@
     <!-- Scripts -->
     <script src="assets/js/api.js"></script>
     <script src="assets/js/layout.js"></script>
+
+    <script>
+        /*
+        * Fechas y horas FlueGuard
+        * Convierte timestamps UTC a hora local de Chile.
+        * Usa America/Santiago, por lo que respeta automáticamente
+        * horario de verano e invierno.
+        */
+        window.FlueGuardDate = {
+            timeZone: 'America/Santiago',
+
+            parseUtc(value) {
+                if (!value) return null;
+
+                if (value instanceof Date) {
+                    return value;
+                }
+
+                if (typeof value === 'number') {
+                    return new Date(value);
+                }
+
+                if (typeof value === 'string') {
+                    const trimmed = value.trim();
+
+                    /*
+                    * Si viene como ISO sin zona horaria:
+                    * 2026-03-18T12:20:00.000
+                    * se interpreta como UTC agregando Z.
+                    *
+                    * Si ya viene con Z o con offset:
+                    * 2026-03-18T12:20:00.000Z
+                    * 2026-03-18T12:20:00-03:00
+                    * se respeta tal cual.
+                    */
+                    const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(trimmed);
+                    const normalized = hasTimezone ? trimmed : `${trimmed}Z`;
+
+                    const date = new Date(normalized);
+                    return isNaN(date.getTime()) ? null : date;
+                }
+
+                return null;
+            },
+
+            formatDateTime(value) {
+                const date = this.parseUtc(value);
+                if (!date) return '—';
+
+                return new Intl.DateTimeFormat('es-CL', {
+                    timeZone: this.timeZone,
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }).format(date);
+            },
+
+            formatTime(value) {
+                const date = this.parseUtc(value);
+                if (!date) return '—';
+
+                return new Intl.DateTimeFormat('es-CL', {
+                    timeZone: this.timeZone,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }).format(date);
+            },
+
+            formatChartLabel(value) {
+                const date = this.parseUtc(value);
+                if (!date) return value;
+
+                return new Intl.DateTimeFormat('es-CL', {
+                    timeZone: this.timeZone,
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }).format(date);
+            }
+        };
+
+        /*
+        * Plugin global para Chart.js.
+        * Convierte labels UTC del gráfico a hora local de Chile.
+        */
+        if (window.Chart) {
+            Chart.register({
+                id: 'flueguardChileTimezone',
+
+                beforeUpdate(chart) {
+                    if (!chart.data || !Array.isArray(chart.data.labels)) return;
+
+                    chart.data.labels = chart.data.labels.map(label => {
+                        return window.FlueGuardDate.formatChartLabel(label);
+                    });
+                }
+            });
+        }
+    </script>
+
     <script src="assets/js/dashboard.js"></script>
 </body>
+
 </html>
