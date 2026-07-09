@@ -270,11 +270,7 @@
                 beforeUpdate(chart) {
                     if (!chart.data || !Array.isArray(chart.data.labels)) return;
 
-                    if (!chart.$fgOriginalLabels) {
-                        chart.$fgOriginalLabels = [...chart.data.labels];
-                    }
-
-                    chart.data.labels = chart.$fgOriginalLabels.map(label => {
+                    chart.data.labels = chart.data.labels.map(label => {
                         return window.FlueGuardDate.formatChileLabel(label);
                     });
                 }
