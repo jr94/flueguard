@@ -564,10 +564,30 @@ export class TelemetryService {
 
   async getLastTempAllDevices() {
     const devices = await this.devicesService.findAll();
-    return this.buildLastTempResults(devices);
+
+    const adminEmailsMap = new Map<number, string | null>();
+    try {
+      const rawOwners = await this.temperatureLogRepository.manager.query(`
+        SELECT ud.device_id, MIN(u.email) as email
+        FROM user_devices ud
+        INNER JOIN users u ON u.id = ud.user_id
+        WHERE ud.owner = 1
+        GROUP BY ud.device_id
+      `);
+      for (const row of rawOwners) {
+        adminEmailsMap.set(Number(row.device_id), row.email);
+      }
+    } catch (err) {
+      console.error('[TelemetryService] Error querying device owners:', err);
+    }
+
+    return this.buildLastTempResults(devices, adminEmailsMap);
   }
 
-  private async buildLastTempResults(devices: any[]) {
+  private async buildLastTempResults(
+    devices: any[],
+    adminEmailsMap?: Map<number, string | null>,
+  ) {
     const results: any[] = [];
 
     for (const device of devices) {
@@ -645,6 +665,7 @@ export class TelemetryService {
         },
         last_temperature: lastLog ? lastLog.temperature : null,
         last_log_time: lastLog ? lastLog.created_at : null,
+        admin_email: adminEmailsMap ? (adminEmailsMap.get(device.id) || null) : null,
 
         // Compatibility flat aliases at root level
         device_id: device.id,
