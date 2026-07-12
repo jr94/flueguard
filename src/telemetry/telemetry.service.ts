@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { performance } from 'perf_hooks';
@@ -21,6 +22,7 @@ import { Device } from '../devices/entities/device.entity';
 
 @Injectable()
 export class TelemetryService {
+  private readonly logger = new Logger(TelemetryService.name);
   private readonly LOW_TEMP_ALERT_INTERVAL_MS = 10 * 60 * 1000;
   private readonly lowTempAlertControl = new Map<number, number>();
 
@@ -577,8 +579,11 @@ export class TelemetryService {
       for (const row of rawOwners) {
         adminEmailsMap.set(Number(row.device_id), row.email);
       }
-    } catch (err) {
-      console.error('[TelemetryService] Error querying device owners:', err);
+    } catch (error) {
+      this.logger.error(
+        'No fue posible obtener los administradores de los dispositivos',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
 
     return this.buildLastTempResults(devices, adminEmailsMap);
@@ -665,7 +670,7 @@ export class TelemetryService {
         },
         last_temperature: lastLog ? lastLog.temperature : null,
         last_log_time: lastLog ? lastLog.created_at : null,
-        admin_email: adminEmailsMap ? (adminEmailsMap.get(device.id) || null) : null,
+        admin_email: adminEmailsMap?.get(Number(device.id)) ?? null,
 
         // Compatibility flat aliases at root level
         device_id: device.id,

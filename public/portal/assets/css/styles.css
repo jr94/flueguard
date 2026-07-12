@@ -1472,6 +1472,13 @@ body.is-admin .admin-only {
     color: #64748b;
 }
 
+.admin-email-cell {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 
 
 

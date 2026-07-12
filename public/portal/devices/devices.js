@@ -103,17 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchesId = String(device.id).includes(term);
             const matchesName = device.device_name.toLowerCase().includes(term);
             const matchesSerial = device.serial_number.toLowerCase().includes(term);
-            const adminEmail =
-                item.admin_email ||
-                item.owner_email ||
-                item.user_email ||
-                device.admin_email ||
-                device.owner_email ||
-                device.user_email ||
-                device.user?.email ||
-                item.user?.email ||
-                '';
-
+            const adminEmail = item.admin_email ?? '';
             const matchesAdmin = adminEmail.toLowerCase().includes(term);
 
             const stateStr = device.connection_state || '';
@@ -167,16 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const device = item.device;
             const tempText = formatTemperature(item.last_temperature);
             const trend = getTrendInfo(device.diffTemp);
-            const adminEmail =
-                item.admin_email ||
-                item.owner_email ||
-                item.user_email ||
-                device.admin_email ||
-                device.owner_email ||
-                device.user_email ||
-                device.user?.email ||
-                item.user?.email ||
-                'Sin administrador';
+            const adminEmail = item.admin_email ?? 'Sin administrador';
 
             // Format Last Log Date/Time
             const timeAgoText = formatTimeAgo(device.minutes_since_last_log, item.last_log_time);
@@ -201,10 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td style="color: var(--text-secondary);">${timeAgoText}</td>
                 <td><code style="font-family: monospace;">${escapeHtml(device.serial_number)}</code></td>
-                <td>
-                    <span title="${escapeHtml(adminEmail)}">
-                        ${escapeHtml(adminEmail)}
-                    </span>
+                <td class="admin-email-cell" title="${escapeHtml(adminEmail)}">
+                    ${escapeHtml(adminEmail)}
                 </td>
                 <td>${stateBadge}</td>
                 <td>
