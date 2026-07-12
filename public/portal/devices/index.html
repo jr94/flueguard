@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +13,7 @@
         Auth.checkAuth();
     </script>
 </head>
+
 <body>
 
     <!-- Notification Toast -->
@@ -83,7 +85,7 @@
 
         <!-- Main Content Area -->
         <main class="dashboard-content">
-            
+
             <!-- Dashboard (Devices List) View -->
             <div id="dashboard-view" class="view active">
                 <div class="back-link-container">
@@ -96,7 +98,7 @@
                     </div>
                     <button id="refresh-btn" class="btn outline-btn" title="Actualizar">↻</button>
                 </div>
-                
+
                 <div id="devices-loader" class="page-loader">
                     <div class="spinner"></div>
                     <p>Cargando dispositivos...</p>
@@ -118,6 +120,7 @@
                                         <th>Temperatura</th>
                                         <th>Último registro</th>
                                         <th>Serial</th>
+                                        <th>Administrador</th>
                                         <th>Estado</th>
                                         <th style="width: 120px;">Acción</th>
                                     </tr>
@@ -133,7 +136,8 @@
                     <div class="devices-section" id="section-cold">
                         <div class="devices-section-header">
                             <h3 class="devices-section-title">Modo frío</h3>
-                            <p class="devices-section-subtitle">Dispositivos sin actividad térmica reciente, pero aún reportando</p>
+                            <p class="devices-section-subtitle">Dispositivos sin actividad térmica reciente, pero aún
+                                reportando</p>
                         </div>
                         <div class="table-container">
                             <table class="data-table">
@@ -144,6 +148,7 @@
                                         <th>Temperatura</th>
                                         <th>Último registro</th>
                                         <th>Serial</th>
+                                        <th>Administrador</th>
                                         <th>Estado</th>
                                         <th style="width: 120px;">Acción</th>
                                     </tr>
@@ -170,6 +175,7 @@
                                         <th>Temperatura</th>
                                         <th>Último registro</th>
                                         <th>Serial</th>
+                                        <th>Administrador</th>
                                         <th>Estado</th>
                                         <th style="width: 120px;">Acción</th>
                                     </tr>
@@ -181,14 +187,14 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div id="no-devices" class="empty-state" style="display: none;">
                     <div class="empty-icon">📱</div>
                     <h3>Sin dispositivos</h3>
                     <p>Aún no tiene dispositivos vinculados.</p>
                 </div>
             </div>
-            
+
         </main>
     </div>
 
@@ -197,4 +203,5 @@
     <script src="../assets/js/layout.js"></script>
     <script src="devices.js"></script>
 </body>
+
 </html>

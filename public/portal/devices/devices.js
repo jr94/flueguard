@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const noDevices = document.getElementById('no-devices');
     const deviceSearch = document.getElementById('device-search');
     const sectionsContainer = document.getElementById('devices-sections-container');
-    
+
     // Tbodies for each section
     const listConnected = document.getElementById('devices-list-connected');
     const listCold = document.getElementById('devices-list-cold');
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Devices View
     fetchDevices();
     startPolling();
-    
+
     // Explicitly start alerts polling for devices page
     if (window.Layout && typeof Layout.startAlertsPolling === 'function') {
         Layout.startAlertsPolling();
@@ -103,7 +103,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchesId = String(device.id).includes(term);
             const matchesName = device.device_name.toLowerCase().includes(term);
             const matchesSerial = device.serial_number.toLowerCase().includes(term);
-            
+            const adminEmail =
+                item.admin_email ||
+                item.owner_email ||
+                item.user_email ||
+                device.admin_email ||
+                device.owner_email ||
+                device.user_email ||
+                device.user?.email ||
+                item.user?.email ||
+                '';
+
+            const matchesAdmin = adminEmail.toLowerCase().includes(term);
+
             const stateStr = device.connection_state || '';
             let matchesCategory = false;
             if (term === 'activo' || term === 'activos') {
@@ -113,8 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (term === 'desconectado' || term === 'desconectados') {
                 matchesCategory = (stateStr === 'disconnected');
             }
-            
-            return matchesId || matchesName || matchesSerial || matchesCategory;
+
+            return matchesId || matchesName || matchesSerial || matchesAdmin || matchesCategory;
         });
 
         // Group into sections
@@ -143,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (items.length === 0) {
             tbodyEl.innerHTML = `
                 <tr>
-                    <td colspan="7" style="color: var(--text-secondary); text-align: center; padding: 1.5rem; font-style: italic;">
+                    <td colspan="8" style="color: var(--text-secondary); text-align: center; padding: 1.5rem; font-style: italic;">
                         ${emptyMessage}
                     </td>
                 </tr>
@@ -155,10 +167,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const device = item.device;
             const tempText = formatTemperature(item.last_temperature);
             const trend = getTrendInfo(device.diffTemp);
-            
+            const adminEmail =
+                item.admin_email ||
+                item.owner_email ||
+                item.user_email ||
+                device.admin_email ||
+                device.owner_email ||
+                device.user_email ||
+                device.user?.email ||
+                item.user?.email ||
+                'Sin administrador';
+
             // Format Last Log Date/Time
             const timeAgoText = formatTimeAgo(device.minutes_since_last_log, item.last_log_time);
-            
+
             // Get Connection State badge
             let stateBadge = '';
             if (device.connection_state === 'connected') {
@@ -179,6 +201,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td style="color: var(--text-secondary);">${timeAgoText}</td>
                 <td><code style="font-family: monospace;">${escapeHtml(device.serial_number)}</code></td>
+                <td>
+                    <span title="${escapeHtml(adminEmail)}">
+                        ${escapeHtml(adminEmail)}
+                    </span>
+                </td>
                 <td>${stateBadge}</td>
                 <td>
                     <a href="/portal/device/${device.serial_number}" class="btn outline-btn" style="padding: 0.35rem 0.8rem; font-size: 0.85rem; text-decoration: none; display: inline-block;">
