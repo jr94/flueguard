@@ -304,7 +304,7 @@ export class TelemetryService {
                 if (!hasRecent) {
                   const newPredictiveAlert = await this.alertsService.create({
                     device_id: device.id,
-                    temperature: prediction.predictedMax,
+                    temperature: temperature,
                     alert_level: predLevelStr,
                     alert_type: `PREDICTIVE_LEVEL_${predLevelStr}`,
                     message:
