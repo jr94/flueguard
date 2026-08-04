@@ -319,29 +319,34 @@ export function calculatePredictiveCurveAlert(
     };
   }
 
+  const LEVEL_2_PREDICTION_WINDOW_MINUTES = 5;
+  const LEVEL_3_PREDICTION_WINDOW_MINUTES = 10;
+
   const predictedMax = currentTemperature + slope * horizonMinutes;
 
   let alertLevel: 0 | 2 | 3 = 0;
   let targetThreshold: number | undefined = undefined;
 
-  if (
+  const isLevel3 =
+    currentTemperature > 300 &&
     shouldCreatePredictiveAlert({
       currentTemperature,
       threshold: threshold3,
       slopeCPerMinute: slope,
-      predictionWindowMinutes: horizonMinutes,
-    })
-  ) {
+      predictionWindowMinutes: LEVEL_3_PREDICTION_WINDOW_MINUTES,
+    });
+
+  const isLevel2 = shouldCreatePredictiveAlert({
+    currentTemperature,
+    threshold: threshold2,
+    slopeCPerMinute: slope,
+    predictionWindowMinutes: LEVEL_2_PREDICTION_WINDOW_MINUTES,
+  });
+
+  if (isLevel3) {
     alertLevel = 3;
     targetThreshold = threshold3;
-  } else if (
-    shouldCreatePredictiveAlert({
-      currentTemperature,
-      threshold: threshold2,
-      slopeCPerMinute: slope,
-      predictionWindowMinutes: horizonMinutes,
-    })
-  ) {
+  } else if (isLevel2) {
     alertLevel = 2;
     targetThreshold = threshold2;
   }
@@ -350,7 +355,7 @@ export function calculatePredictiveCurveAlert(
     const minutesToThreshold = (targetThreshold - currentTemperature) / slope;
 
     console.log(
-      `[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${targetThreshold} slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)} minutesToThreshold=${minutesToThreshold.toFixed(2)} diffTempTrend=${diffTempTrend}`,
+      `[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${targetThreshold} slope=${slope.toFixed(2)}°C/min predicted${horizonMinutes}min=${predictedMax.toFixed(2)} minutesToThreshold=${minutesToThreshold.toFixed(2)} diffTempTrend=${diffTempTrend}`,
     );
 
     return {
@@ -368,7 +373,7 @@ export function calculatePredictiveCurveAlert(
   }
 
   console.log(
-    `[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${threshold2}(T2)/${threshold3}(T3) slope=${slope.toFixed(2)}°C/min predicted10min=${predictedMax.toFixed(2)} diffTempTrend=${diffTempTrend}`,
+    `[PREDICTIVE] currentTemp=${currentTemperature.toFixed(2)} threshold=${threshold2}(T2)/${threshold3}(T3) slope=${slope.toFixed(2)}°C/min predicted${horizonMinutes}min=${predictedMax.toFixed(2)} diffTempTrend=${diffTempTrend}`,
   );
   console.log(
     '[PREDICTIVE] No se genera alerta: no alcanza threshold dentro de la ventana predictiva.',
