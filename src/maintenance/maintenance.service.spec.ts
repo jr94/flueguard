@@ -294,6 +294,54 @@ describe('MaintenanceService', () => {
       expect(mockAlertsService.create).toHaveBeenCalled();
       expect(maintenance.last_urgent_notified_at).toBeInstanceOf(Date);
     });
+
+    it('8b. Caso mensaje incluye nombre de dispositivo cuando se provee', async () => {
+      const usageSeconds = 250 * 3600;
+      const maintenance = {
+        device_id: deviceId,
+        usage_seconds_accumulated: usageSeconds,
+        last_preventive_notified_at: null,
+        last_urgent_notified_at: null,
+      };
+      mockMaintenanceRepository.findOne.mockResolvedValue(maintenance);
+      mockDevicesService.findOne.mockResolvedValue({
+        id: deviceId,
+        serial_number: serialNumber,
+        device_name: 'Estufa del living',
+      });
+
+      await service.checkAndNotifyMaintenance(deviceId);
+
+      expect(mockAlertsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('El dispositivo “Estufa del living” requiere mantención.'),
+        }),
+      );
+    });
+
+    it('8c. Caso mensaje utiliza fallback cuando device_name es nulo, vacío o undefined', async () => {
+      const usageSeconds = 250 * 3600;
+      const maintenance = {
+        device_id: deviceId,
+        usage_seconds_accumulated: usageSeconds,
+        last_preventive_notified_at: null,
+        last_urgent_notified_at: null,
+      };
+      mockMaintenanceRepository.findOne.mockResolvedValue(maintenance);
+      mockDevicesService.findOne.mockResolvedValue({
+        id: deviceId,
+        serial_number: serialNumber,
+        device_name: '  ', // empty/spaces
+      });
+
+      await service.checkAndNotifyMaintenance(deviceId);
+
+      expect(mockAlertsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('El dispositivo requiere mantención.'),
+        }),
+      );
+    });
   });
 
   describe('resetMaintenance', () => {

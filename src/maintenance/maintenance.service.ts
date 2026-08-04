@@ -128,15 +128,18 @@ export class MaintenanceService {
           `[Maintenance] Urgent alert sent device=${deviceId} usageHours=${usageHours}`,
         );
 
+        const device = await this.devicesService.findOne(deviceId);
+        const deviceName = device?.device_name?.trim();
+        const devicePrefix = deviceName ? `El dispositivo “${deviceName}” requiere mantención. ` : `El dispositivo requiere mantención. `;
+
         const alert = await this.alertsService.create({
           device_id: deviceId,
           temperature: 0,
           alert_level: '2', // Level 2 for urgent
           alert_type: 'maintenance_urgent',
-          message: `Tu estufa acumula ${Math.floor(usageHours)} horas de uso. Se recomienda realizar mantención urgente y limpieza del cañón antes de seguir usando la estufa intensivamente.`,
+          message: `${devicePrefix}Tu estufa acumula ${Math.floor(usageHours)} horas de uso. Se recomienda realizar mantención urgente y limpieza del cañón antes de seguir usando la estufa intensivamente.`,
         });
 
-        const device = await this.devicesService.findOne(deviceId);
         await this.pushNotificationsService.sendAlertNotification(
           deviceId,
           {
@@ -166,15 +169,18 @@ export class MaintenanceService {
           `[Maintenance] Preventive alert sent device=${deviceId} usageHours=${usageHours}`,
         );
 
+        const device = await this.devicesService.findOne(deviceId);
+        const deviceName = device?.device_name?.trim();
+        const devicePrefix = deviceName ? `El dispositivo “${deviceName}” requiere mantención. ` : `El dispositivo requiere mantención. `;
+
         const alert = await this.alertsService.create({
           device_id: deviceId,
           temperature: 0,
           alert_level: '1', // Level 1 for preventive
           alert_type: 'maintenance_preventive',
-          message: `Tu estufa acumula ${Math.floor(usageHours)} horas de uso. Se recomienda realizar una limpieza preventiva del cañón y revisar el estado general de la estufa.`,
+          message: `${devicePrefix}Tu estufa acumula ${Math.floor(usageHours)} horas de uso. Se recomienda realizar una limpieza preventiva del cañón y revisar el estado general de la estufa.`,
         });
 
-        const device = await this.devicesService.findOne(deviceId);
         await this.pushNotificationsService.sendAlertNotification(
           deviceId,
           {
