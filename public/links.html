@@ -270,6 +270,34 @@
             color: var(--instagram);
         }
 
+        .icon-shop {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+        }
+
+        .shop-card:hover {
+            border-color: rgba(56, 189, 248, 0.4) !important;
+            box-shadow: 0 8px 24px rgba(56, 189, 248, 0.12) !important;
+        }
+
+        .shop-card:hover .card-chevron {
+            color: var(--primary) !important;
+        }
+
+        .icon-mercadolibre {
+            background: rgba(255, 230, 0, 0.12);
+            color: #ffe600;
+        }
+
+        .mercadolibre-card:hover {
+            border-color: rgba(255, 230, 0, 0.45) !important;
+            box-shadow: 0 8px 24px rgba(255, 230, 0, 0.1) !important;
+        }
+
+        .mercadolibre-card:hover .card-chevron {
+            color: #ffe600 !important;
+        }
+
         .instagram-card:hover {
             border-color: rgba(236, 72, 153, 0.4) !important;
             box-shadow: 0 8px 24px rgba(236, 72, 153, 0.12) !important;
@@ -428,6 +456,14 @@
         .delay-10 {
             animation-delay: 0.68s;
         }
+
+        .delay-11 {
+            animation-delay: 0.75s;
+        }
+
+        .delay-12 {
+            animation-delay: 0.82s;
+        }
     </style>
 </head>
 
@@ -470,8 +506,61 @@
                 </svg>
             </a>
 
-            <!-- Botón 2: Inicio Rápido -->
-            <a id="btn-inicio" href="/manuales/inicio-rapido" class="link-card animate-fade-in delay-3">
+            <!-- Botón 2: Tienda Oficial -->
+            <a id="btn-tienda" href="https://shop.flueguard.cl/" class="link-card shop-card animate-fade-in delay-3"
+                target="_blank" rel="noopener noreferrer">
+                <div class="card-icon-wrapper icon-shop">
+                    <!-- Icono Tienda -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M3 9l1.5-5h15L21 9"></path>
+                        <path d="M5 13v8h14v-8"></path>
+                        <path d="M9 21v-6h6v6"></path>
+                        <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"></path>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Tienda Oficial FlueGuard</span>
+                    <span class="card-subtitle">Compra directa, segura y oficial</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+
+            <!-- Botón 3: Mercado Libre -->
+            <a id="btn-mercadolibre"
+                href="https://www.mercadolibre.cl/flueguard-fgte01-monitoreo-de-temperatura-para-estufas/up/MLCU4423744296"
+                class="link-card mercadolibre-card animate-fade-in delay-4" target="_blank" rel="noopener noreferrer">
+                <div class="card-icon-wrapper icon-mercadolibre">
+                    <!-- Icono Mercado Libre / acuerdo -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M8.5 12.5l2.1 2.1a2 2 0 0 0 2.8 0l3.1-3.1"></path>
+                        <path d="M2.5 9.5l4-3 4 1.5"></path>
+                        <path d="M21.5 9.5l-4-3-4 1.5-2.8 2.2a1.7 1.7 0 0 0 2.2 2.6l2.1-1.5"></path>
+                        <path d="M6.5 14.5l3 3a1.5 1.5 0 0 0 2.1 0l.4-.4"></path>
+                        <path d="M2.5 9.5v4l3 2.5 2-2"></path>
+                        <path d="M21.5 9.5v4l-4.5 4a1.5 1.5 0 0 1-2.1 0l-.4-.4"></path>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <span class="card-title">Comprar en Mercado Libre</span>
+                    <span class="card-subtitle">Disponible en Mercado Libre Chile</span>
+                </div>
+                <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+
+            <!-- Botón 4: Inicio Rápido -->
+            <a id="btn-inicio" href="/manuales/inicio-rapido" class="link-card animate-fade-in delay-5">
                 <div class="card-icon-wrapper icon-accent">
                     <!-- Icono Lightning/Rocket -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -491,8 +580,8 @@
                 </svg>
             </a>
 
-            <!-- Botón 3: Manual de Usuario -->
-            <a id="btn-manual" href="/manuales/manual-usuario" class="link-card animate-fade-in delay-4">
+            <!-- Botón 5: Manual de Usuario -->
+            <a id="btn-manual" href="/manuales/manual-usuario" class="link-card animate-fade-in delay-6">
                 <div class="card-icon-wrapper icon-primary">
                     <!-- Icono Libro -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -514,7 +603,7 @@
             </a>
 
             <!-- Botón: Ficha Técnica -->
-            <a id="btn-ficha" href="/manuales/ficha-tecnica_FG-TE01" class="link-card animate-fade-in delay-5">
+            <a id="btn-ficha" href="/manuales/ficha-tecnica_FG-TE01" class="link-card animate-fade-in delay-7">
                 <div class="card-icon-wrapper icon-primary">
                     <!-- Icono Documento / Ficha Técnica -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -539,8 +628,8 @@
                 </svg>
             </a>
 
-            <!-- Botón 4: Soporte y Garantía -->
-            <a id="btn-soporte" href="/manuales/garantia" class="link-card animate-fade-in delay-6">
+            <!-- Botón 7: Soporte y Garantía -->
+            <a id="btn-soporte" href="/manuales/garantia" class="link-card animate-fade-in delay-8">
                 <div class="card-icon-wrapper icon-accent">
                     <!-- Icono Escudo -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -560,8 +649,8 @@
                 </svg>
             </a>
 
-            <!-- Botón 5: WhatsApp -->
-            <a id="btn-whatsapp" href="#" class="link-card whatsapp-card animate-fade-in delay-7" target="_blank"
+            <!-- Botón 8: WhatsApp -->
+            <a id="btn-whatsapp" href="#" class="link-card whatsapp-card animate-fade-in delay-9" target="_blank"
                 rel="noopener noreferrer">
                 <div class="card-icon-wrapper icon-whatsapp">
                     <!-- Icono WhatsApp -->
@@ -584,8 +673,8 @@
                 </svg>
             </a>
 
-            <!-- Botón 6: Instagram -->
-            <a id="btn-instagram" href="#" class="link-card instagram-card animate-fade-in delay-8" target="_blank"
+            <!-- Botón 9: Instagram -->
+            <a id="btn-instagram" href="#" class="link-card instagram-card animate-fade-in delay-10" target="_blank"
                 rel="noopener noreferrer">
                 <div class="card-icon-wrapper icon-instagram">
                     <!-- Icono Instagram -->
@@ -608,8 +697,8 @@
                 </svg>
             </a>
 
-            <!-- Botón 7: Sitio Web Principal -->
-            <a id="btn-sitio" href="/" class="link-card animate-fade-in delay-9">
+            <!-- Botón 10: Sitio Web Principal -->
+            <a id="btn-sitio" href="/" class="link-card animate-fade-in delay-11">
                 <div class="card-icon-wrapper icon-primary">
                     <!-- Icono Globe -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -636,7 +725,7 @@
         </nav>
 
         <!-- Redes secundarias (YouTube y Correo) en fila horizontal -->
-        <div class="secondary-links-row animate-fade-in delay-10">
+        <div class="secondary-links-row animate-fade-in delay-12">
             <!-- YouTube -->
             <a id="btn-youtube" href="#" class="secondary-btn secondary-btn-youtube" target="_blank"
                 rel="noopener noreferrer" aria-label="Canal de YouTube">
@@ -662,7 +751,7 @@
         </div>
 
         <!-- Footer -->
-        <footer class="footer animate-fade-in delay-10">
+        <footer class="footer animate-fade-in delay-12">
             <span class="footer-text">&copy; 2026 <a href="/" class="footer-link">FlueGuard</a>. Todos los derechos
                 reservados.</span>
             <div class="footer-badge">
@@ -677,6 +766,8 @@
         const CONFIG = {
             sitioWeb: "/",
             descargarApp: "https://play.google.com/store/apps/details?id=cl.flueguard.app",
+            tiendaOficial: "https://shop.flueguard.cl/",
+            mercadoLibre: "https://www.mercadolibre.cl/flueguard-fgte01-monitoreo-de-temperatura-para-estufas/up/MLCU4423744296",
             manualUsuario: "/manuales/manual-usuario",
             inicioRapido: "/manuales/inicio-rapido",
             soporteGarantia: "/manuales/garantia",
@@ -698,6 +789,8 @@
 
             setHref("btn-sitio", CONFIG.sitioWeb);
             setHref("btn-app", CONFIG.descargarApp);
+            setHref("btn-tienda", CONFIG.tiendaOficial);
+            setHref("btn-mercadolibre", CONFIG.mercadoLibre);
             setHref("btn-inicio", CONFIG.inicioRapido);
             setHref("btn-manual", CONFIG.manualUsuario);
             setHref("btn-soporte", CONFIG.soporteGarantia);
